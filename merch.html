@@ -190,6 +190,7 @@
       <a href="index.html">Home</a>
       <a href="index.html#schedule">Schedule</a>
       <a href="about.html">About</a>
+      <a href="gallery.html">Gallery</a>
       <a href="merch.html" class="nav-highlight active">Shop</a>
     </div>
   </div>
@@ -257,10 +258,10 @@
       </div>
 
       <div class="order-actions">
-        <button class="btn btn-primary" id="orderBtn">Order via Messenger</button>
+        <a class="btn btn-primary" id="orderBtn" href="#" target="_blank" rel="noopener">Order Now</a>
         <a class="btn btn-ghost" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Ask a question</a>
       </div>
-      <div class="copy-note" id="copyNote">Order details copied — paste them into the Messenger chat that just opened.</div>
+      <div class="copy-note show" id="copyNote">Your size is pre-filled in the order form — just add your details and submit.</div>
     </div>
   </div>
 
@@ -275,12 +276,15 @@
         <tr><th>Size</th><th>Chest Width</th><th>Body Length</th></tr>
       </thead>
       <tbody>
+        <tr><td>XS</td><td>46</td><td>66</td></tr>
         <tr><td>S</td><td>48</td><td>68</td></tr>
         <tr><td>M</td><td>50</td><td>70</td></tr>
         <tr><td>L</td><td>52</td><td>72</td></tr>
         <tr><td>XL</td><td>54</td><td>74</td></tr>
         <tr><td>2XL</td><td>56</td><td>76</td></tr>
         <tr><td>3XL</td><td>58</td><td>78</td></tr>
+        <tr><td>4XL</td><td>60</td><td>80</td></tr>
+        <tr><td>5XL</td><td>62</td><td>82</td></tr>
       </tbody>
     </table>
   </div>
@@ -296,6 +300,7 @@
   <div class="foot-links">
     <a href="index.html">Home</a>
     <a href="about.html">About</a>
+    <a href="gallery.html">Gallery</a>
     <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
   </div>
   <p>One Cavite Pickleball Club · SM City Rosario · See you on the lines!</p>
@@ -305,18 +310,32 @@
 <script>
   // ================= EDIT THESE AS NEEDED =================
   const PRICE = 450;
-  const SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
-  const FB_USERNAME = "onecavitepickleball"; // used to build the Messenger link
+  const SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
+
+  // Google Form order link. GOOGLE_FORM_BASE is the pre-fill base URL for
+  // your form (Form ⋮ menu → Get pre-filled link). SIZE_ENTRY_ID is the
+  // field ID for the Size question on that form — this carries the size
+  // someone picks on the site straight into the form.
+  //
+  // Quantity isn't pre-filled yet. If you want that too: on your Google
+  // Form, use "Get pre-filled link" again, this time also filling in a
+  // sample Quantity answer, then send the resulting entry.XXXXXXX id for
+  // Quantity and I'll wire it in the same way.
+  const GOOGLE_FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSedmpi-wNFFX58PbiBcRxfegOSGQWel-CLdH1u69PF1VfgMnw/viewform?usp=pp_url";
+  const SIZE_ENTRY_ID = "entry.65803675";
   // ==========================================================
 
-  let selectedSize = SIZES[1]; // default to M
+  let selectedSize = SIZES[2]; // default to M
   let qty = 1;
 
   const sizeGrid = document.getElementById('sizeGrid');
   const qtyVal = document.getElementById('qtyVal');
   const orderTotal = document.getElementById('orderTotal');
   const orderBtn = document.getElementById('orderBtn');
-  const copyNote = document.getElementById('copyNote');
+
+  function updateOrderLink(){
+    orderBtn.href = `${GOOGLE_FORM_BASE}&${SIZE_ENTRY_ID}=${encodeURIComponent(selectedSize)}`;
+  }
 
   function renderSizes(){
     sizeGrid.innerHTML = SIZES.map(s => `
@@ -326,6 +345,7 @@
       btn.addEventListener('click', () => {
         selectedSize = btn.dataset.size;
         renderSizes();
+        updateOrderLink();
       });
     });
   }
@@ -351,22 +371,9 @@
     });
   });
 
-  orderBtn.addEventListener('click', async () => {
-    const total = PRICE * qty;
-    const summary = `Hi! I'd like to order the OCPC Sublimation Uniform.\nSize: ${selectedSize}\nQuantity: ${qty}\nTotal: ₱${total.toLocaleString()}\n(Please let me know the batch status and payment details.)`;
-
-    try {
-      await navigator.clipboard.writeText(summary);
-      copyNote.classList.add('show');
-    } catch (e) {
-      // clipboard may be unavailable; order summary is still visible on the page
-    }
-
-    window.open(`https://m.me/${FB_USERNAME}`, '_blank');
-  });
-
   renderSizes();
   updateTotal();
+  updateOrderLink();
 </script>
 
 </body>
