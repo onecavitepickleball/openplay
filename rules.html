@@ -243,6 +243,104 @@
     .bounce-stepper{ grid-template-columns:1fr; }
   }
 
+  /* ---- PARTNER POSITION VISUALIZER ---- */
+  .position-stepper{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap:32px;
+    align-items:center;
+  }
+  .position-svg-wrap{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:20px;
+    background: var(--white);
+  }
+  .position-svg-wrap svg{ width:100%; height:auto; display:block; }
+  .player-silhouette{ transition: transform 0.5s ease; }
+  .serve-badge{ transition: opacity 0.3s ease, transform 0.5s ease; }
+
+  .position-panel{ display:flex; flex-direction:column; gap:12px; }
+  .position-score-row{
+    display:flex;
+    gap:20px;
+    font-family: var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+  .position-score-row .team-blue{ color: var(--sky-deep); font-weight:700; }
+  .position-score-row .team-green{ color: #2E9E5B; font-weight:700; }
+  .position-panel h4{ font-size:19px; font-weight:700; }
+  .position-panel p{ font-size:14px; line-height:1.7; color: var(--ink-soft); min-height:96px; }
+
+  @media (max-width: 780px){
+    .position-stepper{ grid-template-columns:1fr; }
+  }
+
+  /* ---- SCORING MODE TABS ---- */
+  .mode-tabs{
+    display:flex;
+    gap:0;
+    border-bottom: 1.5px solid var(--line);
+    margin-bottom:28px;
+  }
+  .mode-tab{
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:12px 20px;
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    border-bottom: 3px solid transparent;
+    margin-bottom:-1.5px;
+  }
+  .mode-tab.active{ color: var(--ink); border-bottom-color: var(--pop); }
+  .mode-panel{ display:none; }
+  .mode-panel.active{ display:block; }
+
+  .rally-basics{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom:28px;
+  }
+  .rally-fact{ background: var(--paper); padding:20px 16px; text-align:center; }
+  .rally-fact .num{ display:block; font-family: var(--font-display); font-size:30px; color: var(--sky-deep); margin-bottom:6px; }
+  .rally-fact .lbl{ font-family: var(--font-mono); font-size:10.5px; letter-spacing:0.05em; text-transform:uppercase; color: var(--ink-soft); line-height:1.5; }
+  @media (max-width: 700px){ .rally-basics{ grid-template-columns:1fr; } }
+
+  .target-toggle{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:20px;
+    justify-content:center;
+  }
+  .target-toggle span{ font-family: var(--font-mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color: var(--ink-faint); }
+  .target-toggle button{
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size:12px;
+    padding:8px 16px;
+    border-radius:4px;
+    border: 1.5px solid var(--line);
+    background: var(--white);
+    cursor:pointer;
+  }
+  .target-toggle button.active{ background: var(--navy); color: var(--paper); border-color: var(--navy); }
+
+  .compare-table{ width:100%; border-collapse:collapse; margin-top:8px; }
+  .compare-table th, .compare-table td{ padding:12px 14px; text-align:left; border-bottom: 1px solid var(--line); font-size:13.5px; vertical-align:top; }
+  .compare-table th{ font-family: var(--font-mono); font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color: var(--sky-deep); }
+  .compare-table td.label-cell{ font-weight:700; font-family: var(--font-mono); font-size:11px; letter-spacing:0.04em; text-transform:uppercase; color: var(--ink-soft); white-space:nowrap; }
+
   /* ---- SCORING VISUALIZER ---- */
   .scoring-basics{
     display:grid;
@@ -500,60 +598,217 @@
     </div>
   </div>
 
-  <!-- KITCHEN CALLOUT -->
-  <!-- SCORING -->
+  <!-- PARTNER POSITIONS & SERVING -->
   <div class="section reveal">
     <div class="section-head">
       <span class="section-index">04</span>
+      <h2>Try It: Partner Positions</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="position-stepper">
+      <div class="position-svg-wrap">
+        <svg viewBox="0 0 440 260" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="30" width="420" height="200" fill="none" stroke="#0B2436" stroke-width="2"/>
+          <rect x="150" y="30" width="70" height="200" fill="rgba(79,182,255,0.1)"/>
+          <rect x="220" y="30" width="70" height="200" fill="rgba(79,182,255,0.1)"/>
+          <line x1="10" y1="130" x2="150" y2="130" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="290" y1="130" x2="430" y2="130" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="150" y1="30" x2="150" y2="230" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="290" y1="30" x2="290" y2="230" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="220" y1="24" x2="220" y2="236" stroke="#005E89" stroke-width="4"/>
+
+          <!-- court half labels -->
+          <text x="80" y="80" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">EVEN COURT</text>
+          <text x="80" y="182" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">ODD COURT</text>
+          <text x="360" y="80" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">EVEN COURT</text>
+          <text x="360" y="182" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">ODD COURT</text>
+
+          <!-- Blue team silhouettes (left side) -->
+          <g id="blue1" class="player-silhouette" transform="translate(80,80)">
+            <circle cx="0" cy="-10" r="9" fill="#005E89"/>
+            <path d="M-14,22 Q-14,-2 0,0 Q14,-2 14,22 Z" fill="#005E89"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" font-family="monospace" fill="#F5F3EE" font-weight="700">B1</text>
+          </g>
+          <g id="blue2" class="player-silhouette" transform="translate(80,182)">
+            <circle cx="0" cy="-10" r="9" fill="#2C93DE"/>
+            <path d="M-14,22 Q-14,-2 0,0 Q14,-2 14,22 Z" fill="#2C93DE"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" font-family="monospace" fill="#F5F3EE" font-weight="700">B2</text>
+          </g>
+
+          <!-- Green team silhouettes (right side) -->
+          <g id="green1" class="player-silhouette" transform="translate(360,80)">
+            <circle cx="0" cy="-10" r="9" fill="#2E9E5B"/>
+            <path d="M-14,22 Q-14,-2 0,0 Q14,-2 14,22 Z" fill="#2E9E5B"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" font-family="monospace" fill="#F5F3EE" font-weight="700">G1</text>
+          </g>
+          <g id="green2" class="player-silhouette" transform="translate(360,182)">
+            <circle cx="0" cy="-10" r="9" fill="#6BC98D"/>
+            <path d="M-14,22 Q-14,-2 0,0 Q14,-2 14,22 Z" fill="#6BC98D"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" font-family="monospace" fill="#F5F3EE" font-weight="700">G2</text>
+          </g>
+
+          <!-- serve badge -->
+          <g id="serveBadge" class="serve-badge" transform="translate(80,55)">
+            <circle cx="0" cy="0" r="7" fill="#FF5A36"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">S</text>
+          </g>
+        </svg>
+      </div>
+      <div class="position-panel">
+        <div class="position-score-row">
+          <span class="team-blue" id="posScoreBlue">BLUE: 0</span>
+          <span class="team-green" id="posScoreGreen">GREEN: 0</span>
+        </div>
+        <div class="stepper-count" id="posStepCount">Step 1 of 6</div>
+        <h4 id="posTitle">Game Start — Serve from the Even Court</h4>
+        <p id="posDesc">Score is 0–0 (even). The server always starts on the even-numbered side of their own court — commonly called the "right" court. Blue 1 serves diagonally to Green's court.</p>
+        <div class="stepper-dots" id="posDots">
+          <span class="active"></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="stepper-controls">
+          <button class="btn-reset" id="posReset">Reset</button>
+          <button class="btn-next" id="posNext">Next Step →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORING -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">05</span>
       <h2>Try It: Scoring</h2>
       <span class="section-rule"></span>
     </div>
 
-    <div class="scoring-basics">
-      <div class="score-fact">
-        <span class="num">11</span>
-        <span class="lbl">Points to win<br>(win by 2)</span>
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="sideout">Side-Out Scoring</button>
+      <button class="mode-tab" data-mode="rally">Rally Scoring</button>
+    </div>
+
+    <!-- SIDE-OUT MODE -->
+    <div class="mode-panel active" id="modeSideOut">
+      <div class="scoring-basics">
+        <div class="score-fact">
+          <span class="num">11</span>
+          <span class="lbl">Points to win<br>(win by 2)</span>
+        </div>
+        <div class="score-fact">
+          <span class="num">1</span>
+          <span class="lbl">Side scores —<br>only the serving team</span>
+        </div>
+        <div class="score-fact">
+          <span class="num">3</span>
+          <span class="lbl">Numbers called —<br>Serving · Receiving · Server #</span>
+        </div>
       </div>
-      <div class="score-fact">
-        <span class="num">1</span>
-        <span class="lbl">Side scores —<br>only the serving team</span>
-      </div>
-      <div class="score-fact">
-        <span class="num">3</span>
-        <span class="lbl">Numbers called —<br>Serving · Receiving · Server #</span>
+
+      <div class="scoreboard-sim">
+        <div class="scoreboard-display">
+          <div class="scoreboard-numbers">
+            <div class="sb-team" id="sbTeamA">
+              <span class="sb-num" id="sbScoreA">0</span>
+              <span class="sb-label">Team A</span>
+            </div>
+            <span class="sb-dash">–</span>
+            <div class="sb-team" id="sbTeamB">
+              <span class="sb-num" id="sbScoreB">0</span>
+              <span class="sb-label">Team B</span>
+            </div>
+            <span class="sb-dash">–</span>
+            <div class="sb-team">
+              <span class="sb-num" id="sbServerNum">2</span>
+              <span class="sb-label">Server #</span>
+            </div>
+          </div>
+          <div class="sb-serving-tag" id="sbServingTag">Team A is serving</div>
+        </div>
+
+        <div class="sb-narration" id="sbNarration">
+          This is the very first serve of the game — the serving team only gets one server turn to start (no "server 1"), so it's called as Server #2. Tap a button below to simulate who wins each rally.
+        </div>
+
+        <div class="sb-controls">
+          <button class="btn btn-navy" id="sbWinA">Team A Wins Rally</button>
+          <button class="btn btn-navy" id="sbWinB">Team B Wins Rally</button>
+        </div>
+        <button class="btn btn-ghost" id="sbReset" style="margin-top:10px;">Reset Score</button>
       </div>
     </div>
 
-    <div class="scoreboard-sim">
-      <div class="scoreboard-display">
-        <div class="scoreboard-numbers">
-          <div class="sb-team" id="sbTeamA">
-            <span class="sb-num" id="sbScoreA">0</span>
-            <span class="sb-label">Team A</span>
-          </div>
-          <span class="sb-dash">–</span>
-          <div class="sb-team" id="sbTeamB">
-            <span class="sb-num" id="sbScoreB">0</span>
-            <span class="sb-label">Team B</span>
-          </div>
-          <span class="sb-dash">–</span>
-          <div class="sb-team">
-            <span class="sb-num" id="sbServerNum">2</span>
-            <span class="sb-label">Server #</span>
-          </div>
+    <!-- RALLY MODE -->
+    <div class="mode-panel" id="modeRally">
+      <div class="rally-basics">
+        <div class="rally-fact">
+          <span class="num">Any</span>
+          <span class="lbl">Side scores —<br>whoever wins the rally</span>
         </div>
-        <div class="sb-serving-tag" id="sbServingTag">Team A is serving</div>
+        <div class="rally-fact">
+          <span class="num">No</span>
+          <span class="lbl">Position switching —<br>partners stay put</span>
+        </div>
+        <div class="rally-fact">
+          <span class="num">15/21</span>
+          <span class="lbl">Points to win<br>(win by 2)</span>
+        </div>
       </div>
 
-      <div class="sb-narration" id="sbNarration">
-        This is the very first serve of the game — the serving team only gets one server turn to start (no "server 1"), so it's called as Server #2. Tap a button below to simulate who wins each rally.
+      <p style="font-size:14.5px; line-height:1.75; color:var(--ink-soft); max-width:640px; margin:0 auto 24px;">
+        In <b>rally scoring</b>, every rally results in a point — for whichever side wins it, whether they served
+        or not. Because scoring isn't tied to who's serving, doubles play doesn't need the "first server / second
+        server" sequence from side-out scoring, and partners don't switch sides between points since court
+        position isn't used to track who serves next. Serve still follows the normal serve rules (underhand,
+        diagonal, one attempt), and possession simply passes to whichever side is due next. This format plays
+        faster and more predictably than side-out scoring, which is why it shows up often in team and
+        tournament formats. Games are commonly played to <b>15</b> points by default, though some formats go to
+        <b>21</b> — always win by 2.
+      </p>
+
+      <div class="target-toggle">
+        <span>Play to:</span>
+        <button class="active" data-target="15">15</button>
+        <button data-target="21">21</button>
       </div>
 
-      <div class="sb-controls">
-        <button class="btn btn-navy" id="sbWinA">Team A Wins Rally</button>
-        <button class="btn btn-navy" id="sbWinB">Team B Wins Rally</button>
+      <div class="scoreboard-sim">
+        <div class="scoreboard-display">
+          <div class="scoreboard-numbers">
+            <div class="sb-team" id="rbTeamA">
+              <span class="sb-num" id="rbScoreA">0</span>
+              <span class="sb-label">Team A</span>
+            </div>
+            <span class="sb-dash">–</span>
+            <div class="sb-team" id="rbTeamB">
+              <span class="sb-num" id="rbScoreB">0</span>
+              <span class="sb-label">Team B</span>
+            </div>
+          </div>
+          <div class="sb-serving-tag" id="rbTag">Playing to 15, win by 2</div>
+        </div>
+
+        <div class="sb-narration" id="rbNarration">
+          Either team can score on any rally. Tap a button to simulate who wins each point.
+        </div>
+
+        <div class="sb-controls">
+          <button class="btn btn-navy" id="rbWinA">Team A Wins Rally</button>
+          <button class="btn btn-navy" id="rbWinB">Team B Wins Rally</button>
+        </div>
+        <button class="btn btn-ghost" id="rbReset" style="margin-top:10px;">Reset Score</button>
       </div>
-      <button class="btn btn-ghost" id="sbReset" style="margin-top:10px;">Reset Score</button>
+
+      <table class="compare-table" style="margin-top:32px;">
+        <thead>
+          <tr><th>What Changes</th><th>Side-Out Scoring</th><th>Rally Scoring</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="label-cell">Who can score</td><td>Only the serving team</td><td>Either team, every rally</td></tr>
+          <tr><td class="label-cell">Server sequence</td><td>First &amp; second server per team</td><td>No second-server rule</td></tr>
+          <tr><td class="label-cell">Switching sides</td><td>Server switches sides after each point won</td><td>Partners stay in place</td></tr>
+          <tr><td class="label-cell">Typical target</td><td>11 points, win by 2</td><td>15 or 21 points, win by 2</td></tr>
+          <tr><td class="label-cell">Common use</td><td>Everyday open play, rec leagues</td><td>Team formats, some tournaments</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -568,7 +823,7 @@
   <!-- ETIQUETTE -->
   <div class="section reveal">
     <div class="section-head">
-      <span class="section-index">05</span>
+      <span class="section-index">06</span>
       <h2>Court Etiquette</h2>
       <span class="section-rule"></span>
     </div>
@@ -804,6 +1059,160 @@
   });
 
   renderScoreboard();
+
+  // ---- Mode tabs (Side-Out vs Rally) ----
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(tab.dataset.mode === 'sideout' ? 'modeSideOut' : 'modeRally').classList.add('active');
+    });
+  });
+
+  // ---- Rally scoring simulator ----
+  let rb = { scoreA: 0, scoreB: 0, target: 15, gameOver: false };
+  const rbScoreA = document.getElementById('rbScoreA');
+  const rbScoreB = document.getElementById('rbScoreB');
+  const rbTag = document.getElementById('rbTag');
+  const rbNarration = document.getElementById('rbNarration');
+
+  function renderRally(message){
+    rbScoreA.textContent = rb.scoreA;
+    rbScoreB.textContent = rb.scoreB;
+    rbTag.textContent = rb.gameOver
+      ? `Game! Team ${rb.scoreA > rb.scoreB ? 'A' : 'B'} wins.`
+      : `Playing to ${rb.target}, win by 2`;
+    if (message) rbNarration.textContent = message;
+  }
+
+  function playRallyPoint(winner){
+    if (rb.gameOver) return;
+    if (winner === 'A') rb.scoreA++; else rb.scoreB++;
+    const leading = Math.max(rb.scoreA, rb.scoreB);
+    const trailing = Math.min(rb.scoreA, rb.scoreB);
+    if (leading >= rb.target && (leading - trailing) >= 2){
+      rb.gameOver = true;
+      renderRally(`Game! Team ${rb.scoreA > rb.scoreB ? 'A' : 'B'} wins ${leading}–${trailing}. Since either side can score at any time, the final gap can be tighter or wider than side-out games — it just comes down to who wins more rallies.`);
+      return;
+    }
+    renderRally(`Team ${winner} wins that rally and scores a point — no need to check who was serving, both teams stay in the running every rally.`);
+  }
+
+  document.getElementById('rbWinA').addEventListener('click', () => playRallyPoint('A'));
+  document.getElementById('rbWinB').addEventListener('click', () => playRallyPoint('B'));
+  document.getElementById('rbReset').addEventListener('click', () => {
+    rb = { scoreA: 0, scoreB: 0, target: rb.target, gameOver: false };
+    renderRally('Either team can score on any rally. Tap a button to simulate who wins each point.');
+  });
+  document.querySelectorAll('.target-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.target-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      rb = { scoreA: 0, scoreB: 0, target: parseInt(btn.dataset.target), gameOver: false };
+      renderRally(`Target changed to ${rb.target} — score reset. Either team can score on any rally.`);
+    });
+  });
+  renderRally();
+
+  // ---- Partner position stepper ----
+  const posSteps = [
+    {
+      title: 'Game Start — Serve from the Even Court',
+      desc: `Score is 0–0 (even). The server always starts on the even-numbered side of their own court — commonly called the "right" court. Blue 1 serves diagonally to Green's court.`,
+      scoreBlue: 0, scoreGreen: 0, serverPos: 'blue1-even', swap: null
+    },
+    {
+      title: 'Blue Wins the Rally — Score Becomes Odd',
+      desc: `Blue scored, so their team score is now 1 (odd). Because the score is odd, the server's team switches sides — Blue 1 and Blue 2 swap positions, and Blue 1 now serves from the odd court.`,
+      scoreBlue: 1, scoreGreen: 0, serverPos: 'blue1-odd', swap: 'blue'
+    },
+    {
+      title: 'Blue Wins Again — Back to Even',
+      desc: `Blue's score is now 2 (even) — so Blue 1 and Blue 2 switch back, and Blue 1 serves from the even court again. This side-switch happens every time the serving team scores.`,
+      scoreBlue: 2, scoreGreen: 0, serverPos: 'blue1-even', swap: 'blue'
+    },
+    {
+      title: 'Blue Loses the Rally — Side Out',
+      desc: `Blue loses this rally. Since this was the very first service of the game (a special one-serve-only turn), it's an immediate side-out — no second server for Blue this time. Serve passes to Green.`,
+      scoreBlue: 2, scoreGreen: 0, serverPos: null, swap: null
+    },
+    {
+      title: `Green Serves From Wherever They're Standing`,
+      desc: `Positions are NOT reset at a side-out. Green's score is 0 (even), so whichever Green player is currently on their even court serves next — in this case, Green 1. They just follow the same even/odd rule from here for their own score.`,
+      scoreBlue: 2, scoreGreen: 0, serverPos: 'green1-even', swap: null
+    },
+    {
+      title: 'After a First Fault, the Partner Serves Next',
+      desc: `From here on (past the very first serve of the game), if a server loses a rally, it's not an automatic side-out — their partner becomes the "second server" and serves next from whichever side matches their team's current score, before the ball passes to the other team.`,
+      scoreBlue: 2, scoreGreen: 0, serverPos: 'green2-even', swap: null
+    }
+  ];
+
+  let posIndex = 0;
+  const posStepCount = document.getElementById('posStepCount');
+  const posTitle = document.getElementById('posTitle');
+  const posDesc = document.getElementById('posDesc');
+  const posDots = document.querySelectorAll('#posDots span');
+  const posScoreBlue = document.getElementById('posScoreBlue');
+  const posScoreGreen = document.getElementById('posScoreGreen');
+  const serveBadge = document.getElementById('serveBadge');
+
+  const posCoords = {
+    'blue1-even': { x: 80, y: 80 },
+    'blue1-odd':  { x: 80, y: 182 },
+    'blue2-even': { x: 80, y: 80 },
+    'blue2-odd':  { x: 80, y: 182 },
+    'green1-even': { x: 360, y: 55 },
+    'green1-odd':  { x: 360, y: 157 },
+    'green2-even': { x: 360, y: 55 },
+    'green2-odd':  { x: 360, y: 157 }
+  };
+
+  function renderPosition(){
+    const s = posSteps[posIndex];
+    posStepCount.textContent = `Step ${posIndex + 1} of ${posSteps.length}`;
+    posTitle.textContent = s.title;
+    posDesc.textContent = s.desc;
+    posDots.forEach((d, i) => d.classList.toggle('active', i === posIndex));
+    posScoreBlue.textContent = `BLUE: ${s.scoreBlue}`;
+    posScoreGreen.textContent = `GREEN: ${s.scoreGreen}`;
+
+    // swap blue1/blue2 vertical positions if this step calls for a switch
+    const blue1El = document.getElementById('blue1');
+    const blue2El = document.getElementById('blue2');
+    if (s.swap === 'blue'){
+      const b1y = blue1El.getAttribute('transform').includes('182') ? 182 : 80;
+      const newB1y = b1y === 80 ? 182 : 80;
+      const newB2y = newB1y === 80 ? 182 : 80;
+      blue1El.setAttribute('transform', `translate(80,${newB1y})`);
+      blue2El.setAttribute('transform', `translate(80,${newB2y})`);
+    }
+
+    if (s.serverPos && posCoords[s.serverPos]){
+      serveBadge.style.opacity = '1';
+      const c = posCoords[s.serverPos];
+      const yOffset = s.serverPos.includes('blue') ? -25 : (s.serverPos.includes('even') ? -25 : 25);
+      serveBadge.setAttribute('transform', `translate(${c.x},${c.y + yOffset})`);
+    } else {
+      serveBadge.style.opacity = '0';
+    }
+
+    document.getElementById('posNext').textContent = posIndex === posSteps.length - 1 ? 'Start Over ↺' : 'Next Step →';
+  }
+
+  document.getElementById('posNext').addEventListener('click', () => {
+    posIndex = (posIndex + 1) % posSteps.length;
+    renderPosition();
+  });
+  document.getElementById('posReset').addEventListener('click', () => {
+    posIndex = 0;
+    document.getElementById('blue1').setAttribute('transform', 'translate(80,80)');
+    document.getElementById('blue2').setAttribute('transform', 'translate(80,182)');
+    renderPosition();
+  });
+
+  renderPosition();
 </script>
 
 </body>
