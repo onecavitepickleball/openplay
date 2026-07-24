@@ -204,6 +204,7 @@
   .stepper-svg-wrap svg{ width:100%; height:auto; display:block; }
   #stepperBall{ transition: cx 0.5s ease, cy 0.5s ease; }
   #stepperBounceMark{ transition: opacity 0.3s ease; }
+  #stepperPlayerA, #stepperPlayerB{ transition: transform 0.6s ease; }
 
   .stepper-panel{
     display:flex;
@@ -580,6 +581,16 @@
           <line x1="290" y1="10" x2="290" y2="210" stroke="#0B2436" stroke-width="1.5"/>
           <line x1="220" y1="4" x2="220" y2="216" stroke="#005E89" stroke-width="4"/>
           <circle id="stepperBounceMark" cx="110" cy="60" r="10" fill="none" stroke="#FF5A36" stroke-width="2" opacity="0"/>
+
+          <g id="stepperPlayerA" class="player-silhouette" transform="translate(35,110)">
+            <circle cx="0" cy="-9" r="8" fill="#005E89"/>
+            <path d="M-12,20 Q-12,-2 0,0 Q12,-2 12,20 Z" fill="#005E89"/>
+          </g>
+          <g id="stepperPlayerB" class="player-silhouette" transform="translate(405,110)">
+            <circle cx="0" cy="-9" r="8" fill="#2E9E5B"/>
+            <path d="M-12,20 Q-12,-2 0,0 Q12,-2 12,20 Z" fill="#2E9E5B"/>
+          </g>
+
           <circle id="stepperBall" cx="30" cy="60" r="7" fill="#0B2436"/>
         </svg>
       </div>
@@ -618,8 +629,8 @@
           <line x1="220" y1="24" x2="220" y2="236" stroke="#005E89" stroke-width="4"/>
 
           <!-- court half labels -->
-          <text x="80" y="80" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">EVEN COURT</text>
-          <text x="80" y="182" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">ODD COURT</text>
+          <text x="80" y="80" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">ODD COURT</text>
+          <text x="80" y="182" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">EVEN COURT</text>
           <text x="360" y="80" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">EVEN COURT</text>
           <text x="360" y="182" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">ODD COURT</text>
 
@@ -942,11 +953,11 @@
 
   // ---- Two-bounce rule stepper ----
   const bounceSteps = [
-    { title: 'The Serve', desc: 'The server hits underhand, diagonally crosscourt, aiming for the opponent\'s service box on the far side of the net.', ballX: 35, ballY: 165, bounce: null },
-    { title: 'Bounce #1 — Receiving Side', desc: 'The serve must bounce once on the receiving side (the far side, where it landed) before that player can hit it. No volleys yet.', ballX: 365, ballY: 60, bounce: {x: 365, y: 60} },
-    { title: 'Return of Serve', desc: 'The receiver returns the ball back across the net to the serving side — also off the bounce, not out of the air.', ballX: 90, ballY: 175, bounce: null },
-    { title: 'Bounce #2 — Serving Side', desc: 'The return must also bounce once on the serving side (back where the server started) before that team can hit it. This is the "two" in two-bounce rule.', ballX: 90, ballY: 175, bounce: {x: 90, y: 175} },
-    { title: 'Free Play Begins', desc: 'Both mandatory bounces are done — from here, either side can volley (as long as they\'re outside the kitchen) or let it bounce. Normal rally rules apply.', ballX: 180, ballY: 110, bounce: null }
+    { title: 'The Serve', desc: 'The server hits underhand, diagonally crosscourt, aiming for the opponent\'s service box on the far side of the net.', ballX: 35, ballY: 165, bounce: null, playerAx: 35, playerBx: 405 },
+    { title: 'Bounce #1 — Receiving Side', desc: 'The serve must bounce once on the receiving side (the far side, where it landed) before that player can hit it. No volleys yet.', ballX: 365, ballY: 60, bounce: {x: 365, y: 60}, playerAx: 35, playerBx: 405 },
+    { title: 'Return of Serve', desc: 'The receiver returns the ball back across the net to the serving side — also off the bounce, not out of the air.', ballX: 90, ballY: 175, bounce: null, playerAx: 35, playerBx: 405 },
+    { title: 'Bounce #2 — Serving Side', desc: 'The return must also bounce once on the serving side (back where the server started) before that team can hit it. This is the "two" in two-bounce rule.', ballX: 90, ballY: 175, bounce: {x: 90, y: 175}, playerAx: 35, playerBx: 405 },
+    { title: 'Free Play Begins', desc: 'Both mandatory bounces are done — from here, either side can volley (as long as they\'re outside the kitchen) or let it bounce. Both players move up toward the kitchen line to take a better position for the rest of the rally. Normal rally rules apply.', ballX: 180, ballY: 110, bounce: null, playerAx: 140, playerBx: 300 }
   ];
 
   let stepIndex = 0;
@@ -956,6 +967,8 @@
   const stepDots = document.querySelectorAll('#stepDots span');
   const stepperBall = document.getElementById('stepperBall');
   const stepperBounceMark = document.getElementById('stepperBounceMark');
+  const stepperPlayerA = document.getElementById('stepperPlayerA');
+  const stepperPlayerB = document.getElementById('stepperPlayerB');
   const stepNextBtn = document.getElementById('stepNext');
 
   function renderStep(){
@@ -966,6 +979,8 @@
     stepDots.forEach((d, i) => d.classList.toggle('active', i === stepIndex));
     stepperBall.setAttribute('cx', s.ballX);
     stepperBall.setAttribute('cy', s.ballY);
+    stepperPlayerA.setAttribute('transform', `translate(${s.playerAx},110)`);
+    stepperPlayerB.setAttribute('transform', `translate(${s.playerBx},110)`);
     if (s.bounce){
       stepperBounceMark.setAttribute('cx', s.bounce.x);
       stepperBounceMark.setAttribute('cy', s.bounce.y);
@@ -1119,18 +1134,18 @@
   const posSteps = [
     {
       title: 'Game Start — Serve from the Even Court',
-      desc: `Score is 0–0 (even). The server always starts on the even-numbered side of their own court — commonly called the "right" court. Blue 1 serves diagonally to Green's court.`,
-      scoreBlue: 0, scoreGreen: 0, serverPos: 'blue1-even', swap: null
+      desc: `Score is 0–0 (even). The server always starts on the even-numbered side of their own court — the side closer to their right hand when facing the net, which is why it's commonly called the "right" court. For Blue, that's the bottom court in this diagram, where Blue 2 is standing — so Blue 2 serves first.`,
+      scoreBlue: 0, scoreGreen: 0, serverPos: 'blue2-even', swap: null
     },
     {
       title: 'Blue Wins the Rally — Score Becomes Odd',
-      desc: `Blue scored, so their team score is now 1 (odd). Because the score is odd, the server's team switches sides — Blue 1 and Blue 2 swap positions, and Blue 1 now serves from the odd court.`,
-      scoreBlue: 1, scoreGreen: 0, serverPos: 'blue1-odd', swap: 'blue'
+      desc: `Blue scored, so their team score is now 1 (odd). Because the score is odd, the server's team switches sides — Blue 1 and Blue 2 swap positions, and Blue 2 (still serving) now serves from the odd court.`,
+      scoreBlue: 1, scoreGreen: 0, serverPos: 'blue2-odd', swap: 'blue'
     },
     {
       title: 'Blue Wins Again — Back to Even',
-      desc: `Blue's score is now 2 (even) — so Blue 1 and Blue 2 switch back, and Blue 1 serves from the even court again. This side-switch happens every time the serving team scores.`,
-      scoreBlue: 2, scoreGreen: 0, serverPos: 'blue1-even', swap: 'blue'
+      desc: `Blue's score is now 2 (even) — so Blue 1 and Blue 2 switch back, and Blue 2 serves from the even court again. This side-switch happens every time the serving team scores.`,
+      scoreBlue: 2, scoreGreen: 0, serverPos: 'blue2-even', swap: 'blue'
     },
     {
       title: 'Blue Loses the Rally — Side Out',
@@ -1145,7 +1160,7 @@
     {
       title: 'After a First Fault, the Partner Serves Next',
       desc: `From here on (past the very first serve of the game), if a server loses a rally, it's not an automatic side-out — their partner becomes the "second server" and serves next from whichever side matches their team's current score, before the ball passes to the other team.`,
-      scoreBlue: 2, scoreGreen: 0, serverPos: 'green2-even', swap: null
+      scoreBlue: 2, scoreGreen: 0, serverPos: null, swap: null
     }
   ];
 
@@ -1159,10 +1174,10 @@
   const serveBadge = document.getElementById('serveBadge');
 
   const posCoords = {
-    'blue1-even': { x: 80, y: 80 },
-    'blue1-odd':  { x: 80, y: 182 },
-    'blue2-even': { x: 80, y: 80 },
-    'blue2-odd':  { x: 80, y: 182 },
+    'blue1-even': { x: 80, y: 182 },
+    'blue1-odd':  { x: 80, y: 80 },
+    'blue2-even': { x: 80, y: 182 },
+    'blue2-odd':  { x: 80, y: 80 },
     'green1-even': { x: 360, y: 55 },
     'green1-odd':  { x: 360, y: 157 },
     'green2-even': { x: 360, y: 55 },
