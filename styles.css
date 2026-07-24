@@ -80,13 +80,15 @@ a{ color:inherit; }
 .nav-links{
   display:flex;
   align-items:center;
-  gap:26px;
+  gap:19px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
 }
 .nav-links a{
   font-family: var(--font-mono);
   font-weight:700;
-  font-size:12px;
-  letter-spacing:0.04em;
+  font-size:11.5px;
+  letter-spacing:0.03em;
   text-transform:uppercase;
   text-decoration:none;
   color: rgba(245,243,238,0.72);
@@ -110,60 +112,18 @@ a{ color:inherit; }
 }
 .nav-links a.nav-highlight:hover{ background: var(--white); color: var(--navy-deep); border-bottom:none; }
 
-/* "More" dropdown */
-.nav-more{ position:relative; }
-.nav-more-btn{
-  font-family: var(--font-mono);
-  font-weight:700;
-  font-size:12px;
-  letter-spacing:0.04em;
-  text-transform:uppercase;
-  color: rgba(245,243,238,0.72);
-  background:none;
-  border:none;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  gap:5px;
-  padding:6px 0;
-}
-.nav-more-btn:hover{ color: var(--paper); }
-.nav-more-btn.active{ color: var(--paper); border-bottom: 2px solid var(--sky); padding-bottom:6px; }
-.nav-more-btn svg{ width:11px; height:11px; transition: transform .15s ease; }
-.nav-more.open .nav-more-btn svg{ transform: rotate(180deg); }
-.nav-more-menu{
-  position:absolute;
-  top:calc(100% + 14px);
-  right:0;
-  background: var(--white);
-  border-radius:8px;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
-  min-width:200px;
-  padding:8px;
-  display:none;
-  flex-direction:column;
-  gap:2px;
-}
-.nav-more.open .nav-more-menu{ display:flex; }
-.nav-more-menu a{
-  font-family: var(--font-body);
-  font-weight:600;
-  font-size:14px;
-  color: var(--ink);
-  text-decoration:none;
-  padding:10px 12px;
-  border-radius:5px;
-  transition: background .12s ease;
-  border-bottom:none !important;
-}
-.nav-more-menu a:hover{ background: var(--paper-dim); color: var(--ink); }
-
 .nav-toggle{
   display:none;
   background:none;
   border:none;
   cursor:pointer;
   padding:6px;
+  flex-shrink:0;
+}
+.nav-toggle svg{
+  width:26px;
+  height:26px;
+  display:block;
 }
 
 @media (max-width: 900px){
@@ -183,18 +143,6 @@ a{ color:inherit; }
   }
   .nav-links.open{ display:flex; }
   .nav-toggle{ display:block; }
-  .nav-more{ width:100%; }
-  .nav-more-btn{ color: rgba(245,243,238,0.72); }
-  .nav-more-menu{
-    position:static;
-    box-shadow:none;
-    background:none;
-    padding:8px 0 0 0;
-    display: none;
-  }
-  .nav-more.open .nav-more-menu{ display:flex; }
-  .nav-more-menu a{ color: rgba(245,243,238,0.72); font-family: var(--font-mono); font-weight:700; font-size:12px; letter-spacing:0.04em; text-transform:uppercase; padding:6px 0; }
-  .nav-more-menu a:hover{ background:none; color: var(--paper); }
 }
 
 /* ================= BUTTONS ================= */

@@ -13,19 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ---- "More" dropdown ----
-  const moreWrap = document.querySelector('.nav-more');
-  const moreBtn = document.querySelector('.nav-more-btn');
-  if (moreWrap && moreBtn) {
-    moreBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      moreWrap.classList.toggle('open');
-    });
-    document.addEventListener('click', (e) => {
-      if (!moreWrap.contains(e.target)) moreWrap.classList.remove('open');
-    });
-  }
-
   // ---- Scroll-reveal animations ----
   const revealEls = document.querySelectorAll('.reveal, .reveal-stagger');
   if (revealEls.length && 'IntersectionObserver' in window) {
