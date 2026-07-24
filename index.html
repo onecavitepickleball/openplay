@@ -172,6 +172,23 @@
   .day-tab.active .wk{ color: var(--sky-deep); }
   .day-tab.active .dt{ color: var(--ink); }
 
+  .week-tabs{ display:flex; gap:10px; margin-bottom:20px; }
+  .week-tab{
+    font-family: var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    padding:8px 18px;
+    border-radius:20px;
+    border:1.5px solid var(--line);
+    background:none;
+    cursor:pointer;
+    color: var(--ink-soft);
+    transition: all .15s ease;
+  }
+  .week-tab:hover:not(.active){ border-color: var(--pop); }
+  .week-tab.active{ background: var(--navy); border-color: var(--navy); color: var(--paper); }
+
   .detail-panel{
     display:grid;
     grid-template-columns: 1fr 1fr;
@@ -351,6 +368,7 @@
       <span class="section-rule"></span>
     </div>
 
+    <div class="week-tabs" id="weekPills"></div>
     <div class="day-tabs" id="dayPills"></div>
     <div class="detail-panel" id="detailCard"></div>
 
@@ -432,23 +450,38 @@
 <script src="script.js"></script>
 <script>
   // ================= EDIT THIS EACH WEEK =================
-  // One entry per open-play day, each with its own Reclub session link.
+  // One block per week (label + days). Add or remove weeks below and the
+  // week tabs appear/disappear automatically — with only one week, no
+  // week tabs show at all.
   //
-  // HOW MANY DAYS THIS WEEK?
-  // Just add or delete entries below — the page adjusts automatically.
-  // Leave the array EMPTY ( const schedule = []; ) for a week with no
-  // open play, and a friendly "no sessions this week" message will show.
+  // HOW MANY DAYS IN A WEEK?
+  // Just add or delete day entries — the page adjusts automatically.
+  // Leave a week's "days" EMPTY ( days: [] ) for a week with no open play,
+  // and a friendly "no sessions this week" message will show for it.
   //
-  // Each entry needs: weekday, date, venue, court, time, and link
+  // Each day entry needs: weekday, date, venue, court, time, and link
   // (link = that day's unique Reclub registration URL).
-  const schedule = [
-    { weekday: "Mon", date: "Jul 27", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/6CPIXL" },
-    { weekday: "Tue", date: "Jul 28", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/VVNQGT" },
-    { weekday: "Wed", date: "Jul 29", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/9LI6QQ" },
-    { weekday: "Fri", date: "Jul 31", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/72HQVQ" }
+  const weeks = [
+    {
+      label: "This Week",
+      days: [
+        { weekday: "Mon", date: "Jul 27", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/6CPIXL" },
+        { weekday: "Tue", date: "Jul 28", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/VVNQGT" },
+        { weekday: "Wed", date: "Jul 29", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/9LI6QQ" },
+        { weekday: "Fri", date: "Jul 31", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/72HQVQ" }
+      ]
+    },
+    {
+      label: "Next Week",
+      days: [
+        { weekday: "Mon", date: "Aug 3", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/V69W8W" },
+        { weekday: "Wed", date: "Aug 5", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/2F0IKH" }
+      ]
+    }
   ];
   // =========================================================
 
+  const weekPillsEl = document.getElementById('weekPills');
   const pillsEl = document.getElementById('dayPills');
   const cardEl = document.getElementById('detailCard');
 
@@ -456,7 +489,29 @@
     arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   };
 
+  let activeWeek = 0;
+
+  function renderWeekTabs(){
+    if (weeks.length <= 1){
+      weekPillsEl.innerHTML = '';
+      return;
+    }
+    weekPillsEl.innerHTML = weeks.map((w, i) => `
+      <button class="week-tab ${i === activeWeek ? 'active' : ''}" data-week="${i}">${w.label}</button>
+    `).join('');
+
+    weekPillsEl.querySelectorAll('.week-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeWeek = parseInt(btn.dataset.week);
+        renderWeekTabs();
+        render(0);
+      });
+    });
+  }
+
   function render(activeIndex){
+    const schedule = weeks[activeWeek].days;
+
     if (schedule.length === 0){
       pillsEl.innerHTML = '';
       cardEl.outerHTML = `
@@ -501,6 +556,7 @@
     `;
   }
 
+  renderWeekTabs();
   render(0);
 </script>
 
