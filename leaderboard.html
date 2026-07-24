@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard — One Cavite Pickleball Club</title>
+<meta name="description" content="Top attendance at One Cavite Pickleball Club open play sessions over the last 4 weeks.">
+
+<meta property="og:title" content="Leaderboard — One Cavite Pickleball Club">
+<meta property="og:description" content="Top attendance at OCPC open play sessions over the last 4 weeks.">
+<meta property="og:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://onecavitepickleball.club/leaderboard.html">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Leaderboard — One Cavite Pickleball Club">
+<meta name="twitter:description" content="Top attendance at OCPC open play sessions over the last 4 weeks.">
+<meta name="twitter:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="canonical" href="https://onecavitepickleball.club/leaderboard.html">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .lb-hero{ padding:56px 0 12px; }
+  .lb-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .lb-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:560px; line-height:1.6;
+  }
+
+  .lb-window-note{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    background: var(--navy);
+    color: var(--paper);
+    padding:8px 16px;
+    border-radius:20px;
+    margin-top:20px;
+  }
+
+  /* ---- PODIUM ---- */
+  .podium{
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap:20px;
+    margin: 44px 0 12px;
+  }
+  .podium-slot{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:160px;
+  }
+  .podium-slot.empty{ visibility:hidden; }
+  .podium-medal{ font-size:34px; margin-bottom:10px; line-height:1; }
+  .podium-name{
+    font-weight:700;
+    font-size:16.5px;
+    text-align:center;
+    margin-bottom:4px;
+    word-break:break-word;
+  }
+  .podium-count{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.04em;
+    color: var(--ink-faint);
+    margin-bottom:14px;
+  }
+  .podium-bar{
+    width:100%;
+    border-radius:6px 6px 0 0;
+    background: var(--navy);
+  }
+  .podium-1 .podium-bar{ height:160px; background: var(--pop); }
+  .podium-2 .podium-bar{ height:112px; }
+  .podium-3 .podium-bar{ height:80px; }
+
+  @media (max-width: 600px){
+    .podium{ gap:10px; }
+    .podium-slot{ width:104px; }
+    .podium-name{ font-size:13.5px; }
+  }
+
+  /* ---- REST OF LIST ---- */
+  .lb-list{ max-width:560px; margin:0 auto; border-top: 1.5px solid var(--line); }
+  .lb-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:14px 4px;
+    border-bottom: 1.5px solid var(--line);
+  }
+  .lb-rank{
+    font-family: var(--font-mono);
+    font-size:13px;
+    color: var(--ink-faint);
+    width:26px;
+  }
+  .lb-name{ flex:1; font-weight:600; font-size:15px; }
+  .lb-count{
+    font-family: var(--font-mono);
+    font-size:12.5px;
+    color: var(--sky-deep);
+  }
+
+  .lb-empty{
+    border: 1.5px dashed var(--line);
+    border-radius:6px;
+    padding:56px 30px;
+    text-align:center;
+    color: var(--ink-soft);
+    max-width:560px;
+    margin:32px auto 0;
+    display:none;
+  }
+
+  .lb-footer-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-top:36px;
+  }
+  .admin-trigger{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    background:none;
+    border: 1.5px solid var(--line);
+    border-radius:20px;
+    padding:8px 16px;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .admin-trigger:hover{ border-color: var(--pop); color: var(--ink); }
+
+  /* ---- ADMIN MODAL ---- */
+  .admin-modal{
+    position:fixed;
+    inset:0;
+    background: rgba(10,21,38,0.6);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:300;
+  }
+  .admin-modal.open{ display:flex; }
+  .admin-modal-inner{
+    background: var(--paper);
+    border-radius:8px;
+    padding:32px;
+    width:100%;
+    max-width:440px;
+    max-height:88vh;
+    overflow-y:auto;
+    position:relative;
+  }
+  .admin-modal-close{
+    position:absolute;
+    top:14px; right:14px;
+    background:none;
+    border:none;
+    font-size:24px;
+    line-height:1;
+    cursor:pointer;
+    color: var(--ink-faint);
+  }
+  .admin-modal-close:hover{ color: var(--ink); }
+  .admin-modal h3{
+    font-family: var(--font-display);
+    font-size:24px;
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  .admin-modal .sub{ font-size:13px; color: var(--ink-soft); margin-bottom:22px; }
+  .admin-modal .form-row{ margin-bottom:16px; }
+  .admin-modal label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:6px;
+  }
+  .admin-modal input,
+  .admin-modal textarea{
+    width:100%;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:11px 13px;
+    font-family: var(--font-body);
+    font-size:14px;
+    color: var(--ink);
+    background: var(--white);
+  }
+  .admin-modal input:focus,
+  .admin-modal textarea:focus{ outline:none; border-color: var(--sky-deep); }
+  .admin-modal textarea{ min-height:110px; resize:vertical; }
+  .admin-msg{ font-size:12.5px; margin-top:8px; min-height:16px; }
+
+  .admin-list{ margin-top:26px; border-top: 1.5px solid var(--line); padding-top:18px; }
+  .admin-list-label{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:12px;
+  }
+  .admin-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size:13px;
+  }
+  .admin-row-date{ font-weight:700; }
+  .admin-row-names{ color: var(--ink-soft); font-size:12.5px; margin-top:2px; }
+  .admin-delete{
+    background:none;
+    border: 1.5px solid var(--line);
+    border-radius:50%;
+    width:26px; height:26px;
+    flex-shrink:0;
+    cursor:pointer;
+    color: var(--ink-faint);
+    font-size:15px;
+    line-height:1;
+  }
+  .admin-delete:hover{ border-color: var(--pop); color: var(--pop); }
+
+  .admin-signout{
+    margin-top:22px;
+    width:100%;
+    text-align:center;
+    padding:11px;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    background:none;
+    cursor:pointer;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--ink-soft);
+  }
+  .admin-signout:hover{ border-color: var(--pop); color: var(--pop); }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="queue.html">Queue</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="coaching.html">Coaching</a>
+      <a href="events.html">Events</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="rules.html">Rules &amp; Etiquette</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="leaderboard.html" class="active">Leaderboard</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <a href="merch.html" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="lb-hero">
+    <div class="eyebrow">Top Attendance</div>
+    <h1>Leaderboard.</h1>
+    <p>Show up, get on the board. Ranked by open play attendance — the most active players over the last 4 weeks earn bragging rights and special OCPC prizes.</p>
+    <div class="lb-window-note">Rolling 4-week window</div>
+  </div>
+
+  <div class="section reveal">
+    <div id="lbContent" style="display:none;">
+      <div class="podium" id="podium"></div>
+      <div class="lb-list" id="lbList"></div>
+    </div>
+    <div class="lb-empty" id="lbEmpty">
+      <strong>No attendance recorded in the last 4 weeks yet.</strong><br>
+      Check back after the next open play session.
+    </div>
+    <div class="lb-footer-row">
+      <button class="admin-trigger" id="adminOpenBtn">Admin</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ADMIN MODAL -->
+<div class="admin-modal" id="adminModal">
+  <div class="admin-modal-inner">
+    <button class="admin-modal-close" id="adminClose" aria-label="Close">&times;</button>
+
+    <div id="adminLoginView">
+      <h3>Admin Sign In</h3>
+      <div class="sub">Sign in to record attendance for a session.</div>
+      <form id="adminLoginForm">
+        <div class="form-row">
+          <label for="adminEmail">Email</label>
+          <input type="email" id="adminEmail" required autocomplete="username">
+        </div>
+        <div class="form-row">
+          <label for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" required autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Sign In</button>
+        <div class="admin-msg" id="adminLoginError" style="color: var(--pop);"></div>
+      </form>
+    </div>
+
+    <div id="adminPanelView" style="display:none;">
+      <h3>Record Attendance</h3>
+      <div class="sub">One entry per open play session. Add attendees below.</div>
+      <form id="attendanceForm">
+        <div class="form-row">
+          <label for="attDate">Session Date</label>
+          <input type="date" id="attDate" required>
+        </div>
+        <div class="form-row">
+          <label for="attNames">Attendees (one name per line)</label>
+          <textarea id="attNames" placeholder="Vhen&#10;Sia&#10;Marvin"></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Save Attendance</button>
+        <div class="admin-msg" id="attendanceMsg"></div>
+      </form>
+
+      <div class="admin-list">
+        <div class="admin-list-label">Recent Entries</div>
+        <div id="adminList"></div>
+      </div>
+
+      <button class="admin-signout" id="signOutBtn">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="merch.html">Shop</a>
+      <a href="rules.html">Rules</a>
+      <a href="coaching.html">Coaching</a>
+      <a href="directory.html">Meet the Club</a>
+      <a href="contact.html">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import {
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const ADMIN_EMAIL = "ocpc.pickleball@gmail.com";
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const attendanceCol = collection(db, "attendance");
+
+  // ================= LEADERBOARD =================
+  let allRecords = [];
+  let isAdmin = false;
+
+  function isoDate(d){ return d.toISOString().slice(0, 10); }
+
+  function cutoffDate(){
+    const d = new Date();
+    d.setDate(d.getDate() - 28);
+    return isoDate(d);
+  }
+
+  async function loadAttendance(){
+    const snap = await getDocs(attendanceCol);
+    allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderLeaderboard();
+    if (isAdmin) renderAdminList();
+  }
+
+  function renderLeaderboard(){
+    const cutoff = cutoffDate();
+    const recent = allRecords.filter(r => typeof r.date === 'string' && r.date >= cutoff);
+
+    const counts = {};
+    recent.forEach(r => {
+      (r.names || []).forEach(n => {
+        const clean = String(n).trim();
+        if (!clean) return;
+        const key = clean.toLowerCase();
+        if (!counts[key]) counts[key] = { name: clean, count: 0 };
+        counts[key].count++;
+      });
+    });
+
+    const ranked = Object.values(counts).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+    document.getElementById('lbContent').style.display = ranked.length ? 'block' : 'none';
+    document.getElementById('lbEmpty').style.display = ranked.length ? 'none' : 'block';
+
+    renderPodium(ranked.slice(0, 3));
+    renderRest(ranked.slice(3));
+  }
+
+  function renderPodium(top3){
+    const podiumEl = document.getElementById('podium');
+    const order = [1, 0, 2];
+    const medals = ['🥇', '🥈', '🥉'];
+    podiumEl.innerHTML = order.map(i => {
+      const p = top3[i];
+      const slotClass = `podium-${i + 1}`;
+      if (!p) return `<div class="podium-slot ${slotClass} empty"><div class="podium-bar"></div></div>`;
+      return `
+        <div class="podium-slot ${slotClass}">
+          <div class="podium-medal">${medals[i]}</div>
+          <div class="podium-name">${escapeHtml(p.name)}</div>
+          <div class="podium-count">${p.count} session${p.count === 1 ? '' : 's'}</div>
+          <div class="podium-bar"></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderRest(rest){
+    const listEl = document.getElementById('lbList');
+    listEl.innerHTML = rest.map((p, i) => `
+      <div class="lb-row">
+        <span class="lb-rank">${i + 4}</span>
+        <span class="lb-name">${escapeHtml(p.name)}</span>
+        <span class="lb-count">${p.count} session${p.count === 1 ? '' : 's'}</span>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+
+  loadAttendance();
+
+  // ================= ADMIN =================
+  const adminBtn = document.getElementById('adminOpenBtn');
+  const adminModal = document.getElementById('adminModal');
+  const adminClose = document.getElementById('adminClose');
+  const loginView = document.getElementById('adminLoginView');
+  const panelView = document.getElementById('adminPanelView');
+  const loginForm = document.getElementById('adminLoginForm');
+  const loginError = document.getElementById('adminLoginError');
+  const attendanceForm = document.getElementById('attendanceForm');
+  const attendanceMsg = document.getElementById('attendanceMsg');
+  const adminList = document.getElementById('adminList');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const attDateEl = document.getElementById('attDate');
+
+  attDateEl.value = isoDate(new Date());
+
+  adminBtn.addEventListener('click', () => adminModal.classList.add('open'));
+  adminClose.addEventListener('click', () => adminModal.classList.remove('open'));
+  adminModal.addEventListener('click', (e) => { if (e.target === adminModal) adminModal.classList.remove('open'); });
+
+  onAuthStateChanged(auth, (user) => {
+    isAdmin = !!user && user.email === ADMIN_EMAIL;
+    loginView.style.display = isAdmin ? 'none' : 'block';
+    panelView.style.display = isAdmin ? 'block' : 'none';
+    if (isAdmin) renderAdminList();
+  });
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.textContent = '';
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      loginError.textContent = 'Sign-in failed — check your email and password.';
+    }
+  });
+
+  signOutBtn.addEventListener('click', () => signOut(auth));
+
+  attendanceForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const date = attDateEl.value;
+    const names = document.getElementById('attNames').value
+      .split('\n').map(n => n.trim()).filter(Boolean);
+
+    if (!date || names.length === 0){
+      attendanceMsg.style.color = 'var(--pop)';
+      attendanceMsg.textContent = 'Add a date and at least one name.';
+      return;
+    }
+
+    try {
+      await addDoc(attendanceCol, { date, names, createdAt: serverTimestamp() });
+      attendanceMsg.style.color = 'var(--sky-deep)';
+      attendanceMsg.textContent = `Saved ${names.length} attendee(s) for ${date}.`;
+      document.getElementById('attNames').value = '';
+      await loadAttendance();
+    } catch (err) {
+      attendanceMsg.style.color = 'var(--pop)';
+      attendanceMsg.textContent = 'Something went wrong saving this — try again.';
+    }
+  });
+
+  function renderAdminList(){
+    const recent = [...allRecords].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 12);
+    adminList.innerHTML = recent.map(r => `
+      <div class="admin-row">
+        <div>
+          <div class="admin-row-date">${escapeHtml(r.date)}</div>
+          <div class="admin-row-names">${escapeHtml((r.names || []).join(', '))}</div>
+        </div>
+        <button class="admin-delete" data-id="${r.id}" title="Delete this entry">&times;</button>
+      </div>
+    `).join('');
+
+    adminList.querySelectorAll('.admin-delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this attendance entry?')) return;
+        await deleteDoc(doc(db, 'attendance', btn.dataset.id));
+        await loadAttendance();
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
