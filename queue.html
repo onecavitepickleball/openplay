@@ -70,10 +70,12 @@
   .add-player-bar{
     display:flex;
     gap:10px;
-    margin-bottom:40px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
   }
-  .add-player-bar input{
+  .add-player-bar input[type=text]{
     flex:1;
+    min-width:180px;
     border: 1.5px solid var(--line);
     border-radius:4px;
     padding:14px 16px;
@@ -81,6 +83,51 @@
     font-size:15px;
   }
   .add-player-bar input:focus{ outline:none; border-color: var(--sky-deep); }
+
+  .skill-picker{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:0 14px;
+  }
+  .skill-picker .lbl{
+    font-family: var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+  }
+  .skill-picker .stars{ display:flex; gap:3px; }
+  .skill-picker button{
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-size:22px;
+    line-height:1;
+    color: var(--line);
+    padding:4px 2px;
+  }
+  .skill-picker button.filled{ color: var(--sky-deep); }
+  .skill-picker .skill-name{
+    font-family: var(--font-mono);
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color: var(--ink-soft);
+    min-width:76px;
+  }
+
+  .add-player-hint{
+    font-size:12px;
+    color: var(--ink-faint);
+    margin-bottom:36px;
+  }
+
+  .stars-inline{ color: var(--sky-deep); letter-spacing:1px; font-size:12px; }
+  .stars-inline .dim{ color: var(--line); }
 
   /* courts */
   .court-grid{
@@ -117,9 +164,14 @@
     background: var(--paper-dim);
     border-radius:4px;
     padding:10px 14px;
-    font-size:14.5px;
-    font-weight:600;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
   }
+  .court-player .name-block{ display:flex; flex-direction:column; gap:2px; }
+  .court-player .pname{ font-size:14.5px; font-weight:600; }
+  .court-player .pmeta{ font-size:11px; color: var(--ink-faint); font-family: var(--font-mono); }
   .court-empty{
     color: var(--ink-faint);
     font-size:14px;
@@ -144,6 +196,31 @@
   .btn-finish{ background: var(--navy); color: var(--paper); font-weight:700; }
   .btn-finish:hover{ background: var(--navy-deep); }
 
+  .score-form{ display:flex; flex-direction:column; gap:8px; }
+  .score-form input{
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:10px 12px;
+    font-family: var(--font-body);
+    font-size:14px;
+  }
+  .score-form input:focus{ outline:none; border-color: var(--sky-deep); }
+  .score-form .score-actions{ display:flex; gap:8px; }
+  .score-form .score-actions button{
+    flex:1;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:9px;
+    border-radius:4px;
+    border:none;
+    cursor:pointer;
+  }
+  .score-save{ background: var(--pop); color: var(--white); font-weight:700; }
+  .score-skip{ background: transparent; border: 1.5px solid var(--line) !important; color: var(--ink-soft); }
+  .score-cancel{ background:none; border:none; color: var(--ink-faint); font-size:11px; text-decoration:underline; cursor:pointer; padding:2px; }
+
   /* waiting queue */
   .queue-list{ display:flex; flex-direction:column; gap:8px; }
   .queue-row{
@@ -158,10 +235,22 @@
     font-family: var(--font-display);
     font-size:16px;
     color: var(--sky-deep);
-    width:28px;
+    width:24px;
     flex-shrink:0;
   }
-  .queue-name{ flex:1; font-size:14.5px; font-weight:600; }
+  .queue-main{ flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .queue-name{ font-size:14.5px; font-weight:600; }
+  .queue-meta{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family: var(--font-mono);
+    font-size:11px;
+    color: var(--ink-faint);
+    flex-wrap:wrap;
+  }
+  .queue-timer{ white-space:nowrap; }
+  .queue-timer.waiting-a-while{ color: var(--pop-deep); font-weight:700; }
   .queue-remove{
     background:none;
     border:none;
@@ -169,6 +258,7 @@
     font-size:18px;
     cursor:pointer;
     padding:4px 8px;
+    flex-shrink:0;
   }
   .queue-remove:hover{ color: var(--ink); }
   .queue-empty{
@@ -180,7 +270,48 @@
     font-size:14px;
   }
 
-  .reset-row{ margin-top:32px; text-align:right; }
+  /* history */
+  .history-list{ display:flex; flex-direction:column; gap:10px; }
+  .history-row{
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .history-players{ font-size:13.5px; font-weight:600; }
+  .history-players span{ color: var(--ink-faint); font-weight:400; }
+  .history-meta{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-family: var(--font-mono);
+    font-size:11px;
+    color: var(--ink-faint);
+    flex-wrap:wrap;
+  }
+  .history-score{
+    background: var(--navy);
+    color: var(--paper);
+    padding:5px 12px;
+    border-radius:3px;
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size:12px;
+  }
+  .history-empty{
+    border: 1.5px dashed var(--line);
+    border-radius:6px;
+    padding:36px;
+    text-align:center;
+    color: var(--ink-faint);
+    font-size:14px;
+  }
+
+  .reset-row{ margin-top:32px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
 </style>
 </head>
 <body>
@@ -219,11 +350,12 @@
   <div class="queue-hero">
     <div class="eyebrow">Open Play Tool</div>
     <h1>Court Queue.</h1>
-    <p>Add players as they arrive, fill courts straight from the queue, and rotate players back in once a game wraps up.</p>
+    <p>Add players as they arrive, fill courts with a balanced skill mix, and rotate players back in once a game wraps up.</p>
     <div class="device-note">
       <b>Built for one control device</b> — like a phone or tablet at check-in. Everyone's added and managed from
       here rather than from individual phones, since this runs entirely in this browser and doesn't sync
-      across devices. Refreshing the page keeps your queue; "Reset" clears it for a new day.
+      across devices. Refreshing the page keeps your queue; "Reset Queue" clears courts and the waiting list for
+      a new day, but keeps match history and games-played counts intact.
     </div>
   </div>
 
@@ -262,14 +394,34 @@
 
     <div class="add-player-bar">
       <input type="text" id="playerNameInput" placeholder="Player name" maxlength="40">
+      <div class="skill-picker" id="skillPicker">
+        <span class="lbl">Skill</span>
+        <div class="stars" id="skillStars">
+          <button type="button" data-star="1">★</button>
+          <button type="button" data-star="2">★</button>
+          <button type="button" data-star="3">★</button>
+        </div>
+        <span class="skill-name" id="skillName">Beginner</span>
+      </div>
       <button class="btn btn-primary" id="addPlayerBtn">Add to Queue</button>
     </div>
+    <div class="add-player-hint">★ Beginner · ★★ Intermediate · ★★★ Advanced — set before adding, or just re-add if their level changes.</div>
 
     <div class="queue-list" id="queueList"></div>
     <div class="queue-empty" id="queueEmpty" style="display:none;">No one's waiting right now — add a player above.</div>
 
+    <div class="queue-toolbar" style="margin-top:48px;">
+      <div class="section-head" style="margin-bottom:0;">
+        <span class="section-index">03</span>
+        <h2>Match History</h2>
+      </div>
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <div class="history-empty" id="historyEmpty" style="display:none;">No finished matches yet — history shows up here once a court finishes a game.</div>
+
     <div class="reset-row">
-      <button class="btn btn-ghost" id="resetBtn">Reset Everything</button>
+      <button class="btn btn-ghost" id="clearHistoryBtn">Clear History</button>
+      <button class="btn btn-ghost" id="resetBtn">Reset Queue</button>
     </div>
   </div>
 
@@ -295,14 +447,31 @@
 
 <script src="script.js"></script>
 <script>
-  const STORAGE_KEY = 'ocpc_queue_state_v1';
+  const STORAGE_KEY = 'ocpc_queue_state_v2';
+  const SKILL_NAMES = { 1: 'Beginner', 2: 'Intermediate', 3: 'Advanced' };
+  const WAIT_BUFFER_MS = 60 * 1000; // 1 min switchover buffer before the timer starts counting
+
+  function defaultState(){
+    return {
+      courtCount: 4,
+      playersPerCourt: 4,
+      courts: Array.from({length: 4}, () => null), // null = empty, else { players: [{name, skill}] }
+      waiting: [],   // { name, skill, queuedAt }
+      history: [],   // { id, court, players: [{name, skill}], score, finishedAt }
+      playerStats: {} // { [nameLower]: { name, gamesPlayed, skill } }
+    };
+  }
 
   function loadState(){
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const base = defaultState();
+        return Object.assign(base, parsed);
+      }
     } catch (e) {}
-    return { courtCount: 4, playersPerCourt: 4, courts: Array.from({length:4}, () => []), waiting: [] };
+    return defaultState();
   }
 
   function saveState(){
@@ -310,26 +479,122 @@
   }
 
   let state = loadState();
-  // make sure courts array matches courtCount (in case of stale data)
-  while (state.courts.length < state.courtCount) state.courts.push([]);
+  while (state.courts.length < state.courtCount) state.courts.push(null);
   state.courts = state.courts.slice(0, state.courtCount);
+
+  let selectedSkill = 1;
+  let scoreFormOpenCourt = null; // transient UI state, not persisted
 
   const courtCountSel = document.getElementById('courtCount');
   const playersPerCourtSel = document.getElementById('playersPerCourt');
   const courtGrid = document.getElementById('courtGrid');
   const queueList = document.getElementById('queueList');
   const queueEmpty = document.getElementById('queueEmpty');
+  const historyList = document.getElementById('historyList');
+  const historyEmpty = document.getElementById('historyEmpty');
   const playerNameInput = document.getElementById('playerNameInput');
+  const skillStars = document.getElementById('skillStars');
+  const skillNameEl = document.getElementById('skillName');
 
   courtCountSel.value = state.courtCount;
   playersPerCourtSel.value = state.playersPerCourt;
 
+  function starString(skill){
+    let s = '<span class="stars-inline">';
+    for (let i = 1; i <= 3; i++){
+      s += i <= skill ? '★' : '<span class="dim">★</span>';
+    }
+    s += '</span>';
+    return s;
+  }
+
+  function keyFor(name){ return name.trim().toLowerCase(); }
+
+  function getStats(name){
+    const k = keyFor(name);
+    if (!state.playerStats[k]) state.playerStats[k] = { name: name.trim(), gamesPlayed: 0, skill: 1 };
+    return state.playerStats[k];
+  }
+
+  function formatWait(queuedAt){
+    const elapsed = Date.now() - queuedAt - WAIT_BUFFER_MS;
+    if (elapsed <= 0) return { text: 'Just queued', long: false };
+    const mins = Math.floor(elapsed / 60000);
+    if (mins < 1) return { text: '<1 min waiting', long: false };
+    return { text: `${mins} min waiting`, long: mins >= 15 };
+  }
+
+  function renderSkillPicker(){
+    skillStars.querySelectorAll('button').forEach(btn => {
+      btn.classList.toggle('filled', parseInt(btn.dataset.star) <= selectedSkill);
+    });
+    skillNameEl.textContent = SKILL_NAMES[selectedSkill];
+  }
+  skillStars.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedSkill = parseInt(btn.dataset.star);
+      renderSkillPicker();
+    });
+  });
+  renderSkillPicker();
+
+  // ---- Balanced selection: pull from a wait-time window, round-robin across skill levels ----
+  function selectBalancedGroup(needed){
+    const windowSize = Math.min(state.waiting.length, needed * 2);
+    const window = state.waiting.slice(0, windowSize);
+
+    const groups = { 1: [], 2: [], 3: [] };
+    window.forEach((p, idx) => groups[p.skill].push(idx));
+
+    const selectedIdx = [];
+    const skillKeys = [1, 2, 3];
+    const cursor = { 1: 0, 2: 0, 3: 0 };
+
+    while (selectedIdx.length < needed){
+      let pickedThisRound = false;
+      for (const sk of skillKeys){
+        if (selectedIdx.length >= needed) break;
+        if (cursor[sk] < groups[sk].length){
+          selectedIdx.push(groups[sk][cursor[sk]]);
+          cursor[sk]++;
+          pickedThisRound = true;
+        }
+      }
+      if (!pickedThisRound) break;
+    }
+
+    selectedIdx.sort((a, b) => a - b);
+    const selectedPlayers = selectedIdx.map(i => state.waiting[i]);
+    [...selectedIdx].sort((a, b) => b - a).forEach(i => state.waiting.splice(i, 1));
+    return selectedPlayers;
+  }
+
   function render(){
-    // courts
-    courtGrid.innerHTML = state.courts.map((players, i) => {
-      const isPlaying = players.length > 0;
+    // ---- courts ----
+    courtGrid.innerHTML = state.courts.map((court, i) => {
+      const isPlaying = !!court;
       const needed = state.playersPerCourt;
       const canFill = state.waiting.length >= needed && !isPlaying;
+      const showScoreForm = scoreFormOpenCourt === i;
+
+      let actionsHtml;
+      if (showScoreForm){
+        actionsHtml = `
+          <div class="score-form">
+            <input type="text" id="scoreInput${i}" placeholder="Final score, e.g. 11-7 (optional)" maxlength="20">
+            <div class="score-actions">
+              <button class="score-save" data-action="save-score" data-court="${i}">Save &amp; Finish</button>
+              <button class="score-skip" data-action="skip-score" data-court="${i}">Skip Score</button>
+            </div>
+            <button class="score-cancel" data-action="cancel-score" data-court="${i}">Cancel</button>
+          </div>
+        `;
+      } else if (isPlaying){
+        actionsHtml = `<button class="btn-finish" data-court="${i}" data-action="finish">Finish Game</button>`;
+      } else {
+        actionsHtml = `<button class="btn-fill" data-court="${i}" data-action="fill" ${canFill ? '' : 'disabled'}>Fill from Queue${canFill ? '' : ` (need ${needed})`}</button>`;
+      }
+
       return `
         <div class="court-card ${isPlaying ? 'playing' : ''}">
           <div class="court-head">
@@ -339,42 +604,105 @@
           <div class="court-body">
             ${isPlaying ? `
               <div class="court-players">
-                ${players.map(p => `<div class="court-player">${p}</div>`).join('')}
+                ${court.players.map(p => {
+                  const stats = getStats(p.name);
+                  return `
+                    <div class="court-player">
+                      <div class="name-block">
+                        <span class="pname">${p.name}</span>
+                        <span class="pmeta">${starString(p.skill)} &nbsp;·&nbsp; ${stats.gamesPlayed} game${stats.gamesPlayed !== 1 ? 's' : ''} played</span>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
               </div>
             ` : `<div class="court-empty">Empty court</div>`}
-            <div class="court-actions">
-              ${isPlaying
-                ? `<button class="btn-finish" data-court="${i}" data-action="finish">Finish Game</button>`
-                : `<button class="btn-fill" data-court="${i}" data-action="fill" ${canFill ? '' : 'disabled'}>Fill from Queue${canFill ? '' : ` (need ${needed})`}</button>`
-              }
-            </div>
+            <div class="court-actions">${actionsHtml}</div>
           </div>
         </div>
       `;
     }).join('');
 
-    // waiting queue
+    // ---- waiting queue ----
     if (state.waiting.length === 0){
       queueList.style.display = 'none';
       queueEmpty.style.display = 'block';
     } else {
       queueList.style.display = 'flex';
       queueEmpty.style.display = 'none';
-      queueList.innerHTML = state.waiting.map((name, i) => `
-        <div class="queue-row">
-          <span class="queue-pos">${i + 1}</span>
-          <span class="queue-name">${name}</span>
-          <button class="queue-remove" data-index="${i}" aria-label="Remove">&times;</button>
-        </div>
-      `).join('');
+      queueList.innerHTML = state.waiting.map((p, i) => {
+        const stats = getStats(p.name);
+        const wait = formatWait(p.queuedAt);
+        return `
+          <div class="queue-row">
+            <span class="queue-pos">${i + 1}</span>
+            <div class="queue-main">
+              <span class="queue-name">${p.name}</span>
+              <span class="queue-meta">
+                ${starString(p.skill)}
+                <span>·</span>
+                <span>${stats.gamesPlayed} game${stats.gamesPlayed !== 1 ? 's' : ''} played</span>
+                <span>·</span>
+                <span class="queue-timer ${wait.long ? 'waiting-a-while' : ''}" data-queued-at="${p.queuedAt}">${wait.text}</span>
+              </span>
+            </div>
+            <button class="queue-remove" data-index="${i}" aria-label="Remove">&times;</button>
+          </div>
+        `;
+      }).join('');
     }
 
-    // wire up court buttons
+    // ---- history ----
+    if (state.history.length === 0){
+      historyList.style.display = 'none';
+      historyEmpty.style.display = 'block';
+    } else {
+      historyList.style.display = 'flex';
+      historyEmpty.style.display = 'none';
+      const sorted = [...state.history].sort((a, b) => b.finishedAt - a.finishedAt);
+      historyList.innerHTML = sorted.map(h => {
+        const names = h.players.map(p => `${p.name} ${starString(p.skill)}`).join(', ');
+        const mins = Math.max(0, Math.floor((Date.now() - h.finishedAt) / 60000));
+        const timeLabel = mins < 1 ? 'just now' : `${mins} min ago`;
+        return `
+          <div class="history-row">
+            <div>
+              <div class="history-players">Court ${h.court} — ${names}</div>
+              <div class="history-meta"><span>${timeLabel}</span></div>
+            </div>
+            ${h.score ? `<span class="history-score">${h.score}</span>` : `<span class="history-meta">No score recorded</span>`}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ---- wire up events ----
     courtGrid.querySelectorAll('[data-action="fill"]').forEach(btn => {
       btn.addEventListener('click', () => fillCourt(parseInt(btn.dataset.court)));
     });
     courtGrid.querySelectorAll('[data-action="finish"]').forEach(btn => {
-      btn.addEventListener('click', () => finishGame(parseInt(btn.dataset.court)));
+      btn.addEventListener('click', () => {
+        scoreFormOpenCourt = parseInt(btn.dataset.court);
+        render();
+        const input = document.getElementById(`scoreInput${scoreFormOpenCourt}`);
+        if (input) input.focus();
+      });
+    });
+    courtGrid.querySelectorAll('[data-action="save-score"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.court);
+        const input = document.getElementById(`scoreInput${i}`);
+        finishGame(i, input && input.value.trim() ? input.value.trim() : null);
+      });
+    });
+    courtGrid.querySelectorAll('[data-action="skip-score"]').forEach(btn => {
+      btn.addEventListener('click', () => finishGame(parseInt(btn.dataset.court), null));
+    });
+    courtGrid.querySelectorAll('[data-action="cancel-score"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        scoreFormOpenCourt = null;
+        render();
+      });
     });
     queueList.querySelectorAll('.queue-remove').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -385,10 +713,22 @@
     });
   }
 
+  function refreshTimers(){
+    document.querySelectorAll('.queue-timer').forEach(el => {
+      const queuedAt = parseInt(el.dataset.queuedAt);
+      const wait = formatWait(queuedAt);
+      el.textContent = wait.text;
+      el.classList.toggle('waiting-a-while', wait.long);
+    });
+  }
+  setInterval(refreshTimers, 15000);
+
   function addPlayer(){
     const name = playerNameInput.value.trim();
     if (!name) return;
-    state.waiting.push(name);
+    state.waiting.push({ name, skill: selectedSkill, queuedAt: Date.now() });
+    const stats = getStats(name);
+    stats.skill = selectedSkill;
     playerNameInput.value = '';
     saveState();
     render();
@@ -398,19 +738,32 @@
   function fillCourt(courtIndex){
     const needed = state.playersPerCourt;
     if (state.waiting.length < needed) return;
-    const group = state.waiting.splice(0, needed);
-    state.courts[courtIndex] = group;
+    const group = selectBalancedGroup(needed);
+    state.courts[courtIndex] = { players: group };
     saveState();
     render();
   }
 
-  function finishGame(courtIndex){
-    const players = state.courts[courtIndex];
-    if (players.length){
-      // send them to the back of the queue
-      state.waiting.push(...players);
+  function finishGame(courtIndex, score){
+    const court = state.courts[courtIndex];
+    if (court && court.players.length){
+      court.players.forEach(p => {
+        const stats = getStats(p.name);
+        stats.gamesPlayed += 1;
+      });
+      state.history.push({
+        id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+        court: courtIndex + 1,
+        players: court.players,
+        score: score,
+        finishedAt: Date.now()
+      });
+      court.players.forEach(p => {
+        state.waiting.push({ name: p.name, skill: p.skill, queuedAt: Date.now() });
+      });
     }
-    state.courts[courtIndex] = [];
+    state.courts[courtIndex] = null;
+    scoreFormOpenCourt = null;
     saveState();
     render();
   }
@@ -421,11 +774,12 @@
   courtCountSel.addEventListener('change', () => {
     const newCount = parseInt(courtCountSel.value);
     if (newCount > state.courts.length){
-      while (state.courts.length < newCount) state.courts.push([]);
+      while (state.courts.length < newCount) state.courts.push(null);
     } else {
-      // return any players on courts being removed back to the queue
       const removed = state.courts.slice(newCount);
-      removed.forEach(players => state.waiting.push(...players));
+      removed.forEach(court => {
+        if (court) court.players.forEach(p => state.waiting.push({ name: p.name, skill: p.skill, queuedAt: Date.now() }));
+      });
       state.courts = state.courts.slice(0, newCount);
     }
     state.courtCount = newCount;
@@ -440,8 +794,16 @@
   });
 
   document.getElementById('resetBtn').addEventListener('click', () => {
-    if (!confirm('Clear all courts and the waiting queue? This can\'t be undone.')) return;
-    state = { courtCount: state.courtCount, playersPerCourt: state.playersPerCourt, courts: Array.from({length: state.courtCount}, () => []), waiting: [] };
+    if (!confirm('Clear all courts and the waiting queue for a new day? Match history and games-played counts are kept. This can\'t be undone.')) return;
+    state.courts = Array.from({length: state.courtCount}, () => null);
+    state.waiting = [];
+    saveState();
+    render();
+  });
+
+  document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+    if (!confirm('Clear match history? This can\'t be undone.')) return;
+    state.history = [];
     saveState();
     render();
   });

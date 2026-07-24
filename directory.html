@@ -29,13 +29,28 @@
     max-width:520px; line-height:1.6;
   }
 
-  .member-grid{
-    display:grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap:20px;
+  .team-tier{
+    margin-bottom:48px;
+  }
+  .team-tier:last-child{ margin-bottom:0; }
+  .team-tier-label{
+    text-align:center;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+    margin-bottom:20px;
+  }
+  .team-row{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:32px;
   }
   .member-card{
     text-align:center;
+    width:180px;
   }
   .member-photo{
     width:100%;
@@ -44,7 +59,7 @@
     background: var(--paper-dim);
     border: 1.5px solid var(--line);
     overflow:hidden;
-    margin-bottom:14px;
+    margin:0 auto 14px;
   }
   .member-photo img{ width:100%; height:100%; object-fit:cover; }
   .member-name{ font-size:15px; font-weight:700; }
@@ -58,8 +73,16 @@
   }
   .member-bio{ font-size:13px; color: var(--ink-soft); margin-top:8px; line-height:1.5; }
 
-  @media (max-width: 860px){
-    .member-grid{ grid-template-columns: repeat(2, 1fr); }
+  .team-row.tier-leadership .member-card{ width:190px; }
+  .team-row.tier-officers .member-card{ width:150px; }
+  .team-row.tier-members .member-card{ width:120px; }
+  .team-row.tier-members .member-name{ font-size:13.5px; }
+
+  @media (max-width: 560px){
+    .team-row.tier-leadership .member-card{ width:150px; }
+    .team-row.tier-officers .member-card{ width:130px; }
+    .team-row.tier-members .member-card{ width:100px; }
+    .team-row{ gap:20px; }
   }
 
   .empty-state{
@@ -131,7 +154,7 @@
   </div>
 
   <div class="section reveal">
-    <div class="member-grid reveal-stagger" id="memberGrid"></div>
+    <div id="teamContainer"></div>
     <div class="empty-state" id="emptyState" style="display:none;">
       <div class="icon-circle">
         <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><circle cx="12" cy="8" r="4" stroke="#F5F3EE" stroke-width="2"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke="#F5F3EE" stroke-width="2" stroke-linecap="round"/></svg>
@@ -163,33 +186,68 @@
 <script src="script.js"></script>
 <script>
   // ================= EDIT THIS TO ADD MEMBERS =================
-  // One entry per person. Leave the array empty to show the
-  // "Profiles Coming Soon" placeholder instead.
+  // Three tiers, each rendered as its own centered row, largest on top:
+  //   leadership -> biggest photos, top row
+  //   officers   -> medium photos, second row
+  //   members    -> smaller photos, third row (role is optional here)
   //
-  // Each entry needs: name, role, photo (path to a square image),
-  // and an optional short bio.
-  const members = [
-    { name: "Ria Asa", role: "Club President / Director of Operations", photo: "assets/directory/ria-asa.jpg" },
-    { name: "James Castillo", role: "Club Vice President / Head of Tech and Social Media", photo: "assets/directory/james-castillo.jpg" },
-    { name: "Michael Rivera", role: "Queue Master / Court Asst. Manager", photo: "assets/directory/michael-rivera.jpg" },
-  ];
+  // Each entry needs: name, photo (path to a square-ish image).
+  // "role" is optional — leave it out for a plain member listing.
+  // Leave ALL three arrays empty to show the "Profiles Coming Soon" placeholder.
+  const team = {
+    leadership: [
+      { name: "Ria Asa", role: "Club President / Director of Operations", photo: "assets/directory/ria-asa.jpg" },
+      { name: "James Castillo", role: "Club Vice President / Head of Tech and Social Media", photo: "assets/directory/james-castillo.jpg" },
+    ],
+    officers: [
+      { name: "Michael Rivera", role: "Queue Master / Asst. Court Manager", photo: "assets/directory/michael-rivera.jpg" },
+      { name: "Uzz Pascual", role: "Asst. Court Manager", photo: "assets/directory/uzz-pascual.jpg" },
+    ],
+    members: [
+      { name: "Jerome", photo: "assets/directory/jerome.jpg" },
+      { name: "Marjun", photo: "assets/directory/marjun.jpg" },
+      { name: "Heart", photo: "assets/directory/heart.jpg" },
+      { name: "Jass", photo: "assets/directory/jass.jpg" },
+    ],
+  };
   // ===============================================================
 
-  const grid = document.getElementById('memberGrid');
+  const container = document.getElementById('teamContainer');
   const emptyState = document.getElementById('emptyState');
 
-  if (members.length === 0) {
-    grid.style.display = 'none';
-    emptyState.style.display = 'block';
-  } else {
-    grid.innerHTML = members.map(m => `
+  const totalCount = team.leadership.length + team.officers.length + team.members.length;
+
+  function cardHtml(m){
+    return `
       <div class="member-card">
         <div class="member-photo"><img src="${m.photo}" alt="${m.name}"></div>
         <div class="member-name">${m.name}</div>
-        <div class="member-role">${m.role}</div>
+        ${m.role ? `<div class="member-role">${m.role}</div>` : ''}
         ${m.bio ? `<div class="member-bio">${m.bio}</div>` : ''}
       </div>
-    `).join('');
+    `;
+  }
+
+  function tierHtml(list, tierClass, label){
+    if (list.length === 0) return '';
+    return `
+      <div class="team-tier reveal-stagger">
+        ${label ? `<div class="team-tier-label">${label}</div>` : ''}
+        <div class="team-row ${tierClass}">
+          ${list.map(cardHtml).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  if (totalCount === 0) {
+    container.style.display = 'none';
+    emptyState.style.display = 'block';
+  } else {
+    container.innerHTML =
+      tierHtml(team.leadership, 'tier-leadership', null) +
+      tierHtml(team.officers, 'tier-officers', null) +
+      tierHtml(team.members, 'tier-members', 'Members');
   }
 </script>
 

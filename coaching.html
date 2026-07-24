@@ -51,6 +51,18 @@
 
   .coaching-info p{ font-size:15px; line-height:1.75; color: var(--ink-soft); margin-bottom:18px; }
 
+  .court-fee-note{
+    background: rgba(0,94,137,0.06);
+    border: 1.5px solid rgba(0,94,137,0.2);
+    border-radius:4px;
+    padding:14px 16px;
+    font-size:13.5px;
+    line-height:1.6;
+    color: var(--ink-soft);
+    margin-bottom:24px;
+  }
+  .court-fee-note b{ color: var(--ink); }
+
   .slot-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:24px; }
   .slot-item{
     display:flex;
@@ -298,6 +310,11 @@
       have a session scheduled. Check the <a href="index.html#schedule" style="color:var(--sky-deep); text-decoration:underline;">home page schedule</a>
       to see which days are open before requesting a slot. Want a 2-hour session? Select both timeslots below.</p>
 
+      <div class="court-fee-note">
+        <b>+ ₱200 court fee per player</b> on top of the coaching rate — this is the same fee everyone pays to join
+        open play for the day, so it also covers your entry as a first-timer. No separate open play payment needed.
+      </div>
+
       <div class="slot-list">
         <div class="slot-item"><span>3:30 PM – 4:30 PM</span><span class="tag2">Slot A</span></div>
         <div class="slot-item"><span>4:30 PM – 5:30 PM</span><span class="tag2">Slot B</span></div>
@@ -356,7 +373,7 @@
       </div>
 
       <div class="total-row">
-        <span class="label">Estimated Total</span>
+        <span class="label">Estimated Total (Coaching + Court Fee)</span>
         <span class="amount" id="cTotal">₱0</span>
       </div>
       <div class="form-note" id="totalBreakdown">Select at least one timeslot and enter number of players.</div>
@@ -412,7 +429,7 @@
         <p class="ack-intro">By submitting this form, I acknowledge that:</p>
         <ol class="ack-list">
           <li><b>Request Terms</b> — This is a coaching session <b>request</b>, not a confirmed booking. My session will only be confirmed once One Cavite Pickleball Club verifies coach and slot availability for my preferred date and timeslot(s). I understand that coaching is only offered on days with an existing open play session, in the 3:30–4:30 PM and/or 4:30–5:30 PM slots, and that confirmation may take time depending on availability.</li>
-          <li><b>Payment</b> — I understand that payment (₱250/hour/player) via GCash or bank transfer is required as part of this form submission, including a valid reference number and a screenshot of my payment receipt, and that my session will only be confirmed once payment has been verified. If my requested slot is unavailable, I understand OCPC will contact me directly to arrange a refund or reschedule.</li>
+          <li><b>Payment</b> — I understand that payment is required as part of this form submission — ₱250/hour/player for coaching, plus a ₱200/player court fee (which also covers my open play entry for the day) — via GCash or bank transfer, including a valid reference number and a screenshot of my payment receipt. My session will only be confirmed once payment has been verified. If my requested slot is unavailable, I understand OCPC will contact me directly to arrange a refund or reschedule.</li>
           <li><b>Data Privacy</b> — I understand that the personal information I provide (e.g., name, contact number, email, preferred date/timeslot, payment reference) will be collected and used solely for the purpose of processing this coaching request — including confirming session details, coordinating payment, and communicating with my assigned coach. My information will not be shared with third parties outside of this purpose and will be handled in accordance with the Data Privacy Act of 2012 (RA 10173).</li>
         </ol>
         <label class="confirm-check">
@@ -448,6 +465,7 @@
 <script src="script.js"></script>
 <script>
   const RATE = 250;
+  const COURT_FEE = 200; // per player, flat — also covers their open play entry for the day
 
   // ================= GOOGLE FORM WIRING =================
   // Base pre-fill URL for your form, plus the entry ID for each field.
@@ -495,12 +513,14 @@
   function updateTotal(){
     const slotsSelected = Array.from(slotBoxes).filter(b => b.checked).length;
     const players = parseInt(playersInput.value) || 0;
-    const total = slotsSelected * players * RATE;
+    const coachingCost = slotsSelected * players * RATE;
+    const courtFees = players * COURT_FEE;
+    const total = coachingCost + courtFees;
     totalEl.textContent = `₱${total.toLocaleString()}`;
-    if (slotsSelected === 0){
+    if (slotsSelected === 0 || players === 0){
       breakdownEl.textContent = 'Select at least one timeslot and enter number of players.';
     } else {
-      breakdownEl.textContent = `${slotsSelected} hour${slotsSelected > 1 ? 's' : ''} × ${players} player${players !== 1 ? 's' : ''} × ₱${RATE}/hr/player`;
+      breakdownEl.textContent = `(${slotsSelected} hour${slotsSelected > 1 ? 's' : ''} × ${players} player${players !== 1 ? 's' : ''} × ₱${RATE}/hr/player) + (${players} × ₱${COURT_FEE} court fee) = ₱${coachingCost.toLocaleString()} + ₱${courtFees.toLocaleString()}`;
     }
   }
 
@@ -522,9 +542,12 @@
     const email = document.getElementById('cEmail').value;
     const date = document.getElementById('cDate').value;
     const players = document.getElementById('cPlayers').value;
-    const notes = document.getElementById('cNotes').value;
+    const userNotes = document.getElementById('cNotes').value;
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
     const ref = document.getElementById('cRef').value;
+
+    const totalLine = `Estimated total: ${totalEl.textContent} (${breakdownEl.textContent})`;
+    const notes = userNotes ? `${userNotes}\n\n${totalLine}` : totalLine;
 
     const params = [
       `${FIELD.name}=${encodeURIComponent(name)}`,
