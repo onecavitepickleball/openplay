@@ -138,6 +138,61 @@
     margin-top:10px;
   }
 
+  /* payment block */
+  .payment-block{
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:24px;
+    margin-top:28px;
+  }
+  .payment-head{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .payment-head h4{ font-size:17px; font-weight:700; }
+  .payment-note{ font-size:13.5px; line-height:1.6; color: var(--ink-soft); margin-bottom:16px; }
+
+  .payment-method-group{ display:flex; gap:10px; margin-bottom:18px; }
+  .payment-method-opt{
+    flex:1;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+    background: var(--white);
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .payment-method-opt:hover{ border-color: var(--sky-deep); }
+  .payment-method-opt input{ width:17px; height:17px; accent-color: var(--navy); flex-shrink:0; }
+  .payment-method-opt:has(input:checked){ background: rgba(79,182,255,0.1); border-color: var(--sky-deep); }
+  .method-panel{ margin-bottom:4px; }
+
+  .receipt-note{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-top:16px;
+    padding:12px 14px;
+    background: rgba(0,94,137,0.06);
+    border: 1.5px solid rgba(0,94,137,0.2);
+    border-radius:4px;
+    font-size:13px;
+    line-height:1.55;
+    color: var(--ink-soft);
+  }
+  .receipt-note svg{ flex-shrink:0; margin-top:1px; }
+  .qr-image{
+    display:block;
+    max-width:220px;
+    width:100%;
+    margin:0 auto;
+    border-radius:6px;
+    border: 1.5px solid var(--line);
+  }
+
   .field-block{ margin-top:28px; }
   .field-label{
     font-family: var(--font-mono); font-size:11.5px; letter-spacing:0.1em;
@@ -276,7 +331,7 @@
       <div class="batch-note">
         <b>How batch ordering works:</b> we place one bulk print run once we hit the minimum headcount, so pricing
         stays at ₱600/piece. Minimum <b>10 pieces</b> to trigger a batch, and turnaround is roughly
-        <b>3–4 weeks</b> from when the batch closes. Payment details are shared once your order is confirmed.
+        <b>3–4 weeks</b> from when the batch closes.
       </div>
 
       <div class="batch-status">
@@ -305,6 +360,42 @@
       <div class="order-total">
         <span class="label">Total</span>
         <span class="amount" id="orderTotal">₱600</span>
+      </div>
+
+      <!-- PAYMENT -->
+      <div class="payment-block">
+        <div class="payment-head">
+          <h4>How to Pay</h4>
+        </div>
+
+        <div class="payment-method-group">
+          <label class="payment-method-opt">
+            <input type="radio" name="paymentMethod" value="GCash" checked>
+            <span>GCash</span>
+          </label>
+          <label class="payment-method-opt">
+            <input type="radio" name="paymentMethod" value="Bank Transfer">
+            <span>Bank Transfer</span>
+          </label>
+        </div>
+
+        <div id="gcashPanel" class="method-panel">
+          <p class="payment-note">Scan the QR code below to send your total via GCash, then keep the reference number from your payment confirmation handy.</p>
+          <img src="assets/payment/gcash-qr.jpg" alt="OCPC GCash payment QR code" class="qr-image">
+        </div>
+
+        <div id="bankPanel" class="method-panel" style="display:none;">
+          <p class="payment-note">
+            Most Philippine banks can send directly to this GCash account via <b>InstaPay</b> — open your bank
+            app, choose InstaPay / QR transfer, and scan the same code below. No separate bank account needed.
+          </p>
+          <img src="assets/payment/gcash-qr.jpg" alt="OCPC GCash payment QR code, accepts InstaPay transfers" class="qr-image">
+        </div>
+
+        <div class="receipt-note">
+          <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M9 12l2 2 4-4" stroke="#005E89" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#005E89" stroke-width="2"/></svg>
+          <span>Fill in your reference number and attach a screenshot of your payment receipt on the order form after clicking "Order Now" below.</span>
+        </div>
       </div>
 
       <div class="order-actions">
@@ -445,6 +536,24 @@
       document.getElementById('productImg').src = tab.dataset.img;
     });
   });
+
+  // payment method toggle
+  const methodRadios = document.querySelectorAll('input[name="paymentMethod"]');
+  const gcashPanel = document.getElementById('gcashPanel');
+  const bankPanel = document.getElementById('bankPanel');
+
+  function updateMethodPanel(){
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    if (method === 'GCash'){
+      gcashPanel.style.display = 'block';
+      bankPanel.style.display = 'none';
+    } else {
+      gcashPanel.style.display = 'none';
+      bankPanel.style.display = 'block';
+    }
+  }
+  methodRadios.forEach(r => r.addEventListener('change', updateMethodPanel));
+  updateMethodPanel();
 
   renderSizes();
   updateTotal();

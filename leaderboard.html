@@ -76,7 +76,9 @@
     text-align:center;
     margin-bottom:4px;
     word-break:break-word;
+    cursor:pointer;
   }
+  .podium-name:hover{ color: var(--sky-deep); text-decoration:underline; }
   .podium-count{
     font-family: var(--font-mono);
     font-size:11.5px;
@@ -114,7 +116,23 @@
     color: var(--ink-faint);
     width:26px;
   }
-  .lb-name{ flex:1; font-weight:600; font-size:15px; }
+  .lb-name{ flex:1; font-weight:600; font-size:15px; cursor:pointer; }
+  .lb-name:hover{ color: var(--sky-deep); text-decoration:underline; }
+
+  .player-date-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size:13.5px;
+  }
+  .player-date-row:first-child{ border-top: 1px solid var(--line); }
+  .player-date-empty{
+    font-size:13.5px;
+    color: var(--ink-soft);
+    padding:16px 0;
+  }
   .lb-count{
     font-family: var(--font-mono);
     font-size:12.5px;
@@ -353,8 +371,8 @@
     </div>
 
     <div id="adminPanelView" style="display:none;">
-      <h3>Record Attendance</h3>
-      <div class="sub">One entry per open play session. Add attendees below.</div>
+      <h3 id="attFormTitle">Record Attendance</h3>
+      <div class="sub" id="attFormSub">One entry per open play session. Add attendees below.</div>
       <form id="attendanceForm">
         <div class="form-row">
           <label for="attDate">Session Date</label>
@@ -364,7 +382,8 @@
           <label for="attNames">Attendees (one name per line)</label>
           <textarea id="attNames" placeholder="Vhen&#10;Sia&#10;Marvin"></textarea>
         </div>
-        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Save Attendance</button>
+        <button class="btn btn-primary" type="submit" id="attSubmitBtn" style="width:100%; justify-content:center;">Save Attendance</button>
+        <button class="admin-signout" type="button" id="attCancelBtn" style="display:none; margin-top:10px;">Cancel Edit</button>
         <div class="admin-msg" id="attendanceMsg"></div>
       </form>
 
@@ -374,6 +393,19 @@
       </div>
 
       <button class="admin-signout" id="signOutBtn">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYER ATTENDANCE MODAL -->
+<div class="admin-modal" id="playerModal">
+  <div class="admin-modal-inner">
+    <button class="admin-modal-close" id="playerModalClose" aria-label="Close">&times;</button>
+    <h3 id="playerModalName"></h3>
+    <div class="sub">Recorded open play attendance in the last 4 weeks.</div>
+    <div id="playerModalDates" class="admin-list" style="margin-top:20px;"></div>
+    <div class="admin-msg" style="color: var(--ink-faint); margin-top:14px;">
+      See a mistake? Let an OCPC officer know and we'll correct it.
     </div>
   </div>
 </div>
@@ -400,7 +432,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp
+    getFirestore, collection, addDoc, updateDoc, getDocs, deleteDoc, doc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -424,6 +456,7 @@
 
   // ================= LEADERBOARD =================
   let allRecords = [];
+  let currentRecent = [];
   let isAdmin = false;
 
   function isoDate(d){ return d.toISOString().slice(0, 10); }
@@ -444,6 +477,7 @@
   function renderLeaderboard(){
     const cutoff = cutoffDate();
     const recent = allRecords.filter(r => typeof r.date === 'string' && r.date >= cutoff);
+    currentRecent = recent;
 
     const counts = {};
     recent.forEach(r => {
@@ -451,7 +485,7 @@
         const clean = String(n).trim();
         if (!clean) return;
         const key = clean.toLowerCase();
-        if (!counts[key]) counts[key] = { name: clean, count: 0 };
+        if (!counts[key]) counts[key] = { name: clean, count: 0, key };
         counts[key].count++;
       });
     });
@@ -476,12 +510,15 @@
       return `
         <div class="podium-slot ${slotClass}">
           <div class="podium-medal">${medals[i]}</div>
-          <div class="podium-name">${escapeHtml(p.name)}</div>
+          <div class="podium-name" data-key="${escapeHtml(p.key)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
           <div class="podium-count">${p.count} session${p.count === 1 ? '' : 's'}</div>
           <div class="podium-bar"></div>
         </div>
       `;
     }).join('');
+    podiumEl.querySelectorAll('.podium-name').forEach(el => {
+      el.addEventListener('click', () => openPlayerModal(el.dataset.key, el.dataset.name));
+    });
   }
 
   function renderRest(rest){
@@ -489,15 +526,42 @@
     listEl.innerHTML = rest.map((p, i) => `
       <div class="lb-row">
         <span class="lb-rank">${i + 4}</span>
-        <span class="lb-name">${escapeHtml(p.name)}</span>
+        <span class="lb-name" data-key="${escapeHtml(p.key)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
         <span class="lb-count">${p.count} session${p.count === 1 ? '' : 's'}</span>
       </div>
     `).join('');
+    listEl.querySelectorAll('.lb-name').forEach(el => {
+      el.addEventListener('click', () => openPlayerModal(el.dataset.key, el.dataset.name));
+    });
   }
 
   function escapeHtml(str){
     return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   }
+
+  // ================= PLAYER HISTORY MODAL =================
+  const playerModal = document.getElementById('playerModal');
+  const playerModalClose = document.getElementById('playerModalClose');
+  const playerModalName = document.getElementById('playerModalName');
+  const playerModalDates = document.getElementById('playerModalDates');
+
+  function openPlayerModal(key, name){
+    const dates = currentRecent
+      .filter(r => (r.names || []).some(n => String(n).trim().toLowerCase() === key))
+      .map(r => r.date)
+      .sort()
+      .reverse();
+
+    playerModalName.textContent = name;
+    playerModalDates.innerHTML = dates.length
+      ? dates.map(d => `<div class="player-date-row">${escapeHtml(d)}</div>`).join('')
+      : '<div class="player-date-empty">No sessions found in the current window.</div>';
+
+    playerModal.classList.add('open');
+  }
+
+  playerModalClose.addEventListener('click', () => playerModal.classList.remove('open'));
+  playerModal.addEventListener('click', (e) => { if (e.target === playerModal) playerModal.classList.remove('open'); });
 
   loadAttendance();
 
@@ -514,8 +578,42 @@
   const adminList = document.getElementById('adminList');
   const signOutBtn = document.getElementById('signOutBtn');
   const attDateEl = document.getElementById('attDate');
+  const attNamesEl = document.getElementById('attNames');
+  const attSubmitBtn = document.getElementById('attSubmitBtn');
+  const attCancelBtn = document.getElementById('attCancelBtn');
+  const attFormTitle = document.getElementById('attFormTitle');
+  const attFormSub = document.getElementById('attFormSub');
+
+  let editingId = null;
 
   attDateEl.value = isoDate(new Date());
+
+  function resetAttendanceForm(){
+    editingId = null;
+    attendanceForm.reset();
+    attDateEl.value = isoDate(new Date());
+    attSubmitBtn.textContent = 'Save Attendance';
+    attCancelBtn.style.display = 'none';
+    attFormTitle.textContent = 'Record Attendance';
+    attFormSub.textContent = 'One entry per open play session. Add attendees below.';
+  }
+
+  function startEditing(r){
+    editingId = r.id;
+    attDateEl.value = r.date;
+    attNamesEl.value = (r.names || []).join('\n');
+    attSubmitBtn.textContent = 'Update Attendance';
+    attCancelBtn.style.display = 'block';
+    attFormTitle.textContent = 'Edit Attendance';
+    attFormSub.textContent = `Editing the entry for ${r.date}.`;
+    attendanceMsg.textContent = '';
+    attNamesEl.focus();
+  }
+
+  attCancelBtn.addEventListener('click', () => {
+    resetAttendanceForm();
+    attendanceMsg.textContent = '';
+  });
 
   adminBtn.addEventListener('click', () => adminModal.classList.add('open'));
   adminClose.addEventListener('click', () => adminModal.classList.remove('open'));
@@ -545,7 +643,7 @@
   attendanceForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const date = attDateEl.value;
-    const names = document.getElementById('attNames').value
+    const names = attNamesEl.value
       .split('\n').map(n => n.trim()).filter(Boolean);
 
     if (!date || names.length === 0){
@@ -555,10 +653,17 @@
     }
 
     try {
-      await addDoc(attendanceCol, { date, names, createdAt: serverTimestamp() });
-      attendanceMsg.style.color = 'var(--sky-deep)';
-      attendanceMsg.textContent = `Saved ${names.length} attendee(s) for ${date}.`;
-      document.getElementById('attNames').value = '';
+      if (editingId){
+        await updateDoc(doc(db, 'attendance', editingId), { date, names });
+        attendanceMsg.style.color = 'var(--sky-deep)';
+        attendanceMsg.textContent = `Updated entry for ${date}.`;
+        resetAttendanceForm();
+      } else {
+        await addDoc(attendanceCol, { date, names, createdAt: serverTimestamp() });
+        attendanceMsg.style.color = 'var(--sky-deep)';
+        attendanceMsg.textContent = `Saved ${names.length} attendee(s) for ${date}.`;
+        attNamesEl.value = '';
+      }
       await loadAttendance();
     } catch (err) {
       attendanceMsg.style.color = 'var(--pop)';
@@ -574,13 +679,24 @@
           <div class="admin-row-date">${escapeHtml(r.date)}</div>
           <div class="admin-row-names">${escapeHtml((r.names || []).join(', '))}</div>
         </div>
-        <button class="admin-delete" data-id="${r.id}" title="Delete this entry">&times;</button>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="admin-delete" data-action="edit" data-id="${r.id}" title="Edit this entry">&#9998;</button>
+          <button class="admin-delete" data-action="delete" data-id="${r.id}" title="Delete this entry">&times;</button>
+        </div>
       </div>
     `).join('');
 
-    adminList.querySelectorAll('.admin-delete').forEach(btn => {
+    adminList.querySelectorAll('[data-action="edit"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = allRecords.find(rec => rec.id === btn.dataset.id);
+        if (r) startEditing(r);
+      });
+    });
+
+    adminList.querySelectorAll('[data-action="delete"]').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('Delete this attendance entry?')) return;
+        if (editingId === btn.dataset.id) resetAttendanceForm();
         await deleteDoc(doc(db, 'attendance', btn.dataset.id));
         await loadAttendance();
       });
