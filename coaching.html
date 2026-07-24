@@ -131,6 +131,121 @@
   @media (max-width: 480px){
     .form-row-2{ grid-template-columns:1fr; }
   }
+
+  /* slot checkboxes */
+  .slot-check-group{ display:flex; flex-direction:column; gap:10px; }
+  .slot-check{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:14px 16px;
+    cursor:pointer;
+    font-size:14.5px;
+    font-weight:600;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .slot-check:hover{ border-color: var(--sky-deep); }
+  .slot-check input{ width:18px; height:18px; accent-color: var(--navy); flex-shrink:0; }
+  .slot-check:has(input:checked){ background: rgba(79,182,255,0.1); border-color: var(--sky-deep); }
+
+  /* total row */
+  .total-row{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding:18px 0; margin-top:8px; border-top: 1.5px solid var(--line); border-bottom: 1.5px solid var(--line);
+  }
+  .total-row .label{ font-family: var(--font-mono); font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color: var(--ink-soft); }
+  .total-row .amount{ font-family: var(--font-display); font-size:26px; color: var(--pop); }
+
+  /* payment block */
+  .payment-block{
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:24px;
+    margin: 24px 0;
+  }
+  .payment-head{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .payment-head h4{ font-size:17px; font-weight:700; }
+  .payment-note{ font-size:13.5px; line-height:1.6; color: var(--ink-soft); margin-bottom:16px; }
+
+  .payment-method-group{ display:flex; gap:10px; margin-bottom:18px; }
+  .payment-method-opt{
+    flex:1;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+    background: var(--white);
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .payment-method-opt:hover{ border-color: var(--sky-deep); }
+  .payment-method-opt input{ width:17px; height:17px; accent-color: var(--navy); flex-shrink:0; }
+  .payment-method-opt:has(input:checked){ background: rgba(79,182,255,0.1); border-color: var(--sky-deep); }
+  .method-panel{ margin-bottom:4px; }
+
+  .receipt-note{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-top:16px;
+    padding:12px 14px;
+    background: rgba(0,94,137,0.06);
+    border: 1.5px solid rgba(0,94,137,0.2);
+    border-radius:4px;
+    font-size:13px;
+    line-height:1.55;
+    color: var(--ink-soft);
+  }
+  .receipt-note svg{ flex-shrink:0; margin-top:1px; }
+  .qr-image{
+    display:block;
+    max-width:220px;
+    width:100%;
+    margin:0 auto;
+    border-radius:6px;
+    border: 1.5px solid var(--line);
+  }
+  .confirm-check{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-top:16px;
+    font-size:13.5px;
+    color: var(--ink-soft);
+    cursor:pointer;
+    line-height:1.5;
+  }
+  .confirm-check input{ width:18px; height:18px; margin-top:2px; accent-color: var(--navy); flex-shrink:0; }
+
+  /* acknowledgment block */
+  .ack-block{
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:22px 24px;
+    margin: 24px 0;
+  }
+  .ack-intro{ font-size:13.5px; font-weight:700; color: var(--ink); margin-bottom:10px; }
+  .ack-list{
+    padding-left:20px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .ack-list li{
+    font-size:12.5px;
+    line-height:1.65;
+    color: var(--ink-soft);
+  }
+  .ack-list li b{ color: var(--ink); }
 </style>
 </head>
 <body>
@@ -146,14 +261,19 @@
     </button>
     <div class="nav-links">
       <a href="index.html">Home</a>
-      <a href="events.html">Events</a>
-      <a href="gallery.html">Gallery</a>
-      <a href="queue.html">Queue</a>
       <a href="about.html">About</a>
-      <a href="rules.html">Rules &amp; Etiquette</a>
+      <a href="queue.html">Queue</a>
+      <a href="gallery.html">Gallery</a>
       <a href="coaching.html" class="active">Coaching</a>
-      <a href="directory.html">Meet the Club</a>
-      <a href="contact.html">Contact</a>
+      <a href="events.html">Events</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="rules.html">Rules &amp; Etiquette</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
       <a href="merch.html" class="nav-highlight">Shop</a>
     </div>
   </div>
@@ -176,7 +296,7 @@
 
       <p>Coaching sessions are run alongside our regular open play — so they're only available on days we already
       have a session scheduled. Check the <a href="index.html#schedule" style="color:var(--sky-deep); text-decoration:underline;">home page schedule</a>
-      to see which days are open before requesting a slot.</p>
+      to see which days are open before requesting a slot. Want a 2-hour session? Select both timeslots below.</p>
 
       <div class="slot-list">
         <div class="slot-item"><span>3:30 PM – 4:30 PM</span><span class="tag2">Slot A</span></div>
@@ -184,9 +304,9 @@
       </div>
 
       <div class="disclaimer-box">
-        <b>This is a request, not a confirmed booking.</b> Submitting the form sends us your details by email —
-        we'll follow up directly to confirm availability, coach assignment, and payment. Coaching only runs on
-        days with an existing open play session.
+        <b>This is a request, not a confirmed booking.</b> Submitting the form sends us your details and payment
+        reference by email — we'll follow up directly to confirm availability and coach assignment. Coaching only
+        runs on days with an existing open play session.
       </div>
     </div>
 
@@ -211,23 +331,97 @@
           <input type="date" id="cDate" required>
         </div>
         <div class="form-row">
-          <label for="cSlot">Preferred Timeslot</label>
-          <select id="cSlot" required>
-            <option value="">Select a slot</option>
-            <option value="3:30 PM - 4:30 PM">3:30 PM – 4:30 PM</option>
-            <option value="4:30 PM - 5:30 PM">4:30 PM – 5:30 PM</option>
-          </select>
+          <label for="cPlayers">Number of Players</label>
+          <input type="number" id="cPlayers" min="1" max="4" value="1" required>
         </div>
       </div>
+
       <div class="form-row">
-        <label for="cPlayers">Number of Players</label>
-        <input type="number" id="cPlayers" min="1" max="4" value="1" required>
+        <label>Timeslot(s) — select both for a 2-hour session</label>
+        <div class="slot-check-group">
+          <label class="slot-check">
+            <input type="checkbox" class="slotBox" value="3:30 PM – 4:30 PM">
+            <span>Slot A · 3:30 PM – 4:30 PM</span>
+          </label>
+          <label class="slot-check">
+            <input type="checkbox" class="slotBox" value="4:30 PM – 5:30 PM">
+            <span>Slot B · 4:30 PM – 5:30 PM</span>
+          </label>
+        </div>
       </div>
+
       <div class="form-row">
         <label for="cNotes">Notes (skill level, goals, etc.)</label>
-        <textarea id="cNotes" rows="4"></textarea>
+        <textarea id="cNotes" rows="3"></textarea>
       </div>
-      <div class="form-note">This opens your email app with the details filled in — just hit send.</div>
+
+      <div class="total-row">
+        <span class="label">Estimated Total</span>
+        <span class="amount" id="cTotal">₱0</span>
+      </div>
+      <div class="form-note" id="totalBreakdown">Select at least one timeslot and enter number of players.</div>
+
+      <!-- PAYMENT -->
+      <div class="payment-block">
+        <div class="payment-head">
+          <span class="zone-tag" style="background:var(--navy); color:var(--paper); font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; padding:6px 12px; border-radius:3px; display:inline-block;">Step 2</span>
+          <h4>Pay for Your Session</h4>
+        </div>
+
+        <div class="payment-method-group">
+          <label class="payment-method-opt">
+            <input type="radio" name="paymentMethod" value="GCash" checked>
+            <span>GCash</span>
+          </label>
+          <label class="payment-method-opt">
+            <input type="radio" name="paymentMethod" value="Bank Transfer">
+            <span>Bank Transfer</span>
+          </label>
+        </div>
+
+        <div id="gcashPanel" class="method-panel">
+          <p class="payment-note">Scan the QR code below to send your estimated total via GCash, then enter the reference number from your payment confirmation.</p>
+          <img src="assets/payment/gcash-qr.jpg" alt="OCPC GCash payment QR code" class="qr-image">
+        </div>
+
+        <div id="bankPanel" class="method-panel" style="display:none;">
+          <p class="payment-note">
+            Most Philippine banks can send directly to this GCash account via <b>InstaPay</b> — open your bank
+            app, choose InstaPay / QR transfer, and scan the same code below. No separate bank account needed.
+          </p>
+          <img src="assets/payment/gcash-qr.jpg" alt="OCPC GCash payment QR code, accepts InstaPay transfers" class="qr-image">
+        </div>
+
+        <div class="form-row" style="margin-top:18px;">
+          <label for="cRef" id="cRefLabel">Payment Reference Number</label>
+          <input type="text" id="cRef" placeholder="e.g. 1234567890123" required>
+        </div>
+        <label class="confirm-check">
+          <input type="checkbox" id="cPaid" required>
+          <span id="cPaidLabel">I've sent the payment shown above and the reference number is correct.</span>
+        </label>
+
+        <div class="receipt-note">
+          <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M9 12l2 2 4-4" stroke="#005E89" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#005E89" stroke-width="2"/></svg>
+          <span>You'll be asked to attach a screenshot of your payment receipt on the next page, after you submit this form.</span>
+        </div>
+      </div>
+
+      <!-- ACKNOWLEDGMENT -->
+      <div class="ack-block">
+        <p class="ack-intro">By submitting this form, I acknowledge that:</p>
+        <ol class="ack-list">
+          <li><b>Request Terms</b> — This is a coaching session <b>request</b>, not a confirmed booking. My session will only be confirmed once One Cavite Pickleball Club verifies coach and slot availability for my preferred date and timeslot(s). I understand that coaching is only offered on days with an existing open play session, in the 3:30–4:30 PM and/or 4:30–5:30 PM slots, and that confirmation may take time depending on availability.</li>
+          <li><b>Payment</b> — I understand that payment (₱250/hour/player) via GCash or bank transfer is required as part of this form submission, including a valid reference number and a screenshot of my payment receipt, and that my session will only be confirmed once payment has been verified. If my requested slot is unavailable, I understand OCPC will contact me directly to arrange a refund or reschedule.</li>
+          <li><b>Data Privacy</b> — I understand that the personal information I provide (e.g., name, contact number, email, preferred date/timeslot, payment reference) will be collected and used solely for the purpose of processing this coaching request — including confirming session details, coordinating payment, and communicating with my assigned coach. My information will not be shared with third parties outside of this purpose and will be handled in accordance with the Data Privacy Act of 2012 (RA 10173).</li>
+        </ol>
+        <label class="confirm-check">
+          <input type="checkbox" id="cAck" required>
+          <span>I have read and agree to the terms above.</span>
+        </label>
+      </div>
+
+      <div class="form-note">This opens our request form in a new tab with everything filled in — just review and hit submit there.</div>
       <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Request Coaching Session</button>
     </form>
   </div>
@@ -253,36 +447,100 @@
 
 <script src="script.js"></script>
 <script>
-  const COACHING_EMAIL = "ocpc.pickleball@gmail.com";
+  const RATE = 250;
+
+  // ================= GOOGLE FORM WIRING =================
+  // Base pre-fill URL for your form, plus the entry ID for each field.
+  // If you ever edit the form and the field IDs change, get a fresh
+  // "pre-filled link" from Google Forms and send it over to update these.
+  const GOOGLE_FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSfQLg61RqSXiBkewUYIlqxFsfFczpP8Z46Zh2LWzNIfGyTbKg/viewform?usp=pp_url";
+  const FIELD = {
+    name: "entry.570678170",
+    contact: "entry.2004802013",
+    email: "entry.1267467210",
+    date: "entry.540446024",
+    slots: "entry.1845722086",   // checkbox field — can repeat for multiple values
+    players: "entry.276723884",
+    notes: "entry.1621558241",
+    method: "entry.210196744",  // Payment Method: "GCash" or "Bank Transfer"
+    ref: "entry.1759336780",
+    ack: "entry.374320984"
+  };
+  // ========================================================
+
+  const slotBoxes = document.querySelectorAll('.slotBox');
+  const playersInput = document.getElementById('cPlayers');
+  const totalEl = document.getElementById('cTotal');
+  const breakdownEl = document.getElementById('totalBreakdown');
+  const methodRadios = document.querySelectorAll('input[name="paymentMethod"]');
+  const gcashPanel = document.getElementById('gcashPanel');
+  const bankPanel = document.getElementById('bankPanel');
+  const cPaidLabel = document.getElementById('cPaidLabel');
+
+  function updateMethodPanel(){
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    if (method === 'GCash'){
+      gcashPanel.style.display = 'block';
+      bankPanel.style.display = 'none';
+      cPaidLabel.textContent = "I've sent the payment shown above and the reference number is correct.";
+    } else {
+      gcashPanel.style.display = 'none';
+      bankPanel.style.display = 'block';
+      cPaidLabel.textContent = "I've completed payment via bank transfer and the reference number is correct.";
+    }
+  }
+  methodRadios.forEach(r => r.addEventListener('change', updateMethodPanel));
+  updateMethodPanel();
+
+  function updateTotal(){
+    const slotsSelected = Array.from(slotBoxes).filter(b => b.checked).length;
+    const players = parseInt(playersInput.value) || 0;
+    const total = slotsSelected * players * RATE;
+    totalEl.textContent = `₱${total.toLocaleString()}`;
+    if (slotsSelected === 0){
+      breakdownEl.textContent = 'Select at least one timeslot and enter number of players.';
+    } else {
+      breakdownEl.textContent = `${slotsSelected} hour${slotsSelected > 1 ? 's' : ''} × ${players} player${players !== 1 ? 's' : ''} × ₱${RATE}/hr/player`;
+    }
+  }
+
+  slotBoxes.forEach(b => b.addEventListener('change', updateTotal));
+  playersInput.addEventListener('input', updateTotal);
+  updateTotal();
 
   document.getElementById('coachingForm').addEventListener('submit', (e) => {
     e.preventDefault();
+
+    const selectedSlots = Array.from(slotBoxes).filter(b => b.checked).map(b => b.value);
+    if (selectedSlots.length === 0){
+      alert('Please select at least one timeslot.');
+      return;
+    }
 
     const name = document.getElementById('cName').value;
     const contact = document.getElementById('cContact').value;
     const email = document.getElementById('cEmail').value;
     const date = document.getElementById('cDate').value;
-    const slot = document.getElementById('cSlot').value;
     const players = document.getElementById('cPlayers').value;
     const notes = document.getElementById('cNotes').value;
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const ref = document.getElementById('cRef').value;
 
-    const subject = `Coaching Request — ${name}`;
-    const body =
-`Hi OCPC,
+    const params = [
+      `${FIELD.name}=${encodeURIComponent(name)}`,
+      `${FIELD.contact}=${encodeURIComponent(contact)}`,
+      `${FIELD.email}=${encodeURIComponent(email)}`,
+      `${FIELD.date}=${encodeURIComponent(date)}`,
+      ...selectedSlots.map(s => `${FIELD.slots}=${encodeURIComponent(s)}`),
+      `${FIELD.players}=${encodeURIComponent(players)}`,
+      `${FIELD.notes}=${encodeURIComponent(notes)}`,
+      `${FIELD.method}=${encodeURIComponent(method)}`,
+      `${FIELD.ref}=${encodeURIComponent(ref)}`,
+      `${FIELD.ack}=${encodeURIComponent("I have read and agree to the terms above.")}`
+    ];
 
-I'd like to request a coaching session.
-
-Name: ${name}
-Contact Number: ${contact}
-Email: ${email}
-Preferred Date: ${date}
-Preferred Timeslot: ${slot}
-Number of Players: ${players}
-Notes: ${notes || "-"}
-
-(I understand this is a request only and not a guaranteed booking until confirmed.)`;
-
-    window.location.href = `mailto:${COACHING_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const finalUrl = `${GOOGLE_FORM_BASE}&${params.join('&')}`;
+    window.open(finalUrl, '_blank');
   });
 </script>
 
