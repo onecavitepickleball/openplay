@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shop — One Cavite Pickleball Club</title>
-<meta name="description" content="Order the official OCPC sublimation uniform — batch orders, ₱450 each.">
+<meta name="description" content="Order the official OCPC sublimation uniform — batch orders, ₱600 each.">
 
 <meta property="og:title" content="OCPC Shop — Sublimation Uniform">
-<meta property="og:description" content="Order the official OCPC sublimation uniform — batch orders, ₱450 each.">
+<meta property="og:description" content="Order the official OCPC sublimation uniform — batch orders, ₱600 each.">
 <meta property="og:image" content="https://onecavitepickleball.club/assets/uniform-front.jpg">
 <meta property="og:image:width" content="564">
 <meta property="og:image:height" content="709">
@@ -17,7 +17,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="OCPC Shop — Sublimation Uniform">
-<meta name="twitter:description" content="Order the official OCPC sublimation uniform — batch orders, ₱450 each.">
+<meta name="twitter:description" content="Order the official OCPC sublimation uniform — batch orders, ₱600 each.">
 <meta name="twitter:image" content="https://onecavitepickleball.club/assets/uniform-front.jpg">
 
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
@@ -93,6 +93,50 @@
     color: var(--ink-soft);
   }
   .batch-note b{ color: var(--ink); }
+
+  .batch-status{
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:18px 20px;
+    margin-top:20px;
+  }
+  .batch-status-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .batch-status-label{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+  }
+  .batch-status-count{
+    font-family: var(--font-display);
+    font-size:18px;
+    color: var(--sky-deep);
+  }
+  .batch-progress{
+    width:100%;
+    height:8px;
+    border-radius:4px;
+    background: var(--line);
+    overflow:hidden;
+  }
+  .batch-progress-fill{
+    height:100%;
+    background: var(--pop);
+    border-radius:4px;
+    transition: width .3s ease;
+  }
+  .batch-status-note{
+    font-size:13px;
+    color: var(--ink-soft);
+    margin-top:10px;
+  }
 
   .field-block{ margin-top:28px; }
   .field-label{
@@ -180,16 +224,15 @@
       <a href="index.html">Home</a>
       <a href="about.html">About</a>
       <a href="queue.html">Queue</a>
-      <a href="gallery.html">Gallery</a>
+      <a href="leaderboard.html">Leaderboard</a>
       <a href="coaching.html">Coaching</a>
-      <a href="events.html">Events</a>
       <div class="nav-more">
         <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="nav-more-menu">
           <a href="rules.html">Rules &amp; Etiquette</a>
           <a href="directory.html">Meet the Club</a>
-      <a href="leaderboard.html">Leaderboard</a>
-          <a href="leaderboard.html">Leaderboard</a>
+          <a href="gallery.html">Gallery</a>
+          <a href="events.html">Events</a>
           <a href="contact.html">Contact</a>
         </div>
       </div>
@@ -222,7 +265,7 @@
       <span class="tag">Batch Order</span>
       <h2>OCPC Sublimation Uniform</h2>
       <div class="price-row">
-        <span class="price">₱450</span>
+        <span class="price">₱600</span>
         <span class="price-note">per piece</span>
       </div>
       <p class="product-desc">
@@ -232,8 +275,17 @@
 
       <div class="batch-note">
         <b>How batch ordering works:</b> we place one bulk print run once we hit the minimum headcount, so pricing
-        stays at ₱450/piece. Minimum <b>10 pieces</b> to trigger a batch, and turnaround is roughly
+        stays at ₱600/piece. Minimum <b>10 pieces</b> to trigger a batch, and turnaround is roughly
         <b>3–4 weeks</b> from when the batch closes. Payment details are shared once your order is confirmed.
+      </div>
+
+      <div class="batch-status">
+        <div class="batch-status-head">
+          <span class="batch-status-label">Batch Status</span>
+          <span class="batch-status-count" id="batchCount"></span>
+        </div>
+        <div class="batch-progress"><div class="batch-progress-fill" id="batchProgressFill"></div></div>
+        <div class="batch-status-note" id="batchStatusNote"></div>
       </div>
 
       <div class="field-block">
@@ -252,7 +304,7 @@
 
       <div class="order-total">
         <span class="label">Total</span>
-        <span class="amount" id="orderTotal">₱450</span>
+        <span class="amount" id="orderTotal">₱600</span>
       </div>
 
       <div class="order-actions">
@@ -308,6 +360,7 @@
       <a href="coaching.html">Coaching</a>
       <a href="directory.html">Meet the Club</a>
       <a href="contact.html">Contact</a>
+      <a href="leaderboard.html">Leaderboard</a>
       <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
     </div>
     <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
@@ -317,8 +370,12 @@
 <script src="script.js"></script>
 <script>
   // ================= EDIT THESE AS NEEDED =================
-  const PRICE = 450;
+  const PRICE = 600;
   const SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
+
+  // Batch Status widget — update CURRENT_ORDERS as confirmed orders come in.
+  const BATCH_MINIMUM = 10;
+  const CURRENT_ORDERS = 0;
 
   // Google Form order link. GOOGLE_FORM_BASE is the pre-fill base URL for
   // your form (Form ⋮ menu → Get pre-filled link). SIZE_ENTRY_ID is the
@@ -363,6 +420,16 @@
     orderTotal.textContent = `₱${(PRICE * qty).toLocaleString()}`;
   }
 
+  function renderBatchStatus(){
+    const remaining = Math.max(BATCH_MINIMUM - CURRENT_ORDERS, 0);
+    const pct = Math.min(100, Math.round((CURRENT_ORDERS / BATCH_MINIMUM) * 100));
+    document.getElementById('batchCount').textContent = `${CURRENT_ORDERS} / ${BATCH_MINIMUM}`;
+    document.getElementById('batchProgressFill').style.width = `${pct}%`;
+    document.getElementById('batchStatusNote').textContent = remaining === 0
+      ? 'Minimum reached — this batch is confirmed to print!'
+      : `${remaining} more order${remaining === 1 ? '' : 's'} needed to trigger this batch.`;
+  }
+
   document.getElementById('qtyMinus').addEventListener('click', () => {
     if (qty > 1) { qty--; updateTotal(); }
   });
@@ -382,6 +449,7 @@
   renderSizes();
   updateTotal();
   updateOrderLink();
+  renderBatchStatus();
 </script>
 
 </body>
