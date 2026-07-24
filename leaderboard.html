@@ -70,15 +70,22 @@
   }
   .podium-slot.empty{ visibility:hidden; }
   .podium-medal{ font-size:34px; margin-bottom:10px; line-height:1; }
+  .podium-name-group{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    margin-bottom:4px;
+  }
   .podium-name{
     font-weight:700;
     font-size:16.5px;
     text-align:center;
-    margin-bottom:4px;
     word-break:break-word;
     cursor:pointer;
   }
   .podium-name:hover{ color: var(--sky-deep); text-decoration:underline; }
+  .podium-name-group.multi .podium-name{ font-size:13px; }
   .podium-count{
     font-family: var(--font-mono);
     font-size:11.5px;
@@ -492,26 +499,40 @@
 
     const ranked = Object.values(counts).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
+    // Group equal counts into tiers so ties share the same podium spot / rank.
+    const tiers = [];
+    ranked.forEach(p => {
+      const last = tiers[tiers.length - 1];
+      if (last && last.count === p.count) last.members.push(p);
+      else tiers.push({ count: p.count, members: [p] });
+    });
+    let rank = 1;
+    tiers.forEach(t => { t.rank = rank; rank += t.members.length; });
+
     document.getElementById('lbContent').style.display = ranked.length ? 'block' : 'none';
     document.getElementById('lbEmpty').style.display = ranked.length ? 'none' : 'block';
 
-    renderPodium(ranked.slice(0, 3));
-    renderRest(ranked.slice(3));
+    renderPodium(tiers.slice(0, 3));
+    renderRest(tiers.slice(3));
   }
 
-  function renderPodium(top3){
+  function renderPodium(tiers){
     const podiumEl = document.getElementById('podium');
     const order = [1, 0, 2];
     const medals = ['🥇', '🥈', '🥉'];
     podiumEl.innerHTML = order.map(i => {
-      const p = top3[i];
+      const tier = tiers[i];
       const slotClass = `podium-${i + 1}`;
-      if (!p) return `<div class="podium-slot ${slotClass} empty"><div class="podium-bar"></div></div>`;
+      if (!tier) return `<div class="podium-slot ${slotClass} empty"><div class="podium-bar"></div></div>`;
+      const multiClass = tier.members.length > 1 ? ' multi' : '';
+      const namesHtml = tier.members.map(p => `
+        <div class="podium-name" data-key="${escapeHtml(p.key)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
+      `).join('');
       return `
         <div class="podium-slot ${slotClass}">
           <div class="podium-medal">${medals[i]}</div>
-          <div class="podium-name" data-key="${escapeHtml(p.key)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
-          <div class="podium-count">${p.count} session${p.count === 1 ? '' : 's'}</div>
+          <div class="podium-name-group${multiClass}">${namesHtml}</div>
+          <div class="podium-count">${tier.count} session${tier.count === 1 ? '' : 's'}</div>
           <div class="podium-bar"></div>
         </div>
       `;
@@ -521,15 +542,15 @@
     });
   }
 
-  function renderRest(rest){
+  function renderRest(tiers){
     const listEl = document.getElementById('lbList');
-    listEl.innerHTML = rest.map((p, i) => `
+    listEl.innerHTML = tiers.flatMap(t => t.members.map(p => `
       <div class="lb-row">
-        <span class="lb-rank">${i + 4}</span>
+        <span class="lb-rank">${t.rank}</span>
         <span class="lb-name" data-key="${escapeHtml(p.key)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
-        <span class="lb-count">${p.count} session${p.count === 1 ? '' : 's'}</span>
+        <span class="lb-count">${t.count} session${t.count === 1 ? '' : 's'}</span>
       </div>
-    `).join('');
+    `)).join('');
     listEl.querySelectorAll('.lb-name').forEach(el => {
       el.addEventListener('click', () => openPlayerModal(el.dataset.key, el.dataset.name));
     });
