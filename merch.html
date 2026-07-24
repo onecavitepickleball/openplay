@@ -16,181 +16,171 @@
 <link rel="apple-touch-icon" href="assets/favicon-180.png">
 <link rel="stylesheet" href="styles.css">
 <style>
-  .shop-hero{ text-align:center; padding:48px 0 12px; }
+  .shop-hero{ padding:56px 0 12px; }
   .shop-hero h1{
     font-family: var(--font-display);
-    font-size:clamp(46px, 9vw, 84px);
-    line-height:0.92;
-    text-shadow: 5px 5px 0 var(--court-dark);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
   }
   .shop-hero p{
-    margin-top:14px; font-size:17px; color: rgba(245,241,230,0.85);
-    max-width:520px; margin-left:auto; margin-right:auto;
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:480px; line-height:1.6;
   }
 
-  /* stitched seam divider — signature element */
-  .seam{
-    height:2px;
-    margin:40px 0;
-    background-image: repeating-linear-gradient(90deg, var(--optic) 0 10px, transparent 10px 20px);
-    opacity:0.5;
-  }
-
-  /* product card */
+  /* product */
   .product{
-    background: var(--navy);
-    border-radius:24px;
-    border: 3px solid var(--jersey);
-    overflow:hidden;
     display:grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap:56px;
+    align-items:start;
   }
   .product-media{
-    background: var(--navy-deep);
-    padding:28px;
-    display:flex;
-    flex-direction:column;
-    gap:16px;
+    position:sticky;
+    top:96px;
   }
   .product-image-frame{
     position:relative;
-    border-radius:16px;
+    border-radius:6px;
     overflow:hidden;
-    background:#0a1120;
-    /* stitched border, signature motif reused */
-    outline: 2px dashed rgba(220,234,46,0.4);
-    outline-offset: 6px;
+    background: var(--navy-deep);
+    aspect-ratio: 3/4;
   }
-  .product-image-frame img{ width:100%; height:auto; }
-  .media-tabs{ display:flex; gap:10px; justify-content:center; }
+  .product-image-frame img{ width:100%; height:100%; object-fit:cover; }
+  .media-tabs{ display:flex; gap:8px; margin-top:14px; }
   .media-tab{
     font-family: var(--font-mono);
-    font-size:12px; letter-spacing:0.1em; text-transform:uppercase;
-    background: transparent; border: 2px solid rgba(245,241,230,0.25);
-    color: rgba(245,241,230,0.75);
-    padding:8px 18px; border-radius:20px; cursor:pointer;
+    font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase;
+    background: transparent; border: 1.5px solid var(--line);
+    color: var(--ink-soft);
+    padding:9px 18px; border-radius:3px; cursor:pointer;
     transition: all .15s ease;
   }
-  .media-tab.active{ background: var(--optic); border-color: var(--optic); color: var(--ink); }
+  .media-tab.active{ background: var(--navy); border-color: var(--navy); color: var(--paper); }
 
-  .product-info{ padding:34px; display:flex; flex-direction:column; gap:18px; }
   .product-info .tag{
-    align-self:flex-start;
-    font-family: var(--font-mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
-    background: rgba(220,234,46,0.15); color: var(--optic);
-    border: 1.5px solid rgba(220,234,46,0.4);
-    padding:5px 12px; border-radius:16px;
+    display:inline-block;
+    font-family: var(--font-mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+    background: rgba(255,90,54,0.1); color: var(--pop-deep);
+    border: 1.5px solid rgba(255,90,54,0.3);
+    padding:5px 12px; border-radius:3px;
+    margin-bottom:16px;
   }
-  .product-info h2{ font-family: var(--font-display); font-size:34px; line-height:1; }
-  .price-row{ display:flex; align-items:baseline; gap:10px; }
-  .price{ font-family: var(--font-display); font-size:40px; color: var(--optic); }
-  .price-note{ font-family: var(--font-mono); font-size:12px; color: rgba(245,241,230,0.65); text-transform:uppercase; letter-spacing:0.06em; }
-  .product-desc{ font-size:15px; line-height:1.6; color: rgba(245,241,230,0.85); }
+  .product-info h2{ font-family: var(--font-display); font-size:clamp(32px,4vw,44px); text-transform:uppercase; line-height:1; }
+  .price-row{ display:flex; align-items:baseline; gap:10px; margin-top:16px; }
+  .price{ font-family: var(--font-display); font-size:38px; color: var(--pop); }
+  .price-note{ font-family: var(--font-mono); font-size:11.5px; color: var(--ink-faint); text-transform:uppercase; letter-spacing:0.06em; }
+  .product-desc{ font-size:15px; line-height:1.7; color: var(--ink-soft); margin-top:20px; }
 
   .batch-note{
-    background: rgba(220,234,46,0.08);
-    border: 1.5px dashed rgba(220,234,46,0.35);
-    border-radius:14px;
-    padding:14px 16px;
+    border-top: 1.5px solid var(--line);
+    border-bottom: 1.5px solid var(--line);
+    padding:18px 0;
+    margin-top:24px;
     font-size:13.5px;
-    line-height:1.55;
-    color: rgba(245,241,230,0.9);
+    line-height:1.6;
+    color: var(--ink-soft);
   }
-  .batch-note b{ color: var(--optic); }
+  .batch-note b{ color: var(--ink); }
 
+  .field-block{ margin-top:28px; }
   .field-label{
-    font-family: var(--font-mono); font-size:12px; letter-spacing:0.1em;
-    text-transform:uppercase; color: rgba(245,241,230,0.6);
+    font-family: var(--font-mono); font-size:11.5px; letter-spacing:0.1em;
+    text-transform:uppercase; color: var(--ink-faint);
   }
-  .size-grid{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .size-grid{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   .size-opt{
     font-family: var(--font-mono); font-weight:700; font-size:13px;
-    background: rgba(245,241,230,0.06); border: 2px solid rgba(245,241,230,0.2);
-    color: var(--line); width:52px; height:44px; border-radius:10px;
+    background: transparent; border: 1.5px solid var(--line);
+    color: var(--ink); width:50px; height:42px; border-radius:3px;
     cursor:pointer; display:flex; align-items:center; justify-content:center;
     transition: all .15s ease;
   }
-  .size-opt:hover{ border-color: var(--optic); }
-  .size-opt.active{ background: var(--optic); border-color: var(--optic); color: var(--ink); }
+  .size-opt:hover{ border-color: var(--ink); }
+  .size-opt.active{ background: var(--navy); border-color: var(--navy); color: var(--paper); }
 
-  .qty-row{ display:flex; align-items:center; gap:14px; margin-top:8px; }
+  .qty-row{ display:flex; align-items:center; gap:14px; margin-top:10px; }
   .qty-btn{
-    width:40px; height:40px; border-radius:10px;
-    background: rgba(245,241,230,0.08); border: 2px solid rgba(245,241,230,0.2);
-    color: var(--line); font-size:18px; font-weight:700; cursor:pointer;
+    width:38px; height:38px; border-radius:3px;
+    background: transparent; border: 1.5px solid var(--line);
+    color: var(--ink); font-size:18px; font-weight:700; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
   }
-  .qty-btn:hover{ border-color: var(--optic); }
-  .qty-val{ font-family: var(--font-display); font-size:26px; min-width:36px; text-align:center; }
+  .qty-btn:hover{ border-color: var(--ink); }
+  .qty-val{ font-family: var(--font-display); font-size:22px; min-width:32px; text-align:center; }
 
   .order-total{
     display:flex; align-items:baseline; justify-content:space-between;
-    padding-top:14px; border-top: 1.5px dashed rgba(245,241,230,0.2);
+    padding-top:20px; margin-top:24px; border-top: 1.5px solid var(--line);
   }
-  .order-total .label{ font-family: var(--font-mono); font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color: rgba(245,241,230,0.7); }
-  .order-total .amount{ font-family: var(--font-display); font-size:28px; color: var(--optic); }
+  .order-total .label{ font-family: var(--font-mono); font-size:12.5px; letter-spacing:0.06em; text-transform:uppercase; color: var(--ink-soft); }
+  .order-total .amount{ font-family: var(--font-display); font-size:26px; color: var(--pop); }
 
-  .order-actions{ display:flex; gap:12px; flex-wrap:wrap; }
+  .order-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; }
   .copy-note{
-    font-family: var(--font-mono); font-size:12px; color: rgba(245,241,230,0.6);
-    display:none;
+    font-family: var(--font-mono); font-size:12px; color: var(--ink-faint);
+    margin-top:12px;
   }
-  .copy-note.show{ display:block; }
 
-  @media (max-width: 720px){
-    .product{ grid-template-columns:1fr; }
+  @media (max-width: 780px){
+    .product{ grid-template-columns:1fr; gap:32px; }
+    .product-media{ position:static; }
   }
 
   /* size chart */
-  .size-chart{ margin-top:56px; }
   .size-table{
     width:100%;
     border-collapse:collapse;
-    background: rgba(245,241,230,0.05);
-    border-radius:16px;
-    overflow:hidden;
     font-size:14px;
   }
   .size-table th, .size-table td{
-    padding:12px 16px;
+    padding:14px 16px;
     text-align:center;
-    border-bottom: 1px solid rgba(245,241,230,0.1);
+    border-bottom: 1px solid var(--line);
   }
   .size-table th{
     font-family: var(--font-mono); font-size:11px; letter-spacing:0.08em;
-    text-transform:uppercase; color: var(--optic); background: rgba(220,234,46,0.06);
+    text-transform:uppercase; color: var(--pop-deep); text-align:center;
   }
   .size-table tr:last-child td{ border-bottom:none; }
 
   .more-soon{
-    margin-top:56px;
-    border: 2px dashed rgba(245,241,230,0.2);
-    border-radius:20px;
-    padding:34px;
+    border: 1.5px dashed var(--line);
+    border-radius:6px;
+    padding:36px;
     text-align:center;
-    color: rgba(245,241,230,0.7);
+    color: var(--ink-soft);
   }
   .more-soon .eyebrow{ display:block; margin-bottom:8px; }
 </style>
 </head>
 <body>
 
-<div class="texture-dots"></div>
-
 <nav class="site-nav">
   <div class="wrap">
     <a class="nav-brand" href="index.html">
-      <img src="assets/logo.png" alt="One Cavite Pickleball Club logo">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
       <span>One Cavite Pickleball Club</span>
     </a>
     <button class="nav-toggle" aria-label="Toggle menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F1E6" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <div class="nav-links">
       <a href="index.html">Home</a>
-      <a href="index.html#schedule">Schedule</a>
-      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
       <a href="gallery.html">Gallery</a>
+      <a href="queue.html">Queue</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="about.html">About</a>
+          <a href="rules.html">Rules &amp; Etiquette</a>
+          <a href="coaching.html">Coaching</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
       <a href="merch.html" class="nav-highlight active">Shop</a>
     </div>
   </div>
@@ -200,14 +190,12 @@
 
   <div class="shop-hero">
     <div class="eyebrow">OCPC Shop</div>
-    <h1>GEAR UP</h1>
+    <h1>Gear Up.</h1>
     <p>Official club merch, batch-ordered so everyone gets the same quality kit. Pick your size, we'll handle the rest.</p>
   </div>
 
-  <div class="seam"></div>
-
   <!-- PRODUCT -->
-  <div class="product">
+  <div class="section product">
     <div class="product-media">
       <div class="product-image-frame">
         <img id="productImg" src="assets/uniform-front.jpg" alt="OCPC sublimation uniform">
@@ -236,14 +224,12 @@
         <b>3–4 weeks</b> from when the batch closes. Payment details are shared once your order is confirmed.
       </div>
 
-      <div>
+      <div class="field-block">
         <div class="field-label">Size</div>
-        <div class="size-grid" id="sizeGrid">
-          <!-- filled by script -->
-        </div>
+        <div class="size-grid" id="sizeGrid"></div>
       </div>
 
-      <div>
+      <div class="field-block">
         <div class="field-label">Quantity</div>
         <div class="qty-row">
           <button class="qty-btn" id="qtyMinus">–</button>
@@ -261,15 +247,16 @@
         <a class="btn btn-primary" id="orderBtn" href="#" target="_blank" rel="noopener">Order Now</a>
         <a class="btn btn-ghost" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Ask a question</a>
       </div>
-      <div class="copy-note show" id="copyNote">Your size is pre-filled in the order form — just add your details and submit.</div>
+      <div class="copy-note" id="copyNote">Your size is pre-filled in the order form — just add your details and submit.</div>
     </div>
   </div>
 
   <!-- SIZE CHART -->
-  <div class="size-chart">
+  <div class="section reveal">
     <div class="section-head">
-      <span class="ball-dot"></span>
+      <span class="section-index">—</span>
       <h2>Size Chart (cm)</h2>
+      <span class="section-rule"></span>
     </div>
     <table class="size-table">
       <thead>
@@ -289,21 +276,30 @@
     </table>
   </div>
 
-  <div class="more-soon">
-    <span class="eyebrow">Coming Soon</span>
-    More club gear — shorts, caps, and tote bags — is in the works. Watch our Facebook page for the next drop.
+  <div class="section reveal">
+    <div class="more-soon">
+      <span class="eyebrow">Coming Soon</span>
+      More club gear — shorts, caps, and tote bags — is in the works. Watch our Facebook page for the next drop.
+    </div>
   </div>
 
 </div>
 
 <footer>
-  <div class="foot-links">
-    <a href="index.html">Home</a>
-    <a href="about.html">About</a>
-    <a href="gallery.html">Gallery</a>
-    <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="rules.html">Rules</a>
+      <a href="coaching.html">Coaching</a>
+      <a href="directory.html">Meet the Club</a>
+      <a href="contact.html">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
   </div>
-  <p>One Cavite Pickleball Club · SM City Rosario · See you on the lines!</p>
 </footer>
 
 <script src="script.js"></script>

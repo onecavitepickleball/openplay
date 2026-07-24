@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coaching — One Cavite Pickleball Club</title>
+<meta name="description" content="Request a coaching session with OCPC — beginner clinics, ₱250/hour/player, subject to availability.">
+
+<meta property="og:title" content="Coaching — One Cavite Pickleball Club">
+<meta property="og:description" content="Request a coaching session with OCPC — beginner clinics, subject to availability.">
+<meta property="og:image" content="assets/logo.png">
+<meta property="og:type" content="website">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .coaching-hero{ padding:56px 0 12px; }
+  .coaching-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .coaching-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:520px; line-height:1.6;
+  }
+
+  .coaching-layout{
+    display:grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap:48px;
+    align-items:start;
+  }
+
+  .coaching-info .price-tag{
+    display:inline-flex;
+    align-items:baseline;
+    gap:8px;
+    background: var(--navy);
+    color: var(--paper);
+    padding:14px 20px;
+    border-radius:6px;
+    margin-bottom:24px;
+  }
+  .coaching-info .price-tag .amt{ font-family: var(--font-display); font-size:26px; color: var(--sky); }
+  .coaching-info .price-tag .unit{ font-family: var(--font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; color: rgba(245,243,238,0.75); }
+
+  .coaching-info p{ font-size:15px; line-height:1.75; color: var(--ink-soft); margin-bottom:18px; }
+
+  .slot-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:24px; }
+  .slot-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border: 1.5px solid var(--line);
+    border-radius:5px;
+    padding:14px 18px;
+    font-size:14px;
+    font-weight:600;
+  }
+  .slot-item span.tag2{
+    font-family: var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+    font-weight:700;
+  }
+
+  .disclaimer-box{
+    background: rgba(79,182,255,0.08);
+    border: 1.5px dashed var(--sky-deep);
+    border-radius:6px;
+    padding:18px 20px;
+    font-size:13.5px;
+    line-height:1.6;
+    color: var(--ink-soft);
+  }
+  .disclaimer-box b{ color: var(--ink); }
+
+  /* form */
+  .booking-form{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:36px;
+    background: var(--white);
+  }
+  .form-row{ margin-bottom:20px; }
+  .form-row label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:8px;
+  }
+  .form-row input,
+  .form-row select,
+  .form-row textarea{
+    width:100%;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+    font-family: var(--font-body);
+    font-size:14.5px;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  .form-row input:focus,
+  .form-row select:focus,
+  .form-row textarea:focus{
+    outline:none;
+    border-color: var(--sky-deep);
+  }
+  .form-row-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-note{
+    font-size:12.5px;
+    color: var(--ink-faint);
+    margin-top:-8px;
+    margin-bottom:20px;
+  }
+
+  @media (max-width: 860px){
+    .coaching-layout{ grid-template-columns:1fr; }
+  }
+  @media (max-width: 480px){
+    .form-row-2{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="queue.html">Queue</a>
+      <div class="nav-more">
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="about.html">About</a>
+          <a href="rules.html">Rules &amp; Etiquette</a>
+          <a href="coaching.html" class="active">Coaching</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <a href="merch.html" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="coaching-hero">
+    <div class="eyebrow">For Beginners</div>
+    <h1>Coaching.</h1>
+    <p>1-on-1 or small group coaching sessions, subject to availability. Great for players just getting started.</p>
+  </div>
+
+  <div class="section reveal coaching-layout">
+    <div class="coaching-info">
+      <div class="price-tag">
+        <span class="amt">₱250</span>
+        <span class="unit">/ hour / player</span>
+      </div>
+
+      <p>Coaching sessions are run alongside our regular open play — so they're only available on days we already
+      have a session scheduled. Check the <a href="index.html#schedule" style="color:var(--sky-deep); text-decoration:underline;">home page schedule</a>
+      to see which days are open before requesting a slot.</p>
+
+      <div class="slot-list">
+        <div class="slot-item"><span>3:30 PM – 4:30 PM</span><span class="tag2">Slot A</span></div>
+        <div class="slot-item"><span>4:30 PM – 5:30 PM</span><span class="tag2">Slot B</span></div>
+      </div>
+
+      <div class="disclaimer-box">
+        <b>This is a request, not a confirmed booking.</b> Submitting the form sends us your details by email —
+        we'll follow up directly to confirm availability, coach assignment, and payment. Coaching only runs on
+        days with an existing open play session.
+      </div>
+    </div>
+
+    <form class="booking-form" id="coachingForm">
+      <div class="form-row">
+        <label for="cName">Full Name</label>
+        <input type="text" id="cName" required>
+      </div>
+      <div class="form-row-2">
+        <div class="form-row">
+          <label for="cContact">Contact Number</label>
+          <input type="tel" id="cContact" required>
+        </div>
+        <div class="form-row">
+          <label for="cEmail">Email</label>
+          <input type="email" id="cEmail" required>
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-row">
+          <label for="cDate">Preferred Date</label>
+          <input type="date" id="cDate" required>
+        </div>
+        <div class="form-row">
+          <label for="cSlot">Preferred Timeslot</label>
+          <select id="cSlot" required>
+            <option value="">Select a slot</option>
+            <option value="3:30 PM - 4:30 PM">3:30 PM – 4:30 PM</option>
+            <option value="4:30 PM - 5:30 PM">4:30 PM – 5:30 PM</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="cPlayers">Number of Players</label>
+        <input type="number" id="cPlayers" min="1" max="4" value="1" required>
+      </div>
+      <div class="form-row">
+        <label for="cNotes">Notes (skill level, goals, etc.)</label>
+        <textarea id="cNotes" rows="4"></textarea>
+      </div>
+      <div class="form-note">This opens your email app with the details filled in — just hit send.</div>
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Request Coaching Session</button>
+    </form>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="merch.html">Shop</a>
+      <a href="rules.html">Rules</a>
+      <a href="directory.html">Meet the Club</a>
+      <a href="contact.html">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  const COACHING_EMAIL = "ocpc.pickleball@gmail.com";
+
+  document.getElementById('coachingForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('cName').value;
+    const contact = document.getElementById('cContact').value;
+    const email = document.getElementById('cEmail').value;
+    const date = document.getElementById('cDate').value;
+    const slot = document.getElementById('cSlot').value;
+    const players = document.getElementById('cPlayers').value;
+    const notes = document.getElementById('cNotes').value;
+
+    const subject = `Coaching Request — ${name}`;
+    const body =
+`Hi OCPC,
+
+I'd like to request a coaching session.
+
+Name: ${name}
+Contact Number: ${contact}
+Email: ${email}
+Preferred Date: ${date}
+Preferred Timeslot: ${slot}
+Number of Players: ${players}
+Notes: ${notes || "-"}
+
+(I understand this is a request only and not a guaranteed booking until confirmed.)`;
+
+    window.location.href = `mailto:${COACHING_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
+</script>
+
+</body>
+</html>

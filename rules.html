@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rules &amp; Etiquette — One Cavite Pickleball Club</title>
+<meta name="description" content="A quick guide to basic pickleball rules and OCPC court etiquette — built for absolute beginners.">
+
+<meta property="og:title" content="Rules & Etiquette — One Cavite Pickleball Club">
+<meta property="og:description" content="A quick guide to basic pickleball rules and OCPC court etiquette.">
+<meta property="og:image" content="assets/logo.png">
+<meta property="og:type" content="website">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .rules-hero{ padding:56px 0 12px; }
+  .rules-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .rules-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:520px; line-height:1.6;
+  }
+
+  .rule-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .rule-card{
+    background: var(--paper);
+    padding:28px 26px;
+    transition: background .2s ease;
+  }
+  .rule-card:hover{ background: var(--paper-dim); }
+  .rule-card .num{
+    font-family: var(--font-display);
+    font-size:26px;
+    color: var(--sky-deep);
+    margin-bottom:10px;
+    display:block;
+  }
+  .rule-card h3{
+    font-size:16.5px;
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  .rule-card p{
+    font-size:14px;
+    line-height:1.65;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 700px){
+    .rule-grid{ grid-template-columns:1fr; }
+  }
+
+  /* etiquette list */
+  .etiquette-list{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+  }
+  .etiquette-row{
+    display:grid;
+    grid-template-columns: 44px 1fr;
+    gap:16px;
+    padding:20px 4px;
+    border-top: 1px solid var(--line);
+    align-items:flex-start;
+  }
+  .etiquette-row:last-child{ border-bottom: 1px solid var(--line); }
+  .etiquette-icon{
+    width:44px; height:44px;
+    border-radius:50%;
+    background: var(--navy);
+    color: var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-display);
+    font-size:16px;
+    flex-shrink:0;
+  }
+  .etiquette-row h4{ font-size:15.5px; font-weight:700; margin-bottom:4px; }
+  .etiquette-row p{ font-size:14px; line-height:1.6; color: var(--ink-soft); }
+
+  .kitchen-note{
+    background: var(--navy);
+    color: var(--paper);
+    border-radius:6px;
+    padding:36px 40px;
+    display:flex;
+    align-items:center;
+    gap:24px;
+    flex-wrap:wrap;
+  }
+  .kitchen-note .tag{
+    font-family: var(--font-display);
+    font-size:15px;
+    background: var(--sky);
+    color: var(--navy-deep);
+    padding:8px 16px;
+    border-radius:3px;
+    flex-shrink:0;
+  }
+  .kitchen-note p{ font-size:14.5px; line-height:1.6; color: rgba(245,243,238,0.85); flex:1; min-width:220px; }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="queue.html">Queue</a>
+      <div class="nav-more">
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="about.html">About</a>
+          <a href="rules.html" class="active">Rules &amp; Etiquette</a>
+          <a href="coaching.html">Coaching</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <a href="merch.html" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="rules-hero">
+    <div class="eyebrow">New Here?</div>
+    <h1>Rules &amp; Etiquette.</h1>
+    <p>The short version of pickleball basics and how we play at OCPC — everything a first-timer needs before stepping on court.</p>
+  </div>
+
+  <!-- BASIC RULES -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">01</span>
+      <h2>The Basics</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="rule-grid">
+      <div class="rule-card">
+        <span class="num">01</span>
+        <h3>Serve underhand, diagonally</h3>
+        <p>Serves are hit underhand and must land in the opposite diagonal service box. You get one serve attempt (no second serve like tennis).</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">02</span>
+        <h3>Two-bounce rule</h3>
+        <p>After the serve, the ball must bounce once on each side before anyone can volley it (hit it out of the air). After that, you can volley freely — outside the kitchen.</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">03</span>
+        <h3>No volleying in the kitchen</h3>
+        <p>The "kitchen" is the 7-foot no-volley zone on each side of the net. You can stand in it, but you can't hit the ball out of the air while any part of you is touching it.</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">04</span>
+        <h3>Points only on serve</h3>
+        <p>In traditional scoring, only the serving side can score a point. Games are typically played to 11, win by 2.</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">05</span>
+        <h3>Call your own lines</h3>
+        <p>At the open-play level, players call their own in/out shots. Call it as you see it, and when in doubt, favor your opponent — it's part of the culture.</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">06</span>
+        <h3>Doubles is standard</h3>
+        <p>Most open play is doubles (2v2). Rotations mean you'll play with different partners throughout a session — that's the point.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- KITCHEN CALLOUT -->
+  <div class="section reveal">
+    <div class="kitchen-note">
+      <span class="tag">Rule of Thumb</span>
+      <p>If you're not sure whether you're allowed to hit a shot, ask before you swing — regulars are always happy to walk new players through a rule mid-game. Nobody expects you to know everything on day one.</p>
+    </div>
+  </div>
+
+  <!-- ETIQUETTE -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">02</span>
+      <h2>Court Etiquette</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="etiquette-list">
+      <div class="etiquette-row">
+        <span class="etiquette-icon">1</span>
+        <div>
+          <h4>Rotate in, rotate out</h4>
+          <p>Open play runs on rotation — after your game, clear the court quickly so the next group can start. If there's a queue, sit out gracefully and wait your turn.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">2</span>
+        <div>
+          <h4>Return balls that roll onto your court</h4>
+          <p>If a ball rolls in from another court, pause your play and return it once there's a break — don't just kick it aside.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">3</span>
+        <div>
+          <h4>Keep score out loud</h4>
+          <p>Call the score before every serve so both sides are on the same page — it avoids disputes later in the game.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">4</span>
+        <div>
+          <h4>No coaching from the sidelines mid-game</h4>
+          <p>Unless it's a beginner clinic, let players figure out their own shots during a game. Save the tips for after.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">5</span>
+        <div>
+          <h4>Good sportsmanship, always</h4>
+          <p>Tap paddles after a game, thank your partner and opponents, and keep the energy positive — win or lose. That's the culture we're building.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">6</span>
+        <div>
+          <h4>Come prepared</h4>
+          <p>Bring your own water, wear non-marking court shoes, and show up a few minutes early so rotations stay on schedule.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section reveal">
+    <div class="community-cta" style="background:var(--navy); color:var(--paper); border-radius:6px; padding:52px 44px; text-align:center;">
+      <h3 style="font-family:var(--font-display); font-size:clamp(28px,4vw,38px); text-transform:uppercase; margin-bottom:12px;">Ready to Play?</h3>
+      <p style="color:rgba(245,243,238,0.75); font-size:15px; max-width:480px; margin:0 auto 24px;">Check this week's schedule and register for your first open play session.</p>
+      <a class="btn btn-sky" href="index.html#schedule">See This Week's Schedule</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="merch.html">Shop</a>
+      <a href="coaching.html">Coaching</a>
+      <a href="directory.html">Meet the Club</a>
+      <a href="contact.html">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+
+</body>
+</html>

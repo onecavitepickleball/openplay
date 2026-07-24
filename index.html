@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>One Cavite Pickleball Club — Open Play &amp; Community</title>
-<meta name="description" content="Open play schedule, club info, and merch for One Cavite Pickleball Club. All levels welcome at SM City Rosario.">
+<meta name="description" content="Open play schedule, club info, and merch for One Cavite Pickleball Club. All levels welcome at SM City Rosario, Cavite.">
 
-<!-- Social share preview -->
 <meta property="og:title" content="One Cavite Pickleball Club">
 <meta property="og:description" content="Open play schedule, club info, and merch for One Cavite Pickleball Club.">
 <meta property="og:image" content="assets/logo.png">
@@ -16,168 +15,295 @@
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
 <link rel="apple-touch-icon" href="assets/favicon-180.png">
 <link rel="stylesheet" href="styles.css">
+
+<!-- Structured data so Google can show club info directly in search results -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SportsActivityLocation",
+  "name": "One Cavite Pickleball Club",
+  "alternateName": "OCPC",
+  "description": "Open play pickleball sessions for all skill levels in Cavite, Philippines.",
+  "url": "https://onecavitepickleball.club/",
+  "logo": "https://onecavitepickleball.club/assets/logo.png",
+  "image": "https://onecavitepickleball.club/assets/logo.png",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "SM City Rosario",
+    "addressLocality": "Rosario",
+    "addressRegion": "Cavite",
+    "addressCountry": "PH"
+  },
+  "sameAs": [
+    "https://www.facebook.com/onecavitepickleball"
+  ],
+  "sport": "Pickleball"
+}
+</script>
 <style>
-  /* ---- page-specific ---- */
-  .hero{ text-align:center; padding:56px 0 40px; }
-  .hero-logo{
-    width:200px; height:200px; border-radius:50%;
-    background: var(--line);
-    display:flex; align-items:center; justify-content:center;
-    margin:0 auto 26px;
-    box-shadow: 0 10px 0 var(--court-dark), 0 14px 24px rgba(0,0,0,0.35);
-    border: 4px solid var(--optic);
+  /* ---- HERO ---- */
+  .hero{
+    display:grid;
+    grid-template-columns: 0.95fr 1.05fr;
+    gap:56px;
+    align-items:center;
+    padding:64px 0 0;
   }
-  .hero-logo img{ width:150px; height:auto; }
-  .hero h1{
+  .hero-copy h1{
     font-family: var(--font-display);
-    font-size:clamp(56px, 11vw, 120px);
-    line-height:0.86;
-    margin-top:14px;
-    text-shadow: 5px 5px 0 var(--court-dark);
-  }
-  .hero h1 .accent{ color: var(--optic); }
-  .hero p.sub{
+    font-size:clamp(52px, 7vw, 88px);
+    line-height:0.94;
+    letter-spacing:-0.01em;
+    text-transform:uppercase;
     margin-top:18px;
-    font-size:18px;
-    color: rgba(245,241,230,0.85);
-    max-width:460px;
-    margin-left:auto;
-    margin-right:auto;
+  }
+  .hero-copy h1 .accent{ color: var(--sky-deep); }
+  .hero-copy p.sub{
+    margin-top:20px;
+    font-size:17px;
+    line-height:1.6;
+    color: var(--ink-soft);
+    max-width:440px;
   }
   .hero-actions{
     display:flex;
-    justify-content:center;
     gap:14px;
-    margin-top:28px;
+    margin-top:32px;
     flex-wrap:wrap;
   }
+  .hero-photo{
+    position:relative;
+  }
+  .hero-photo-frame{
+    position:relative;
+    border-radius:6px;
+    overflow:hidden;
+    aspect-ratio: 4/3;
+    background: var(--navy);
+  }
+  .hero-photo-frame img{
+    width:100%; height:100%; object-fit:cover;
+  }
+  .hero-tag{
+    position:absolute;
+    bottom:-18px;
+    left:-18px;
+    background: var(--pop);
+    color: var(--white);
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:12px 18px;
+    border-radius:3px;
+  }
+  .hero-logo-badge{
+    position:absolute;
+    top:-20px;
+    right:-20px;
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    background: var(--white);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 8px 24px rgba(11,36,54,0.22);
+    padding:10px;
+  }
 
-  /* schedule */
-  .day-pills{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:28px; }
-  .day-pill{
-    flex:1 1 130px;
-    background: rgba(245,241,230,0.06);
-    border: 2px solid rgba(245,241,230,0.18);
-    border-radius:16px;
-    padding:16px 10px;
-    text-align:center;
+  @media (max-width: 860px){
+    .hero{ grid-template-columns:1fr; gap:40px; padding-top:40px; }
+    .hero-photo{ order:-1; max-width:460px; margin:0 auto; }
+    .hero-copy{ text-align:center; }
+    .hero-copy p.sub{ margin-left:auto; margin-right:auto; }
+    .hero-actions{ justify-content:center; }
+    .hero-tag{ left:50%; transform:translateX(-50%); bottom:-16px; }
+  }
+
+  /* ---- SCHEDULE ---- */
+  .day-tabs{
+    display:flex;
+    gap:0;
+    border-bottom: 1.5px solid var(--line);
+    margin-bottom:36px;
+    overflow-x:auto;
+  }
+  .day-tab{
+    flex:1 1 auto;
+    min-width:110px;
+    background:none;
+    border:none;
     cursor:pointer;
-    color: var(--line);
-    transition: all .18s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .day-pill .wk{
-    display:block; font-family: var(--font-mono); font-size:12px;
-    letter-spacing:0.12em; text-transform:uppercase;
-    color: rgba(245,241,230,0.65); margin-bottom:6px;
-  }
-  .day-pill .dt{ display:block; font-family: var(--font-display); font-size:28px; line-height:1; }
-  .day-pill:hover{ border-color: rgba(220,234,46,0.55); transform: translateY(-2px); }
-  .day-pill.active{ background: var(--optic); border-color: var(--optic); color: var(--ink); }
-  .day-pill.active .wk{ color: rgba(15,31,27,0.65); }
-
-  .detail-card{
-    background: var(--ink);
-    border-radius:22px;
-    border: 3px solid var(--optic);
-    padding:32px 34px;
-    box-shadow: 0 14px 0 rgba(0,0,0,0.22);
-    margin-bottom:20px;
-  }
-  .detail-top{
-    display:flex; align-items:baseline; justify-content:space-between;
-    flex-wrap:wrap; gap:10px; margin-bottom:20px; padding-bottom:18px;
-    border-bottom: 1.5px dashed rgba(245,241,230,0.22);
-  }
-  .detail-top h3{ font-family: var(--font-display); font-size:32px; }
-  .detail-top .badge{
-    font-family: var(--font-mono); font-size:12px; letter-spacing:0.1em;
-    text-transform:uppercase; background: var(--optic); color: var(--ink);
-    padding:6px 14px; border-radius:20px; font-weight:700;
-  }
-  .detail-rows{ display:flex; flex-direction:column; gap:16px; }
-  .detail-row{ display:grid; grid-template-columns: 42px 1fr; gap:14px; align-items:flex-start; }
-  .detail-row .icon{
-    width:42px; height:42px; border-radius:10px; background: var(--optic);
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
-  }
-  .detail-row .icon svg{ width:22px; height:22px; }
-  .detail-row .label{
-    font-family: var(--font-mono); font-size:12px; letter-spacing:0.1em;
-    text-transform:uppercase; color: var(--optic); margin-bottom:4px;
-  }
-  .detail-row .value{ font-size:19px; font-weight:700; color: var(--line); }
-  .detail-row .value small{ display:block; font-size:13.5px; font-weight:400; color: rgba(245,241,230,0.65); margin-top:2px; }
-  .detail-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-top:26px; }
-
-  .no-schedule{
-    background: rgba(245,241,230,0.06);
-    border: 2px dashed rgba(245,241,230,0.25);
-    border-radius:22px;
-    padding:40px 30px;
+    padding:16px 12px;
     text-align:center;
-    color: rgba(245,241,230,0.8);
+    border-bottom: 3px solid transparent;
+    margin-bottom:-1.5px;
+    transition: border-color .15s ease;
   }
+  .day-tab .wk{
+    display:block;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:6px;
+  }
+  .day-tab .dt{
+    display:block;
+    font-family: var(--font-display);
+    font-size:22px;
+    color: var(--ink-soft);
+  }
+  .day-tab:hover{ border-bottom-color: rgba(79,182,255,0.5); }
+  .day-tab.active{ border-bottom-color: var(--pop); }
+  .day-tab.active .wk{ color: var(--sky-deep); }
+  .day-tab.active .dt{ color: var(--ink); }
 
-  /* info strip */
-  .info-strip{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-top:20px; }
-  .info-box{
-    background: rgba(245,241,230,0.06);
-    border: 2px solid rgba(245,241,230,0.14);
-    border-radius:16px;
-    padding:22px 20px;
-  }
-  .info-box .label{
-    font-family: var(--font-mono); font-size:11px; letter-spacing:0.1em;
-    text-transform:uppercase; color: var(--optic); margin-bottom:8px;
-  }
-  .info-box .val{ font-size:15.5px; font-weight:600; line-height:1.4; }
-
-  /* merch teaser */
-  .merch-teaser{
+  .detail-panel{
     display:grid;
     grid-template-columns: 1fr 1fr;
-    gap:0;
-    background: var(--navy);
-    border-radius:22px;
-    overflow:hidden;
-    border: 3px solid var(--jersey);
+    gap:40px;
+    align-items:start;
   }
-  .merch-teaser-copy{ padding:36px; display:flex; flex-direction:column; justify-content:center; gap:14px; }
-  .merch-teaser-copy .eyebrow{ color:#9DB6FF; }
-  .merch-teaser-copy h3{ font-family: var(--font-display); font-size:38px; line-height:0.95; }
-  .merch-teaser-copy p{ color: rgba(245,241,230,0.8); font-size:15px; }
-  .merch-teaser-img{ background: #0C1526; display:flex; align-items:center; justify-content:center; padding:20px; }
-  .merch-teaser-img img{ max-height:260px; width:auto; border-radius:12px; }
+  .detail-heading{
+    font-family: var(--font-display);
+    font-size:clamp(32px, 5vw, 48px);
+    text-transform:uppercase;
+    line-height:1;
+  }
+  .detail-badge{
+    display:inline-block;
+    margin-top:16px;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    background: var(--navy);
+    color: var(--paper);
+    padding:6px 14px;
+    border-radius:3px;
+  }
+  .detail-rows{ display:flex; flex-direction:column; gap:22px; }
+  .detail-row{ border-top: 1px solid var(--line); padding-top:18px; }
+  .detail-row .label{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:6px;
+  }
+  .detail-row .value{ font-size:19px; font-weight:700; }
+  .detail-row .value small{ display:block; font-size:13.5px; font-weight:400; color: var(--ink-soft); margin-top:2px; }
+  .detail-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+
+  .no-schedule{
+    border: 1.5px dashed var(--line);
+    border-radius:6px;
+    padding:48px 30px;
+    text-align:center;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 720px){
+    .detail-panel{ grid-template-columns:1fr; gap:24px; }
+  }
+
+  /* ---- INFO STRIP ---- */
+  .info-strip{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-top:56px;
+  }
+  .info-box{ background: var(--paper); padding:24px; transition: background .2s ease; }
+  .info-box:hover{ background: var(--paper-dim); }
+  .info-box .label{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+    margin-bottom:8px;
+  }
+  .info-box .val{ font-size:15px; font-weight:600; line-height:1.4; }
 
   @media (max-width: 640px){
     .info-strip{ grid-template-columns: 1fr; }
-    .merch-teaser{ grid-template-columns: 1fr; }
-    .merch-teaser-img{ order:-1; }
   }
 
-  /* trajectory decor */
-  .traj{ position:absolute; z-index:0; pointer-events:none; }
+  /* ---- MERCH TEASER ---- */
+  .merch-teaser{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--navy);
+    color: var(--paper);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .merch-teaser-copy{ padding:48px 44px; display:flex; flex-direction:column; justify-content:center; gap:14px; }
+  .merch-teaser-copy h3{ font-family: var(--font-display); font-size:36px; text-transform:uppercase; line-height:1; }
+  .merch-teaser-copy p{ color: rgba(245,243,238,0.75); font-size:15px; line-height:1.6; }
+  .merch-teaser-img{ background: var(--navy-deep); display:flex; align-items:center; justify-content:center; padding:24px; }
+  .merch-teaser-img img{ max-height:280px; width:auto; border-radius:4px; }
+
+  @media (max-width: 700px){
+    .merch-teaser{ grid-template-columns: 1fr; }
+    .merch-teaser-img{ order:-1; }
+    .merch-teaser-copy{ padding:36px 28px; }
+  }
+
+  /* ---- GALLERY TEASER ---- */
+  .gallery-teaser-strip{
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap:8px;
+  }
+  .gallery-teaser-strip a{
+    display:block;
+    aspect-ratio: 1/1;
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .gallery-teaser-strip img{ width:100%; height:100%; object-fit:cover; transition: transform .3s ease; }
+  .gallery-teaser-strip a:hover img{ transform: scale(1.08); }
+
+  @media (max-width: 700px){
+    .gallery-teaser-strip{ grid-template-columns: repeat(3, 1fr); }
+  }
 </style>
 </head>
 <body>
 
-<div class="texture-dots"></div>
-
 <nav class="site-nav">
   <div class="wrap">
     <a class="nav-brand" href="index.html">
-      <img src="assets/logo.png" alt="One Cavite Pickleball Club logo">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
       <span>One Cavite Pickleball Club</span>
     </a>
     <button class="nav-toggle" aria-label="Toggle menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F1E6" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <div class="nav-links">
       <a href="index.html" class="active">Home</a>
-      <a href="#schedule">Schedule</a>
-      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
       <a href="gallery.html">Gallery</a>
+      <a href="queue.html">Queue</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="about.html">About</a>
+          <a href="rules.html">Rules &amp; Etiquette</a>
+          <a href="coaching.html">Coaching</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
       <a href="merch.html" class="nav-highlight">Shop</a>
     </div>
   </div>
@@ -187,27 +313,36 @@
 
   <!-- HERO -->
   <div class="hero">
-    <div class="hero-logo">
-      <img src="assets/logo.png" alt="One Cavite Pickleball Club logo">
+    <div class="hero-copy">
+      <div class="eyebrow">One Cavite Pickleball Club</div>
+      <h1>Open<br>Play,<br><span class="accent">Every Week.</span></h1>
+      <p class="sub">All levels welcome — beginners rotate in right alongside the regulars. Pick a day below and lock in your spot.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#schedule">See This Week's Schedule</a>
+        <a class="btn btn-ghost" href="merch.html">Shop Merch</a>
+      </div>
     </div>
-    <div class="eyebrow">One Cavite Pickleball Club</div>
-    <h1>OPEN<br><span class="accent">PLAY</span></h1>
-    <p class="sub">All levels welcome. Pick a day below to see the details and reserve your spot.</p>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="#schedule">See This Week's Schedule</a>
-      <a class="btn btn-ghost" href="merch.html">Shop Merch</a>
+    <div class="hero-photo">
+      <div class="hero-photo-frame">
+        <img src="assets/hero/hero-home.jpg" alt="OCPC members at open play, SM City Rosario">
+      </div>
+      <div class="hero-logo-badge">
+        <img src="assets/logo.png" alt="OCPC logo" style="width:100%;">
+      </div>
+      <div class="hero-tag">SM City Rosario</div>
     </div>
   </div>
 
   <!-- SCHEDULE -->
-  <div class="section" id="schedule">
+  <div class="section reveal" id="schedule">
     <div class="section-head">
-      <span class="ball-dot"></span>
-      <h2>Pick a Day</h2>
+      <span class="section-index">01</span>
+      <h2>This Week's Schedule</h2>
+      <span class="section-rule"></span>
     </div>
 
-    <div class="day-pills" id="dayPills"></div>
-    <div class="detail-card" id="detailCard"></div>
+    <div class="day-tabs" id="dayPills"></div>
+    <div class="detail-panel" id="detailCard"></div>
 
     <div class="info-strip">
       <div class="info-box">
@@ -216,7 +351,7 @@
       </div>
       <div class="info-box">
         <div class="label">What to bring</div>
-        <div class="val">Paddle + non-marking shoes. A few loaner paddles on site</div>
+        <div class="val">Paddle, non-marking shoes, and your own water. A few loaner paddles on site</div>
       </div>
       <div class="info-box">
         <div class="label">Format</div>
@@ -226,14 +361,19 @@
   </div>
 
   <!-- MERCH TEASER -->
-  <div class="section">
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">02</span>
+      <h2>New Drop</h2>
+      <span class="section-rule"></span>
+    </div>
     <div class="merch-teaser">
       <div class="merch-teaser-copy">
-        <div class="eyebrow">New Drop</div>
-        <h3>OCPC Sublimation Uniform</h3>
+        <div class="eyebrow" style="color:var(--sky);">OCPC Sublimation Uniform</div>
+        <h3>Gear Up.</h3>
         <p>Full sublimation jersey, batch-ordered for the club. ₱450 each — head to the shop for sizes and how to order.</p>
         <div>
-          <a class="btn btn-navy" href="merch.html">Shop the Uniform</a>
+          <a class="btn btn-sky" href="merch.html">Shop the Uniform</a>
         </div>
       </div>
       <div class="merch-teaser-img">
@@ -242,16 +382,41 @@
     </div>
   </div>
 
+  <!-- GALLERY TEASER -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">03</span>
+      <h2>On The Courts</h2>
+      <span class="section-rule"></span>
+      <a class="btn btn-ghost" href="gallery.html" style="padding:10px 18px; font-size:12px;">View All</a>
+    </div>
+    <div class="gallery-teaser-strip reveal-stagger">
+      <a href="gallery.html"><img src="assets/gallery/thumb-02.jpg" alt="OCPC gallery"></a>
+      <a href="gallery.html"><img src="assets/gallery/thumb-04.jpg" alt="OCPC gallery"></a>
+      <a href="gallery.html"><img src="assets/gallery/thumb-09.jpg" alt="OCPC gallery"></a>
+      <a href="gallery.html"><img src="assets/gallery/thumb-11.jpg" alt="OCPC gallery"></a>
+      <a href="gallery.html"><img src="assets/gallery/thumb-14.jpg" alt="OCPC gallery"></a>
+      <a href="gallery.html"><img src="assets/gallery/thumb-15.jpg" alt="OCPC gallery"></a>
+    </div>
+  </div>
+
 </div>
 
 <footer>
-  <div class="foot-links">
-    <a href="about.html">About</a>
-    <a href="gallery.html">Gallery</a>
-    <a href="merch.html">Shop</a>
-    <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="rules.html">Rules</a>
+      <a href="coaching.html">Coaching</a>
+      <a href="directory.html">Meet the Club</a>
+      <a href="contact.html">Contact</a>
+      <a href="merch.html">Shop</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
   </div>
-  <p>One Cavite Pickleball Club · SM City Rosario · See you on the lines!</p>
 </footer>
 
 <script src="script.js"></script>
@@ -278,58 +443,50 @@
   const cardEl = document.getElementById('detailCard');
 
   const icons = {
-    pin: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21z" stroke="#0F1F1B" stroke-width="2"/><circle cx="12" cy="9.5" r="2.4" stroke="#0F1F1B" stroke-width="2"/></svg>',
-    clock: '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#0F1F1B" stroke-width="2"/><path d="M12 7v5l3.5 2" stroke="#0F1F1B" stroke-width="2" stroke-linecap="round"/></svg>',
-    arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="#0F1F1B" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   };
 
   function render(activeIndex){
     if (schedule.length === 0){
       pillsEl.innerHTML = '';
       cardEl.outerHTML = `
-        <div class="no-schedule" id="detailCard">
+        <div class="no-schedule" id="detailCard" style="grid-column: 1 / -1;">
           <strong>No open play sessions scheduled this week.</strong><br>
-          Check our <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" style="color:var(--optic); text-decoration:underline;">Facebook page</a> for updates.
+          Check our <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" style="color:var(--pop); text-decoration:underline;">Facebook page</a> for updates.
         </div>`;
       return;
     }
 
     pillsEl.innerHTML = schedule.map((d, i) => `
-      <div class="day-pill ${i === activeIndex ? 'active' : ''}" data-index="${i}">
+      <button class="day-tab ${i === activeIndex ? 'active' : ''}" data-index="${i}">
         <span class="wk">${d.weekday}</span>
         <span class="dt">${d.date}</span>
-      </div>
+      </button>
     `).join('');
 
-    pillsEl.querySelectorAll('.day-pill').forEach(pill => {
+    pillsEl.querySelectorAll('.day-tab').forEach(pill => {
       pill.addEventListener('click', () => render(parseInt(pill.dataset.index)));
     });
 
     const d = schedule[activeIndex];
     cardEl.innerHTML = `
-      <div class="detail-top">
-        <h3>${d.weekday}, ${d.date}</h3>
-        <span class="badge">All Levels</span>
+      <div>
+        <div class="detail-heading">${d.weekday}, ${d.date}</div>
+        <span class="detail-badge">All Levels Welcome</span>
       </div>
       <div class="detail-rows">
         <div class="detail-row">
-          <span class="icon">${icons.clock}</span>
-          <div>
-            <div class="label">Time</div>
-            <div class="value">${d.time}</div>
-          </div>
+          <div class="label">Time</div>
+          <div class="value">${d.time}</div>
         </div>
         <div class="detail-row">
-          <span class="icon">${icons.pin}</span>
-          <div>
-            <div class="label">Venue</div>
-            <div class="value">${d.venue}<small>${d.court}</small></div>
-          </div>
+          <div class="label">Venue</div>
+          <div class="value">${d.venue}<small>${d.court}</small></div>
         </div>
-      </div>
-      <div class="detail-actions">
-        <a class="btn btn-primary" href="${d.link}" target="_blank" rel="noopener">Register for this session ${icons.arrow}</a>
-        <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(d.venue)}" target="_blank" rel="noopener">Get directions</a>
+        <div class="detail-actions">
+          <a class="btn btn-primary" href="${d.link}" target="_blank" rel="noopener">Register for this session ${icons.arrow}</a>
+          <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(d.venue)}" target="_blank" rel="noopener">Get directions</a>
+        </div>
       </div>
     `;
   }

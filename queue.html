@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Court Queue — One Cavite Pickleball Club</title>
+<meta name="description" content="Manage the open play rotation queue for OCPC sessions — add players, fill courts, and track who's up next.">
+
+<meta property="og:title" content="Court Queue — One Cavite Pickleball Club">
+<meta property="og:description" content="Manage the open play rotation queue for OCPC sessions.">
+<meta property="og:image" content="assets/logo.png">
+<meta property="og:type" content="website">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .queue-hero{ padding:48px 0 8px; }
+  .queue-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(40px, 7vw, 68px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .queue-hero p{
+    margin-top:14px; font-size:15.5px; color: var(--ink-soft);
+    max-width:560px; line-height:1.6;
+  }
+
+  .device-note{
+    background: rgba(79,182,255,0.08);
+    border: 1.5px dashed var(--sky-deep);
+    border-radius:6px;
+    padding:14px 18px;
+    font-size:13px;
+    line-height:1.6;
+    color: var(--ink-soft);
+    margin-top:18px;
+  }
+  .device-note b{ color: var(--ink); }
+
+  .queue-toolbar{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:28px;
+  }
+  .queue-settings{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .queue-settings label{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+  }
+  .queue-settings select, .queue-settings input[type=number]{
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:8px 10px;
+    font-family: var(--font-body);
+    font-size:13.5px;
+    background: var(--white);
+  }
+
+  /* add player bar */
+  .add-player-bar{
+    display:flex;
+    gap:10px;
+    margin-bottom:40px;
+  }
+  .add-player-bar input{
+    flex:1;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:14px 16px;
+    font-family: var(--font-body);
+    font-size:15px;
+  }
+  .add-player-bar input:focus{ outline:none; border-color: var(--sky-deep); }
+
+  /* courts */
+  .court-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:20px;
+    margin-bottom:48px;
+  }
+  @media (max-width: 720px){ .court-grid{ grid-template-columns:1fr; } }
+
+  .court-card{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .court-card.playing{ border-color: var(--sky-deep); }
+  .court-head{
+    background: var(--navy);
+    color: var(--paper);
+    padding:12px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-family: var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+  }
+  .court-head .status-dot{ width:8px; height:8px; border-radius:50%; background: rgba(245,243,238,0.35); }
+  .court-card.playing .court-head .status-dot{ background: var(--sky); }
+  .court-body{ padding:20px; min-height:120px; }
+  .court-players{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .court-player{
+    background: var(--paper-dim);
+    border-radius:4px;
+    padding:10px 14px;
+    font-size:14.5px;
+    font-weight:600;
+  }
+  .court-empty{
+    color: var(--ink-faint);
+    font-size:14px;
+    text-align:center;
+    padding:24px 0;
+  }
+  .court-actions{ display:flex; gap:8px; }
+  .court-actions button{
+    flex:1;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    padding:10px;
+    border-radius:4px;
+    border:none;
+    cursor:pointer;
+  }
+  .btn-fill{ background: var(--sky); color: var(--navy-deep); font-weight:700; }
+  .btn-fill:hover{ background: var(--sky-deep); color: var(--white); }
+  .btn-fill:disabled{ background: var(--paper-dim); color: var(--ink-faint); cursor:not-allowed; }
+  .btn-finish{ background: var(--navy); color: var(--paper); font-weight:700; }
+  .btn-finish:hover{ background: var(--navy-deep); }
+
+  /* waiting queue */
+  .queue-list{ display:flex; flex-direction:column; gap:8px; }
+  .queue-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:12px 16px;
+  }
+  .queue-pos{
+    font-family: var(--font-display);
+    font-size:16px;
+    color: var(--sky-deep);
+    width:28px;
+    flex-shrink:0;
+  }
+  .queue-name{ flex:1; font-size:14.5px; font-weight:600; }
+  .queue-remove{
+    background:none;
+    border:none;
+    color: var(--ink-faint);
+    font-size:18px;
+    cursor:pointer;
+    padding:4px 8px;
+  }
+  .queue-remove:hover{ color: var(--ink); }
+  .queue-empty{
+    border: 1.5px dashed var(--line);
+    border-radius:6px;
+    padding:36px;
+    text-align:center;
+    color: var(--ink-faint);
+    font-size:14px;
+  }
+
+  .reset-row{ margin-top:32px; text-align:right; }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="queue.html" class="active">Queue</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="about.html">About</a>
+          <a href="rules.html">Rules &amp; Etiquette</a>
+          <a href="coaching.html">Coaching</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <a href="merch.html" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="queue-hero">
+    <div class="eyebrow">Open Play Tool</div>
+    <h1>Court Queue.</h1>
+    <p>Add players as they arrive, fill courts straight from the queue, and rotate players back in once a game wraps up.</p>
+    <div class="device-note">
+      <b>Built for one control device</b> — like a phone or tablet at check-in. Everyone's added and managed from
+      here rather than from individual phones, since this runs entirely in this browser and doesn't sync
+      across devices. Refreshing the page keeps your queue; "Reset" clears it for a new day.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="queue-toolbar">
+      <div class="section-head" style="margin-bottom:0;">
+        <span class="section-index">01</span>
+        <h2>Courts</h2>
+      </div>
+      <div class="queue-settings">
+        <label for="courtCount">Courts</label>
+        <select id="courtCount">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+        <label for="playersPerCourt">Format</label>
+        <select id="playersPerCourt">
+          <option value="4" selected>Doubles (4)</option>
+          <option value="2">Singles (2)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="court-grid" id="courtGrid"></div>
+
+    <div class="queue-toolbar">
+      <div class="section-head" style="margin-bottom:0;">
+        <span class="section-index">02</span>
+        <h2>Waiting Queue</h2>
+      </div>
+    </div>
+
+    <div class="add-player-bar">
+      <input type="text" id="playerNameInput" placeholder="Player name" maxlength="40">
+      <button class="btn btn-primary" id="addPlayerBtn">Add to Queue</button>
+    </div>
+
+    <div class="queue-list" id="queueList"></div>
+    <div class="queue-empty" id="queueEmpty" style="display:none;">No one's waiting right now — add a player above.</div>
+
+    <div class="reset-row">
+      <button class="btn btn-ghost" id="resetBtn">Reset Everything</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="merch.html">Shop</a>
+      <a href="rules.html">Rules</a>
+      <a href="coaching.html">Coaching</a>
+      <a href="directory.html">Meet the Club</a>
+      <a href="contact.html">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  const STORAGE_KEY = 'ocpc_queue_state_v1';
+
+  function loadState(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { courtCount: 4, playersPerCourt: 4, courts: Array.from({length:4}, () => []), waiting: [] };
+  }
+
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  let state = loadState();
+  // make sure courts array matches courtCount (in case of stale data)
+  while (state.courts.length < state.courtCount) state.courts.push([]);
+  state.courts = state.courts.slice(0, state.courtCount);
+
+  const courtCountSel = document.getElementById('courtCount');
+  const playersPerCourtSel = document.getElementById('playersPerCourt');
+  const courtGrid = document.getElementById('courtGrid');
+  const queueList = document.getElementById('queueList');
+  const queueEmpty = document.getElementById('queueEmpty');
+  const playerNameInput = document.getElementById('playerNameInput');
+
+  courtCountSel.value = state.courtCount;
+  playersPerCourtSel.value = state.playersPerCourt;
+
+  function render(){
+    // courts
+    courtGrid.innerHTML = state.courts.map((players, i) => {
+      const isPlaying = players.length > 0;
+      const needed = state.playersPerCourt;
+      const canFill = state.waiting.length >= needed && !isPlaying;
+      return `
+        <div class="court-card ${isPlaying ? 'playing' : ''}">
+          <div class="court-head">
+            <span>Court ${i + 1}</span>
+            <span class="status-dot"></span>
+          </div>
+          <div class="court-body">
+            ${isPlaying ? `
+              <div class="court-players">
+                ${players.map(p => `<div class="court-player">${p}</div>`).join('')}
+              </div>
+            ` : `<div class="court-empty">Empty court</div>`}
+            <div class="court-actions">
+              ${isPlaying
+                ? `<button class="btn-finish" data-court="${i}" data-action="finish">Finish Game</button>`
+                : `<button class="btn-fill" data-court="${i}" data-action="fill" ${canFill ? '' : 'disabled'}>Fill from Queue${canFill ? '' : ` (need ${needed})`}</button>`
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // waiting queue
+    if (state.waiting.length === 0){
+      queueList.style.display = 'none';
+      queueEmpty.style.display = 'block';
+    } else {
+      queueList.style.display = 'flex';
+      queueEmpty.style.display = 'none';
+      queueList.innerHTML = state.waiting.map((name, i) => `
+        <div class="queue-row">
+          <span class="queue-pos">${i + 1}</span>
+          <span class="queue-name">${name}</span>
+          <button class="queue-remove" data-index="${i}" aria-label="Remove">&times;</button>
+        </div>
+      `).join('');
+    }
+
+    // wire up court buttons
+    courtGrid.querySelectorAll('[data-action="fill"]').forEach(btn => {
+      btn.addEventListener('click', () => fillCourt(parseInt(btn.dataset.court)));
+    });
+    courtGrid.querySelectorAll('[data-action="finish"]').forEach(btn => {
+      btn.addEventListener('click', () => finishGame(parseInt(btn.dataset.court)));
+    });
+    queueList.querySelectorAll('.queue-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.waiting.splice(parseInt(btn.dataset.index), 1);
+        saveState();
+        render();
+      });
+    });
+  }
+
+  function addPlayer(){
+    const name = playerNameInput.value.trim();
+    if (!name) return;
+    state.waiting.push(name);
+    playerNameInput.value = '';
+    saveState();
+    render();
+    playerNameInput.focus();
+  }
+
+  function fillCourt(courtIndex){
+    const needed = state.playersPerCourt;
+    if (state.waiting.length < needed) return;
+    const group = state.waiting.splice(0, needed);
+    state.courts[courtIndex] = group;
+    saveState();
+    render();
+  }
+
+  function finishGame(courtIndex){
+    const players = state.courts[courtIndex];
+    if (players.length){
+      // send them to the back of the queue
+      state.waiting.push(...players);
+    }
+    state.courts[courtIndex] = [];
+    saveState();
+    render();
+  }
+
+  document.getElementById('addPlayerBtn').addEventListener('click', addPlayer);
+  playerNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addPlayer(); });
+
+  courtCountSel.addEventListener('change', () => {
+    const newCount = parseInt(courtCountSel.value);
+    if (newCount > state.courts.length){
+      while (state.courts.length < newCount) state.courts.push([]);
+    } else {
+      // return any players on courts being removed back to the queue
+      const removed = state.courts.slice(newCount);
+      removed.forEach(players => state.waiting.push(...players));
+      state.courts = state.courts.slice(0, newCount);
+    }
+    state.courtCount = newCount;
+    saveState();
+    render();
+  });
+
+  playersPerCourtSel.addEventListener('change', () => {
+    state.playersPerCourt = parseInt(playersPerCourtSel.value);
+    saveState();
+    render();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!confirm('Clear all courts and the waiting queue? This can\'t be undone.')) return;
+    state = { courtCount: state.courtCount, playersPerCourt: state.playersPerCourt, courts: Array.from({length: state.courtCount}, () => []), waiting: [] };
+    saveState();
+    render();
+  });
+
+  render();
+</script>
+
+</body>
+</html>
