@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — One Cavite Pickleball Club</title>
+<meta name="description" content="Who One Cavite Pickleball Club is, what open play looks like, and answers to common questions.">
+
+<meta property="og:title" content="About — One Cavite Pickleball Club">
+<meta property="og:description" content="Who we are, what open play looks like, and answers to common questions.">
+<meta property="og:image" content="assets/logo.png">
+<meta property="og:type" content="website">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .about-hero{ text-align:center; padding:48px 0 12px; }
+  .about-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(46px, 9vw, 84px);
+    line-height:0.92;
+    text-shadow: 5px 5px 0 var(--court-dark);
+  }
+  .about-hero p{
+    margin-top:14px; font-size:17px; color: rgba(245,241,230,0.85);
+    max-width:560px; margin-left:auto; margin-right:auto;
+  }
+
+  .story-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:28px;
+    align-items:center;
+  }
+  .story-copy p{
+    font-size:15.5px;
+    line-height:1.75;
+    color: rgba(245,241,230,0.88);
+    margin-bottom:14px;
+  }
+  .story-stats{
+    display:grid;
+    grid-template-columns: repeat(3,1fr);
+    gap:14px;
+  }
+  .stat-box{
+    background: rgba(245,241,230,0.06);
+    border: 2px solid rgba(245,241,230,0.14);
+    border-radius:16px;
+    padding:20px 16px;
+    text-align:center;
+  }
+  .stat-box .num{
+    font-family: var(--font-display);
+    font-size:36px;
+    color: var(--optic);
+    line-height:1;
+  }
+  .stat-box .lbl{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: rgba(245,241,230,0.65);
+    margin-top:8px;
+  }
+
+  /* FAQ accordion */
+  .faq-list{ display:flex; flex-direction:column; gap:12px; }
+  .faq-item{
+    background: rgba(245,241,230,0.06);
+    border: 2px solid rgba(245,241,230,0.14);
+    border-radius:16px;
+    overflow:hidden;
+  }
+  .faq-q{
+    width:100%;
+    background:none;
+    border:none;
+    color: var(--line);
+    font-family: var(--font-body);
+    font-weight:600;
+    font-size:16px;
+    text-align:left;
+    padding:20px 22px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+  }
+  .faq-q .icon{
+    font-family: var(--font-mono);
+    font-size:20px;
+    color: var(--optic);
+    flex-shrink:0;
+    transition: transform .2s ease;
+  }
+  .faq-item.open .faq-q .icon{ transform: rotate(45deg); }
+  .faq-a{
+    max-height:0;
+    overflow:hidden;
+    transition: max-height .25s ease;
+    padding:0 22px;
+  }
+  .faq-item.open .faq-a{
+    max-height:220px;
+    padding:0 22px 20px;
+  }
+  .faq-a p{
+    font-size:14.5px;
+    line-height:1.65;
+    color: rgba(245,241,230,0.82);
+  }
+
+  /* community CTA */
+  .community-cta{
+    background: var(--navy);
+    border-radius:22px;
+    border: 3px solid var(--jersey);
+    padding:40px 34px;
+    text-align:center;
+  }
+  .community-cta h3{
+    font-family: var(--font-display);
+    font-size:34px;
+    margin-bottom:10px;
+  }
+  .community-cta p{
+    color: rgba(245,241,230,0.82);
+    font-size:15px;
+    max-width:480px;
+    margin:0 auto 22px;
+  }
+
+  @media (max-width: 700px){
+    .story-grid{ grid-template-columns:1fr; }
+    .story-stats{ grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="texture-dots"></div>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <img src="assets/logo.png" alt="One Cavite Pickleball Club logo">
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F1E6" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="index.html#schedule">Schedule</a>
+      <a href="about.html" class="active">About</a>
+      <a href="merch.html" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="about-hero">
+    <div class="eyebrow">Our Story</div>
+    <h1>ABOUT OCPC</h1>
+    <p>One Cavite Pickleball Club started with a handful of players and a shared court. Here's who we are and what to expect when you show up.</p>
+  </div>
+
+  <div class="section story-grid">
+    <div class="story-copy">
+      <p>One Cavite Pickleball Club (OCPC) is a community of players in Cavite who gather for open play sessions every week — no tryouts, no fixed teams, just a rotating group that shows up to play.</p>
+      <p>Whether you've never held a paddle or you're chasing your next tournament, our open play format mixes skill levels so everyone gets real games and real reps. Regulars help newcomers pick up the rules fast, and the group has grown mostly by word of mouth and a very active Facebook page.</p>
+      <p>We keep things simple: check the weekly schedule, register your session, show up with a paddle (or borrow one), and rotate onto a court.</p>
+    </div>
+    <div class="story-stats">
+      <div class="stat-box"><div class="num">All</div><div class="lbl">Skill Levels</div></div>
+      <div class="stat-box"><div class="num">4x</div><div class="lbl">Sessions / Week</div></div>
+      <div class="stat-box"><div class="num">1</div><div class="lbl">Home Venue</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <span class="ball-dot"></span>
+      <h2>FAQ</h2>
+    </div>
+    <div class="faq-list" id="faqList">
+      <div class="faq-item open">
+        <button class="faq-q"><span>Do I need to be good at pickleball to join?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>Not at all. Open play is built for mixed levels — beginners rotate in alongside more experienced players, and regulars are usually happy to help you get the hang of it.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>Do I need my own paddle?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>It's best to bring your own if you have one, but we usually have a few loaner paddles available on site for newcomers trying it out for the first time.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>How do I register for a session?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>Head to the Schedule section on the home page, pick your day, and tap "Register for this session" — it'll take you straight to that day's Reclub sign-up.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>Is there a fee to play?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>Court fees are settled on-site per session. Details and any updates are posted on our Facebook page ahead of each week.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>What should I wear?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>Non-marking court shoes and comfortable athletic wear. Our sublimation uniform is optional but a nice way to rep the club — check the Shop page.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="community-cta">
+      <h3>Join the Community</h3>
+      <p>Announcements, schedule changes, and club updates are posted first on our Facebook page. It's the best way to stay in the loop.</p>
+      <a class="btn btn-navy" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Follow us on Facebook</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-links">
+    <a href="index.html">Home</a>
+    <a href="merch.html">Shop</a>
+    <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+  </div>
+  <p>One Cavite Pickleball Club · SM City Rosario · See you on the lines!</p>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  document.querySelectorAll('.faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.parentElement.classList.toggle('open');
+    });
+  });
+</script>
+
+</body>
+</html>

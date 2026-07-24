@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop — One Cavite Pickleball Club</title>
+<meta name="description" content="Order the official OCPC sublimation uniform — batch orders, ₱450 each.">
+
+<meta property="og:title" content="OCPC Shop — Sublimation Uniform">
+<meta property="og:description" content="Order the official OCPC sublimation uniform — batch orders, ₱450 each.">
+<meta property="og:image" content="assets/uniform-front.jpg">
+<meta property="og:type" content="website">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .shop-hero{ text-align:center; padding:48px 0 12px; }
+  .shop-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(46px, 9vw, 84px);
+    line-height:0.92;
+    text-shadow: 5px 5px 0 var(--court-dark);
+  }
+  .shop-hero p{
+    margin-top:14px; font-size:17px; color: rgba(245,241,230,0.85);
+    max-width:520px; margin-left:auto; margin-right:auto;
+  }
+
+  /* stitched seam divider — signature element */
+  .seam{
+    height:2px;
+    margin:40px 0;
+    background-image: repeating-linear-gradient(90deg, var(--optic) 0 10px, transparent 10px 20px);
+    opacity:0.5;
+  }
+
+  /* product card */
+  .product{
+    background: var(--navy);
+    border-radius:24px;
+    border: 3px solid var(--jersey);
+    overflow:hidden;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .product-media{
+    background: var(--navy-deep);
+    padding:28px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .product-image-frame{
+    position:relative;
+    border-radius:16px;
+    overflow:hidden;
+    background:#0a1120;
+    /* stitched border, signature motif reused */
+    outline: 2px dashed rgba(220,234,46,0.4);
+    outline-offset: 6px;
+  }
+  .product-image-frame img{ width:100%; height:auto; }
+  .media-tabs{ display:flex; gap:10px; justify-content:center; }
+  .media-tab{
+    font-family: var(--font-mono);
+    font-size:12px; letter-spacing:0.1em; text-transform:uppercase;
+    background: transparent; border: 2px solid rgba(245,241,230,0.25);
+    color: rgba(245,241,230,0.75);
+    padding:8px 18px; border-radius:20px; cursor:pointer;
+    transition: all .15s ease;
+  }
+  .media-tab.active{ background: var(--optic); border-color: var(--optic); color: var(--ink); }
+
+  .product-info{ padding:34px; display:flex; flex-direction:column; gap:18px; }
+  .product-info .tag{
+    align-self:flex-start;
+    font-family: var(--font-mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+    background: rgba(220,234,46,0.15); color: var(--optic);
+    border: 1.5px solid rgba(220,234,46,0.4);
+    padding:5px 12px; border-radius:16px;
+  }
+  .product-info h2{ font-family: var(--font-display); font-size:34px; line-height:1; }
+  .price-row{ display:flex; align-items:baseline; gap:10px; }
+  .price{ font-family: var(--font-display); font-size:40px; color: var(--optic); }
+  .price-note{ font-family: var(--font-mono); font-size:12px; color: rgba(245,241,230,0.65); text-transform:uppercase; letter-spacing:0.06em; }
+  .product-desc{ font-size:15px; line-height:1.6; color: rgba(245,241,230,0.85); }
+
+  .batch-note{
+    background: rgba(220,234,46,0.08);
+    border: 1.5px dashed rgba(220,234,46,0.35);
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:13.5px;
+    line-height:1.55;
+    color: rgba(245,241,230,0.9);
+  }
+  .batch-note b{ color: var(--optic); }
+
+  .field-label{
+    font-family: var(--font-mono); font-size:12px; letter-spacing:0.1em;
+    text-transform:uppercase; color: rgba(245,241,230,0.6);
+  }
+  .size-grid{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .size-opt{
+    font-family: var(--font-mono); font-weight:700; font-size:13px;
+    background: rgba(245,241,230,0.06); border: 2px solid rgba(245,241,230,0.2);
+    color: var(--line); width:52px; height:44px; border-radius:10px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition: all .15s ease;
+  }
+  .size-opt:hover{ border-color: var(--optic); }
+  .size-opt.active{ background: var(--optic); border-color: var(--optic); color: var(--ink); }
+
+  .qty-row{ display:flex; align-items:center; gap:14px; margin-top:8px; }
+  .qty-btn{
+    width:40px; height:40px; border-radius:10px;
+    background: rgba(245,241,230,0.08); border: 2px solid rgba(245,241,230,0.2);
+    color: var(--line); font-size:18px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .qty-btn:hover{ border-color: var(--optic); }
+  .qty-val{ font-family: var(--font-display); font-size:26px; min-width:36px; text-align:center; }
+
+  .order-total{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding-top:14px; border-top: 1.5px dashed rgba(245,241,230,0.2);
+  }
+  .order-total .label{ font-family: var(--font-mono); font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color: rgba(245,241,230,0.7); }
+  .order-total .amount{ font-family: var(--font-display); font-size:28px; color: var(--optic); }
+
+  .order-actions{ display:flex; gap:12px; flex-wrap:wrap; }
+  .copy-note{
+    font-family: var(--font-mono); font-size:12px; color: rgba(245,241,230,0.6);
+    display:none;
+  }
+  .copy-note.show{ display:block; }
+
+  @media (max-width: 720px){
+    .product{ grid-template-columns:1fr; }
+  }
+
+  /* size chart */
+  .size-chart{ margin-top:56px; }
+  .size-table{
+    width:100%;
+    border-collapse:collapse;
+    background: rgba(245,241,230,0.05);
+    border-radius:16px;
+    overflow:hidden;
+    font-size:14px;
+  }
+  .size-table th, .size-table td{
+    padding:12px 16px;
+    text-align:center;
+    border-bottom: 1px solid rgba(245,241,230,0.1);
+  }
+  .size-table th{
+    font-family: var(--font-mono); font-size:11px; letter-spacing:0.08em;
+    text-transform:uppercase; color: var(--optic); background: rgba(220,234,46,0.06);
+  }
+  .size-table tr:last-child td{ border-bottom:none; }
+
+  .more-soon{
+    margin-top:56px;
+    border: 2px dashed rgba(245,241,230,0.2);
+    border-radius:20px;
+    padding:34px;
+    text-align:center;
+    color: rgba(245,241,230,0.7);
+  }
+  .more-soon .eyebrow{ display:block; margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<div class="texture-dots"></div>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <img src="assets/logo.png" alt="One Cavite Pickleball Club logo">
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F1E6" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="index.html#schedule">Schedule</a>
+      <a href="about.html">About</a>
+      <a href="merch.html" class="nav-highlight active">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="shop-hero">
+    <div class="eyebrow">OCPC Shop</div>
+    <h1>GEAR UP</h1>
+    <p>Official club merch, batch-ordered so everyone gets the same quality kit. Pick your size, we'll handle the rest.</p>
+  </div>
+
+  <div class="seam"></div>
+
+  <!-- PRODUCT -->
+  <div class="product">
+    <div class="product-media">
+      <div class="product-image-frame">
+        <img id="productImg" src="assets/uniform-front.jpg" alt="OCPC sublimation uniform">
+      </div>
+      <div class="media-tabs">
+        <button class="media-tab active" data-img="assets/uniform-front.jpg">Front</button>
+        <button class="media-tab" data-img="assets/uniform-back.jpg">Back</button>
+      </div>
+    </div>
+
+    <div class="product-info">
+      <span class="tag">Batch Order</span>
+      <h2>OCPC Sublimation Uniform</h2>
+      <div class="price-row">
+        <span class="price">₱450</span>
+        <span class="price-note">per piece</span>
+      </div>
+      <p class="product-desc">
+        Full sublimation polo jersey with the official One Cavite Pickleball Club design — front crest,
+        back nameplate strip, and player silhouette. Lightweight, breathable fabric built for long sessions on court.
+      </p>
+
+      <div class="batch-note">
+        <b>How batch ordering works:</b> we place one bulk print run once we hit the minimum headcount, so pricing
+        stays at ₱450/piece. Minimum <b>10 pieces</b> to trigger a batch, and turnaround is roughly
+        <b>3–4 weeks</b> from when the batch closes. Payment details are shared once your order is confirmed.
+      </div>
+
+      <div>
+        <div class="field-label">Size</div>
+        <div class="size-grid" id="sizeGrid">
+          <!-- filled by script -->
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">Quantity</div>
+        <div class="qty-row">
+          <button class="qty-btn" id="qtyMinus">–</button>
+          <span class="qty-val" id="qtyVal">1</span>
+          <button class="qty-btn" id="qtyPlus">+</button>
+        </div>
+      </div>
+
+      <div class="order-total">
+        <span class="label">Total</span>
+        <span class="amount" id="orderTotal">₱450</span>
+      </div>
+
+      <div class="order-actions">
+        <button class="btn btn-primary" id="orderBtn">Order via Messenger</button>
+        <a class="btn btn-ghost" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Ask a question</a>
+      </div>
+      <div class="copy-note" id="copyNote">Order details copied — paste them into the Messenger chat that just opened.</div>
+    </div>
+  </div>
+
+  <!-- SIZE CHART -->
+  <div class="size-chart">
+    <div class="section-head">
+      <span class="ball-dot"></span>
+      <h2>Size Chart (cm)</h2>
+    </div>
+    <table class="size-table">
+      <thead>
+        <tr><th>Size</th><th>Chest Width</th><th>Body Length</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>S</td><td>48</td><td>68</td></tr>
+        <tr><td>M</td><td>50</td><td>70</td></tr>
+        <tr><td>L</td><td>52</td><td>72</td></tr>
+        <tr><td>XL</td><td>54</td><td>74</td></tr>
+        <tr><td>2XL</td><td>56</td><td>76</td></tr>
+        <tr><td>3XL</td><td>58</td><td>78</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="more-soon">
+    <span class="eyebrow">Coming Soon</span>
+    More club gear — shorts, caps, and tote bags — is in the works. Watch our Facebook page for the next drop.
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-links">
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+  </div>
+  <p>One Cavite Pickleball Club · SM City Rosario · See you on the lines!</p>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  // ================= EDIT THESE AS NEEDED =================
+  const PRICE = 450;
+  const SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
+  const FB_USERNAME = "onecavitepickleball"; // used to build the Messenger link
+  // ==========================================================
+
+  let selectedSize = SIZES[1]; // default to M
+  let qty = 1;
+
+  const sizeGrid = document.getElementById('sizeGrid');
+  const qtyVal = document.getElementById('qtyVal');
+  const orderTotal = document.getElementById('orderTotal');
+  const orderBtn = document.getElementById('orderBtn');
+  const copyNote = document.getElementById('copyNote');
+
+  function renderSizes(){
+    sizeGrid.innerHTML = SIZES.map(s => `
+      <button class="size-opt ${s === selectedSize ? 'active' : ''}" data-size="${s}">${s}</button>
+    `).join('');
+    sizeGrid.querySelectorAll('.size-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedSize = btn.dataset.size;
+        renderSizes();
+      });
+    });
+  }
+
+  function updateTotal(){
+    qtyVal.textContent = qty;
+    orderTotal.textContent = `₱${(PRICE * qty).toLocaleString()}`;
+  }
+
+  document.getElementById('qtyMinus').addEventListener('click', () => {
+    if (qty > 1) { qty--; updateTotal(); }
+  });
+  document.getElementById('qtyPlus').addEventListener('click', () => {
+    qty++; updateTotal();
+  });
+
+  // front/back image toggle
+  document.querySelectorAll('.media-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('productImg').src = tab.dataset.img;
+    });
+  });
+
+  orderBtn.addEventListener('click', async () => {
+    const total = PRICE * qty;
+    const summary = `Hi! I'd like to order the OCPC Sublimation Uniform.\nSize: ${selectedSize}\nQuantity: ${qty}\nTotal: ₱${total.toLocaleString()}\n(Please let me know the batch status and payment details.)`;
+
+    try {
+      await navigator.clipboard.writeText(summary);
+      copyNote.classList.add('show');
+    } catch (e) {
+      // clipboard may be unavailable; order summary is still visible on the page
+    }
+
+    window.open(`https://m.me/${FB_USERNAME}`, '_blank');
+  });
+
+  renderSizes();
+  updateTotal();
+</script>
+
+</body>
+</html>
