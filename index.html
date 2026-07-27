@@ -473,6 +473,14 @@
   }
   .testimonial-quote::before{ content:'"'; }
   .testimonial-quote::after{ content:'"'; }
+  .testimonial-avatar{
+    width:56px; height:56px;
+    border-radius:50%;
+    object-fit:cover;
+    margin:0 auto 14px;
+    display:block;
+    border:2px solid var(--sky-deep);
+  }
   .testimonial-author{
     margin-top:18px;
     font-family: var(--font-mono);
@@ -723,16 +731,19 @@
     </div>
     <div class="testimonial-carousel" id="testimonialCarousel">
       <div class="testimonial-slide active">
-        <div class="testimonial-quote">Showed up not knowing anyone, and by the second rotation I already had people cheering for me. That's the OCPC difference.</div>
-        <div class="testimonial-author">— OCPC Regular</div>
+        <img class="testimonial-avatar" src="assets/directory/des.jpg" alt="Des">
+        <div class="testimonial-quote">OCPC is very accommodating and beginner's friendly.</div>
+        <div class="testimonial-author">— Des</div>
       </div>
       <div class="testimonial-slide">
-        <div class="testimonial-quote">Beginner-friendly in the best way. Nobody made me feel bad for not knowing the rules on day one, and now I'm the one explaining the kitchen to newbies.</div>
-        <div class="testimonial-author">— OCPC Member</div>
+        <img class="testimonial-avatar" src="assets/directory/joe.jpg" alt="Joe">
+        <div class="testimonial-quote">OCPC is more than just a club, it's a family!!! Best training ground without judgement.</div>
+        <div class="testimonial-author">— Joe</div>
       </div>
       <div class="testimonial-slide">
-        <div class="testimonial-quote">The club trips are what sold me. It's not just open play, it's a genuine community that travels, eats, and plays together.</div>
-        <div class="testimonial-author">— OCPC Member</div>
+        <img class="testimonial-avatar" src="assets/directory/rafael.jpg" alt="Rafael">
+        <div class="testimonial-quote">OCPC is the sole reason I get to play pickleball with confidence and pride.</div>
+        <div class="testimonial-author">— Raf</div>
       </div>
       <div class="testimonial-dots" id="testimonialDots"></div>
     </div>
