@@ -382,18 +382,18 @@ footer p{
 /* ---- FLOATING MESSENGER WIDGET ---- */
 .fb-msg-widget{
   position:fixed;
-  right:22px;
-  bottom:22px;
+  right:12px;
+  bottom:12px;
   z-index:250;
-  display:flex;
-  align-items:center;
-  gap:10px;
+  width:56px;
+  height:56px;
 }
 .fb-msg-btn{
+  position:relative;
   width:56px;
   height:56px;
   border-radius:50%;
-  background: linear-gradient(135deg, #00B2FF, #006AFF, #A033FF, #FF5CA1);
+  background: linear-gradient(135deg, var(--sky), var(--navy));
   color:#fff;
   display:flex;
   align-items:center;
@@ -403,6 +403,9 @@ footer p{
 }
 .fb-msg-btn:hover{ transform: scale(1.08); }
 .fb-msg-tooltip{
+  position:absolute;
+  right:calc(100% + 12px);
+  top:50%;
   background: var(--navy);
   color: var(--paper);
   font-family: var(--font-mono);
@@ -412,14 +415,14 @@ footer p{
   border-radius:4px;
   white-space:nowrap;
   opacity:0;
-  transform: translateX(6px);
+  transform: translateY(-50%) translateX(6px);
   transition: opacity .15s ease, transform .15s ease;
   pointer-events:none;
 }
-.fb-msg-widget:hover .fb-msg-tooltip{ opacity:1; transform:translateX(0); }
+.fb-msg-widget:hover .fb-msg-tooltip{ opacity:1; transform: translateY(-50%) translateX(0); }
 
 @media (max-width: 560px){
-  .fb-msg-widget{ right:16px; bottom:16px; }
+  .fb-msg-widget{ right:8px; bottom:8px; width:50px; height:50px; }
   .fb-msg-btn{ width:50px; height:50px; }
   .fb-msg-tooltip{ display:none; }
 }

@@ -567,11 +567,12 @@
     if (schedule.length === 0){
       pillsEl.innerHTML = '';
       const msg = weeks[activeWeek].emptyMessage || 'No open play sessions scheduled this week.';
-      cardEl.outerHTML = `
-        <div class="no-schedule" id="detailCard" style="grid-column: 1 / -1;">
-          <strong>${msg}</strong><br>
-          Check our <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" style="color:var(--pop); text-decoration:underline;">Facebook page</a> for updates.
-        </div>`;
+      cardEl.className = 'no-schedule';
+      cardEl.style.gridColumn = '1 / -1';
+      cardEl.innerHTML = `
+        <strong>${msg}</strong><br>
+        Check our <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" style="color:var(--pop); text-decoration:underline;">Facebook page</a> for updates.
+      `;
       return;
     }
 
@@ -587,6 +588,8 @@
     });
 
     const d = schedule[activeIndex];
+    cardEl.className = 'detail-panel';
+    cardEl.style.gridColumn = '';
     cardEl.innerHTML = `
       <div>
         <div class="detail-heading">${d.weekday}, ${d.date}</div>
