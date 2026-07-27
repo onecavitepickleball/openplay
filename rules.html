@@ -440,6 +440,53 @@
   }
   .sb-controls{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
   .sb-controls button{ flex:1; min-width:180px; max-width:240px; }
+
+  /* ---- GLOSSARY ---- */
+  .glossary-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:14px;
+  }
+  .glossary-card{
+    text-align:left;
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:18px 20px;
+    cursor:pointer;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    transition: border-color .15s ease;
+    width:100%;
+    font-family: var(--font-body);
+  }
+  .glossary-card:hover{ border-color: var(--sky-deep); }
+  .glossary-term{ font-weight:700; font-size:15px; flex:1; color: var(--ink); }
+  .glossary-icon{
+    font-family: var(--font-display);
+    font-size:18px;
+    color: var(--sky-deep);
+    transition: transform .2s ease;
+    flex-shrink:0;
+  }
+  .glossary-card.open .glossary-icon{ transform: rotate(45deg); }
+  .glossary-def{
+    flex-basis:100%;
+    max-height:0;
+    overflow:hidden;
+    font-size:13.5px;
+    color: var(--ink-soft);
+    line-height:1.6;
+    transition: max-height .3s ease;
+    text-align:left;
+  }
+  .glossary-card.open .glossary-def{ max-height:200px; margin-top:4px; }
+
+  @media (max-width:640px){
+    .glossary-grid{ grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
@@ -468,6 +515,7 @@
           <a href="directory.html">Meet the Club</a>
           <a href="gear.html">Gear Picks</a>
           <a href="contact.html">Contact</a>
+          <a href="quiz.html">Personality Quiz</a>
         </div>
       </div>
       <a href="merch.html" class="nav-highlight">Shop</a>
@@ -896,6 +944,17 @@
     </div>
   </div>
 
+  <!-- GLOSSARY -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">07</span>
+      <h2>Glossary</h2>
+      <span class="section-rule"></span>
+    </div>
+    <p style="color:var(--ink-soft); font-size:14.5px; margin-bottom:24px; max-width:600px;">Tap a term to see what it means.</p>
+    <div class="glossary-grid" id="glossaryGrid"></div>
+  </div>
+
   <div class="section reveal">
     <div class="community-cta" style="background:var(--navy); color:var(--paper); border-radius:6px; padding:52px 44px; text-align:center;">
       <h3 style="font-family:var(--font-display); font-size:clamp(28px,4vw,38px); text-transform:uppercase; margin-bottom:12px;">Ready to Play?</h3>
@@ -919,6 +978,7 @@
       <a href="contact.html">Contact</a>
       <a href="leaderboard.html">Leaderboard</a>
       <a href="gear.html">Gear Picks</a>
+      <a href="quiz.html">Quiz</a>
       <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
     </div>
     <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
@@ -1242,6 +1302,34 @@
   });
 
   renderPosition();
+
+  // ---- Glossary ----
+  const glossaryTerms = [
+    { term: "Dink", def: "A soft, arcing shot hit from near the kitchen line that drops just over the net into the opponent's kitchen — used to set up an attack or reset the point." },
+    { term: "Kitchen", def: "The 7-foot non-volley zone on each side of the net. Players can't volley the ball (hit it out of the air) while standing inside it." },
+    { term: "Erne", def: "An advanced shot where a player jumps around the kitchen, without touching it, to volley the ball from outside the zone, closer to the net." },
+    { term: "ATP (Around The Post)", def: "A shot hit around the outside of the net post, below the height of the net, rather than over it. Legal, and often a highlight-reel winner." },
+    { term: "Third Shot Drop", def: "A soft shot hit by the serving team on their third shot of the point, aimed to land in the kitchen and neutralize the return team's advantage at the net." },
+    { term: "Let", def: "A serve that clips the net but still lands in the correct service court. Replayed with no penalty under current rules." },
+    { term: "Stacking", def: "A doubles strategy where partners line up out of standard position before the serve or return to keep a stronger player on their preferred side." },
+    { term: "Poach", def: "When a player crosses into their partner's side of the court to intercept a shot, usually to attack a weak return." }
+  ];
+
+  function renderGlossary(){
+    const grid = document.getElementById('glossaryGrid');
+    if (!grid) return;
+    grid.innerHTML = glossaryTerms.map((g, i) => `
+      <button class="glossary-card" data-i="${i}" type="button">
+        <span class="glossary-term">${g.term}</span>
+        <span class="glossary-icon">+</span>
+        <span class="glossary-def">${g.def}</span>
+      </button>
+    `).join('');
+    grid.querySelectorAll('.glossary-card').forEach(card => {
+      card.addEventListener('click', () => card.classList.toggle('open'));
+    });
+  }
+  renderGlossary();
 </script>
 
 </body>

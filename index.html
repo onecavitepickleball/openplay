@@ -132,6 +132,22 @@
     .hero-tag{ left:50%; transform:translateX(-50%); bottom:-16px; }
   }
 
+  .hero-countdown{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    margin-top:22px;
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    border-radius:20px;
+    padding:10px 18px;
+    font-family: var(--font-mono);
+    font-size:12.5px;
+    color: var(--ink-soft);
+  }
+  .hero-countdown b{ color: var(--sky-deep); }
+  .hero-photo-frame img{ transition: opacity .5s ease; }
+
   /* ---- SCHEDULE ---- */
   .day-tabs{
     display:flex;
@@ -451,6 +467,18 @@
     transition: background .15s ease;
   }
   .testimonial-dot.active{ background: var(--sky-deep); }
+
+  /* ---- FACEBOOK FEED ---- */
+  .fb-feed-wrap{
+    display:flex;
+    justify-content:center;
+    max-width:500px;
+    margin:0 auto;
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .fb-feed-wrap iframe{ max-width:100%; }
 </style>
 </head>
 <body>
@@ -479,6 +507,7 @@
           <a href="directory.html">Meet the Club</a>
           <a href="gear.html">Gear Picks</a>
           <a href="contact.html">Contact</a>
+          <a href="quiz.html">Personality Quiz</a>
         </div>
       </div>
       <a href="merch.html" class="nav-highlight">Shop</a>
@@ -498,10 +527,11 @@
         <a class="btn btn-primary" href="#schedule">See This Week's Schedule</a>
         <a class="btn btn-ghost" href="merch.html">Shop Merch</a>
       </div>
+      <div class="hero-countdown" id="heroCountdown">Loading next session...</div>
     </div>
     <div class="hero-photo">
       <div class="hero-photo-frame">
-        <img src="assets/hero/hero-home.jpg" alt="OCPC members at open play, SM City Rosario">
+        <img src="assets/hero/hero-home.jpg" alt="OCPC members at open play, SM City Rosario" id="heroPhotoImg">
       </div>
       <div class="hero-logo-badge">
         <img src="assets/logo.png" alt="OCPC logo" style="width:100%;">
@@ -678,6 +708,23 @@
     </div>
   </div>
 
+  <!-- FACEBOOK FEED -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">08</span>
+      <h2>From Our Facebook Page</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="fb-feed-wrap">
+      <iframe
+        src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fonecavitepickleball&tabs=timeline&width=500&height=500&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true"
+        width="500" height="500" style="border:none; overflow:hidden;" scrolling="no" frameborder="0"
+        allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+        title="OCPC Facebook page feed">
+      </iframe>
+    </div>
+  </div>
+
 </div>
 
 <footer>
@@ -693,6 +740,7 @@
       <a href="merch.html">Shop</a>
       <a href="leaderboard.html">Leaderboard</a>
       <a href="gear.html">Gear Picks</a>
+      <a href="quiz.html">Quiz</a>
       <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
     </div>
     <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
@@ -812,6 +860,65 @@
 
   renderWeekTabs();
   render(0);
+
+  // ---- Hero countdown to next open play session ----
+  function parseSessionStart(d){
+    const startTimeStr = d.time.split('–')[0].trim();
+    const now = new Date();
+    const dt = new Date(`${d.date} ${now.getFullYear()} ${startTimeStr}`);
+    if (dt.getTime() < now.getTime() - 12 * 60 * 60 * 1000) dt.setFullYear(now.getFullYear() + 1);
+    return dt;
+  }
+
+  function findNextSession(){
+    const allDays = weeks.flatMap(w => w.days);
+    const now = new Date();
+    const upcoming = allDays
+      .map(d => ({ d, dt: parseSessionStart(d) }))
+      .filter(x => !isNaN(x.dt.getTime()) && x.dt > now)
+      .sort((a, b) => a.dt - b.dt);
+    return upcoming[0] || null;
+  }
+
+  function updateCountdown(){
+    const el = document.getElementById('heroCountdown');
+    if (!el) return;
+    const next = findNextSession();
+    if (!next){
+      el.innerHTML = 'Next open play: <b>To be announced</b>';
+      return;
+    }
+    const diff = next.dt - new Date();
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const parts = [];
+    if (days) parts.push(`${days}d`);
+    parts.push(`${hours}h`, `${mins}m`);
+    el.innerHTML = `Next open play in <b>${parts.join(' ')}</b> — ${next.d.weekday}, ${next.d.date}`;
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 60000);
+
+  // ---- Rotating hero photo ----
+  const rotatingHero = [
+    { img: "assets/hero/hero-home.jpg", tag: "SM City Rosario" },
+    { img: "assets/gallery/photo-20.jpg", tag: "The Highgrounds Compound, Zambales" },
+    { img: "assets/gallery/photo-27.jpg", tag: "Pampanga Pickleball Center" }
+  ];
+  let heroIdx = 0;
+  setInterval(() => {
+    heroIdx = (heroIdx + 1) % rotatingHero.length;
+    const img = document.getElementById('heroPhotoImg');
+    const tag = document.querySelector('.hero-tag');
+    if (!img || !tag) return;
+    img.style.opacity = 0;
+    setTimeout(() => {
+      img.src = rotatingHero[heroIdx].img;
+      tag.textContent = rotatingHero[heroIdx].tag;
+      img.style.opacity = 1;
+    }, 500);
+  }, 6000);
 </script>
 
 <script type="module">

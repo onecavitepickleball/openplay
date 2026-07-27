@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What's Your Pickleball Personality? — One Cavite Pickleball Club</title>
+<meta name="description" content="Take the OCPC quiz to find out your pickleball personality — Dinker, Banger, Strategist, or Social Butterfly.">
+
+<meta property="og:title" content="What's Your Pickleball Personality? — OCPC">
+<meta property="og:description" content="Take the quiz and find out your pickleball personality.">
+<meta property="og:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://onecavitepickleball.club/quiz.html">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="What's Your Pickleball Personality? — OCPC">
+<meta name="twitter:description" content="Take the quiz and find out your pickleball personality.">
+<meta name="twitter:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="canonical" href="https://onecavitepickleball.club/quiz.html">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .quiz-hero{ padding:56px 0 12px; text-align:center; }
+  .quiz-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(38px, 6.5vw, 62px);
+    line-height:1.02;
+    text-transform:uppercase;
+    max-width:760px;
+    margin:0 auto;
+  }
+  .quiz-hero p{
+    margin:16px auto 0; font-size:16px; color: var(--ink-soft);
+    max-width:520px; line-height:1.6;
+  }
+
+  .quiz-wrap{ max-width:640px; margin:0 auto; }
+
+  .quiz-progress{
+    display:flex; gap:6px; margin-bottom:28px;
+  }
+  .quiz-progress-seg{
+    flex:1; height:5px; border-radius:3px;
+    background: var(--line);
+    overflow:hidden;
+  }
+  .quiz-progress-seg.done .quiz-progress-fill{ width:100%; }
+  .quiz-progress-fill{ height:100%; width:0; background: var(--pop); transition: width .3s ease; }
+
+  .quiz-card{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:36px 32px;
+  }
+  .quiz-qnum{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+    margin-bottom:10px;
+  }
+  .quiz-question{
+    font-family: var(--font-display);
+    font-size:clamp(22px, 3vw, 28px);
+    text-transform:uppercase;
+    line-height:1.15;
+    margin-bottom:24px;
+  }
+  .quiz-options{ display:flex; flex-direction:column; gap:10px; }
+  .quiz-opt{
+    text-align:left;
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    border-radius:5px;
+    padding:15px 18px;
+    font-size:15px;
+    font-family: var(--font-body);
+    color: var(--ink);
+    cursor:pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .quiz-opt:hover{ border-color: var(--sky-deep); background: var(--paper-dim); }
+
+  /* result card */
+  .result-card{
+    background: var(--navy);
+    color: var(--paper);
+    border-radius:10px;
+    padding:48px 36px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .result-eyebrow{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: var(--sky);
+  }
+  .result-emoji{ font-size:64px; margin:18px 0 6px; line-height:1; }
+  .result-type{
+    font-family: var(--font-display);
+    font-size:clamp(32px, 6vw, 48px);
+    text-transform:uppercase;
+    line-height:1.05;
+  }
+  .result-desc{
+    margin:18px auto 0;
+    max-width:440px;
+    color: rgba(245,243,238,0.82);
+    font-size:15px;
+    line-height:1.7;
+  }
+  .result-brand{
+    margin-top:28px;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: rgba(245,243,238,0.5);
+  }
+  .quiz-result-actions{
+    display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:28px;
+  }
+  .quiz-screenshot-tip{
+    text-align:center;
+    font-size:13px;
+    color: var(--ink-faint);
+    margin-top:14px;
+  }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="events.html">Events</a>
+      <div class="nav-more">
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="queue.html">Queue</a>
+          <a href="leaderboard.html">Leaderboard</a>
+          <a href="coaching.html">Coaching</a>
+          <a href="rules.html">Rules &amp; Etiquette</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="gear.html">Gear Picks</a>
+          <a href="contact.html">Contact</a>
+          <a href="quiz.html" class="active">Personality Quiz</a>
+        </div>
+      </div>
+      <a href="merch.html" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="quiz-hero">
+    <div class="eyebrow">Just for Fun</div>
+    <h1>What's Your Pickleball Personality?</h1>
+    <p>Five quick questions. One court identity. Screenshot your result and share it — tag us so we can see.</p>
+  </div>
+
+  <div class="section reveal">
+    <div class="quiz-wrap">
+      <div class="quiz-progress" id="quizProgress"></div>
+      <div id="quizStage"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="merch.html">Shop</a>
+      <a href="rules.html">Rules</a>
+      <a href="coaching.html">Coaching</a>
+      <a href="directory.html">Meet the Club</a>
+      <a href="contact.html">Contact</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="gear.html">Gear Picks</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  const QUESTIONS = [
+    {
+      q: "It's your serve, score's tied. What's the plan?",
+      opts: [
+        { t: "Dink deep, wait for the opening", type: "dinker" },
+        { t: "Serve big, crash the net", type: "banger" },
+        { t: "Whatever gets a good rally going", type: "social" },
+        { t: "Serve to their weaker paddle side", type: "strategist" }
+      ]
+    },
+    {
+      q: "Your partner sets up a soft ball right at the kitchen line. You:",
+      opts: [
+        { t: "Dink it back, reset the point", type: "dinker" },
+        { t: "Smash it, no hesitation", type: "banger" },
+        { t: "Just happy to be in a good rally", type: "social" },
+        { t: "Place it to open up the court", type: "strategist" }
+      ]
+    },
+    {
+      q: "Pre-game warmup looks like:",
+      opts: [
+        { t: "A few calm dinks to find your rhythm", type: "dinker" },
+        { t: "Full-power drives, no mercy", type: "banger" },
+        { t: "Catching up with everyone courtside", type: "social" },
+        { t: "Scouting who you're about to play", type: "strategist" }
+      ]
+    },
+    {
+      q: "It's 9–9 in the third game. Your heart rate is:",
+      opts: [
+        { t: "Steady, patience always wins", type: "dinker" },
+        { t: "Pumping, time to go for it", type: "banger" },
+        { t: "Doesn't matter, having a blast either way", type: "social" },
+        { t: "Calculating the next three shots", type: "strategist" }
+      ]
+    },
+    {
+      q: "After the match, the first thing you do is:",
+      opts: [
+        { t: "Break down what worked in the kitchen game", type: "dinker" },
+        { t: "Talk about that one huge smash", type: "banger" },
+        { t: "Grab food with the group", type: "social" },
+        { t: "Already thinking about the next matchup", type: "strategist" }
+      ]
+    }
+  ];
+
+  const RESULTS = {
+    dinker: {
+      emoji: "🥒",
+      name: "The Dinker",
+      desc: "Patient, precise, and allergic to unforced errors. You'd rather win a 20-shot rally than end one in a single swing. The kitchen line is your happy place."
+    },
+    banger: {
+      emoji: "💥",
+      name: "The Banger",
+      desc: "Power first, ask questions later. If there's a ball above the net, you're putting it away. Subtlety is for other people."
+    },
+    strategist: {
+      emoji: "🧠",
+      name: "The Strategist",
+      desc: "You're three shots ahead of everyone else on the court, including your own partner. Every single point has a plan behind it."
+    },
+    social: {
+      emoji: "🦋",
+      name: "The Social Butterfly",
+      desc: "Wins are nice, but you're really here for the group chat, the snacks, and the post-game hangout. Court chemistry beats court IQ every time."
+    }
+  };
+
+  let currentQ = 0;
+  const answers = [];
+  const stage = document.getElementById('quizStage');
+  const progressWrap = document.getElementById('quizProgress');
+
+  function renderProgress(){
+    progressWrap.innerHTML = QUESTIONS.map((_, i) => `
+      <div class="quiz-progress-seg ${i < currentQ ? 'done' : ''}">
+        <div class="quiz-progress-fill" style="width:${i < currentQ ? '100' : (i === currentQ ? '50' : '0')}%;"></div>
+      </div>
+    `).join('');
+  }
+
+  function renderQuestion(){
+    renderProgress();
+    const q = QUESTIONS[currentQ];
+    stage.innerHTML = `
+      <div class="quiz-card">
+        <div class="quiz-qnum">Question ${currentQ + 1} of ${QUESTIONS.length}</div>
+        <div class="quiz-question">${q.q}</div>
+        <div class="quiz-options">
+          ${q.opts.map((o, i) => `<button class="quiz-opt" data-i="${i}">${o.t}</button>`).join('')}
+        </div>
+      </div>
+    `;
+    stage.querySelectorAll('.quiz-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        answers.push(q.opts[parseInt(btn.dataset.i, 10)].type);
+        currentQ++;
+        if (currentQ < QUESTIONS.length) renderQuestion();
+        else renderResult();
+      });
+    });
+  }
+
+  function renderResult(){
+    progressWrap.innerHTML = QUESTIONS.map(() => `
+      <div class="quiz-progress-seg done"><div class="quiz-progress-fill" style="width:100%;"></div></div>
+    `).join('');
+
+    const tally = {};
+    answers.forEach(t => { tally[t] = (tally[t] || 0) + 1; });
+    const winner = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
+    const r = RESULTS[winner];
+    const shareText = `I'm ${r.name} on the pickleball court! What's your pickleball personality?`;
+
+    stage.innerHTML = `
+      <div class="result-card">
+        <div class="result-eyebrow">Your Pickleball Personality</div>
+        <div class="result-emoji">${r.emoji}</div>
+        <div class="result-type">${r.name}</div>
+        <p class="result-desc">${r.desc}</p>
+        <div class="result-brand">One Cavite Pickleball Club</div>
+      </div>
+      <div class="quiz-result-actions">
+        <button class="btn btn-primary" id="shareBtn">Share My Result</button>
+        <button class="btn btn-ghost" id="retakeBtn">Retake Quiz</button>
+      </div>
+      <div class="quiz-screenshot-tip">Tip: screenshot the card above and share it to your IG story!</div>
+    `;
+
+    document.getElementById('retakeBtn').addEventListener('click', () => {
+      currentQ = 0;
+      answers.length = 0;
+      renderQuestion();
+    });
+
+    document.getElementById('shareBtn').addEventListener('click', async () => {
+      if (navigator.share){
+        try {
+          await navigator.share({ title: 'My Pickleball Personality', text: shareText, url: window.location.href });
+        } catch (e) { /* user cancelled, ignore */ }
+      } else {
+        try {
+          await navigator.clipboard.writeText(`${shareText} ${window.location.href}`);
+          const btn = document.getElementById('shareBtn');
+          const original = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = original; }, 1800);
+        } catch (e) { /* clipboard unavailable, ignore */ }
+      }
+    });
+  }
+
+  renderQuestion();
+</script>
+
+</body>
+</html>

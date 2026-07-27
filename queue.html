@@ -430,6 +430,7 @@
           <a href="directory.html">Meet the Club</a>
           <a href="gear.html">Gear Picks</a>
           <a href="contact.html">Contact</a>
+          <a href="quiz.html">Personality Quiz</a>
         </div>
       </div>
       <a href="merch.html" class="nav-highlight">Shop</a>
@@ -536,6 +537,7 @@
       <a href="contact.html">Contact</a>
       <a href="leaderboard.html">Leaderboard</a>
       <a href="gear.html">Gear Picks</a>
+      <a href="quiz.html">Quiz</a>
       <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
     </div>
     <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
@@ -906,7 +908,57 @@
     render();
   }
 
+  // ---- Celebration: confetti + paddle-pop sound ----
+  function playPaddlePop(){
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(220, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.08);
+      g.gain.setValueAtTime(0.15, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.15);
+    } catch (e) { /* audio unavailable, ignore */ }
+  }
+
+  function spawnConfetti(){
+    const colors = ['#005E89', '#4FB6FF', '#FF5A36', '#2E9E5B', '#F5F3EE'];
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:400;overflow:hidden;';
+    document.body.appendChild(container);
+    for (let i = 0; i < 60; i++){
+      const piece = document.createElement('div');
+      const size = 6 + Math.random() * 6;
+      piece.style.cssText = `
+        position:absolute; top:-20px; left:${Math.random() * 100}%;
+        width:${size}px; height:${size * 0.4}px;
+        background:${colors[Math.floor(Math.random() * colors.length)]};
+        opacity:${0.8 + Math.random() * 0.2};
+        border-radius:2px;
+      `;
+      const duration = 1800 + Math.random() * 1200;
+      const drift = (Math.random() - 0.5) * 200;
+      piece.animate([
+        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${drift}px, 100vh) rotate(${360 + Math.random() * 360}deg)`, opacity: 0 }
+      ], { duration, easing: 'cubic-bezier(.25,.46,.45,.94)' });
+      container.appendChild(piece);
+    }
+    setTimeout(() => container.remove(), 3200);
+  }
+
+  function celebrateMatchFinish(){
+    playPaddlePop();
+    spawnConfetti();
+  }
+
   function finishGame(courtIndex, scoreA, scoreB){
+    celebrateMatchFinish();
     const court = state.courts[courtIndex];
     const allPlayers = [...court.teamA, ...court.teamB];
     allPlayers.forEach(p => { getStats(p.name).gamesPlayed += 1; });
