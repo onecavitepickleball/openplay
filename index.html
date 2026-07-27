@@ -285,6 +285,33 @@
     .merch-teaser-copy{ padding:36px 28px; }
   }
 
+  /* ---- RECENT EVENT ---- */
+  .recent-event-card{
+    display:grid;
+    grid-template-columns: 1fr 1.2fr;
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .recent-event-img{ position:relative; min-height:260px; background: var(--navy-deep); }
+  .recent-event-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .recent-event-copy{ padding:40px 44px; display:flex; flex-direction:column; justify-content:center; gap:12px; }
+  .recent-event-copy .event-tag{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+  }
+  .recent-event-copy h3{ font-family: var(--font-display); font-size:32px; text-transform:uppercase; line-height:1.05; }
+  .recent-event-copy p{ font-size:15px; line-height:1.6; color: var(--ink-soft); }
+  .recent-event-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; }
+
+  @media (max-width: 700px){
+    .recent-event-card{ grid-template-columns:1fr; }
+    .recent-event-copy{ padding:32px 26px; }
+  }
+
   /* ---- GALLERY TEASER ---- */
   .gallery-teaser-strip{
     display:grid;
@@ -329,6 +356,7 @@
           <a href="directory.html">Meet the Club</a>
           <a href="gallery.html">Gallery</a>
           <a href="events.html">Events</a>
+          <a href="gear.html">Gear Picks</a>
           <a href="contact.html">Contact</a>
         </div>
       </div>
@@ -389,10 +417,33 @@
     </div>
   </div>
 
-  <!-- MERCH TEASER -->
+  <!-- RECENT EVENT -->
   <div class="section reveal">
     <div class="section-head">
       <span class="section-index">02</span>
+      <h2>Recent Event</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="recent-event-card">
+      <div class="recent-event-img">
+        <img src="assets/gallery/photo-33.jpg" alt="OCPC and Zambales Pickleball Club at The Highgrounds Compound">
+      </div>
+      <div class="recent-event-copy">
+        <span class="event-tag">Concluded · July 25–26, 2026</span>
+        <h3>Two Days in Zambales.</h3>
+        <p>A club outing with Zambales Pickleball Club, a Pampanga side trip with Court Rebels Club, and way too much good food along the way. Here's the full story.</p>
+        <div class="recent-event-actions">
+          <a class="btn btn-primary" href="zambales-trip.html">Read the Story</a>
+          <a class="btn btn-ghost" href="events.html">All Events</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MERCH TEASER -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">03</span>
       <h2>New Drop</h2>
       <span class="section-rule"></span>
     </div>
@@ -414,7 +465,7 @@
   <!-- GALLERY TEASER -->
   <div class="section reveal">
     <div class="section-head">
-      <span class="section-index">03</span>
+      <span class="section-index">04</span>
       <h2>On The Courts</h2>
       <span class="section-rule"></span>
       <a class="btn btn-ghost" href="gallery.html" style="padding:10px 18px; font-size:12px;">View All</a>
@@ -443,6 +494,7 @@
       <a href="contact.html">Contact</a>
       <a href="merch.html">Shop</a>
       <a href="leaderboard.html">Leaderboard</a>
+      <a href="gear.html">Gear Picks</a>
       <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
     </div>
     <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
@@ -475,10 +527,8 @@
     },
     {
       label: "Next Week",
-      days: [
-        { weekday: "Mon", date: "Aug 3", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/V69W8W" },
-        { weekday: "Wed", date: "Aug 5", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/2F0IKH" }
-      ]
+      days: [],
+      emptyMessage: "August open play schedules to be announced."
     }
   ];
   // =========================================================
@@ -516,9 +566,10 @@
 
     if (schedule.length === 0){
       pillsEl.innerHTML = '';
+      const msg = weeks[activeWeek].emptyMessage || 'No open play sessions scheduled this week.';
       cardEl.outerHTML = `
         <div class="no-schedule" id="detailCard" style="grid-column: 1 / -1;">
-          <strong>No open play sessions scheduled this week.</strong><br>
+          <strong>${msg}</strong><br>
           Check our <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" style="color:var(--pop); text-decoration:underline;">Facebook page</a> for updates.
         </div>`;
       return;
