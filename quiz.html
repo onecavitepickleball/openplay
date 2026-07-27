@@ -136,6 +136,14 @@
     color: var(--ink-faint);
     margin-top:14px;
   }
+  .quiz-result-preview{
+    display:block;
+    max-width:280px;
+    width:100%;
+    margin:24px auto 0;
+    border-radius:10px;
+    box-shadow: 0 8px 24px rgba(11,36,54,0.18);
+  }
 </style>
 </head>
 <body>
@@ -177,7 +185,7 @@
   <div class="quiz-hero">
     <div class="eyebrow">Just for Fun</div>
     <h1>What's Your Pickleball Personality?</h1>
-    <p>Five quick questions. One court identity. Screenshot your result and share it — tag us so we can see.</p>
+    <p>Five quick questions. One court identity. Get a shareable result card — post it and tag us so we can see.</p>
   </div>
 
   <div class="section reveal">
@@ -188,6 +196,8 @@
   </div>
 
 </div>
+
+<canvas id="resultCanvas" width="1080" height="1080" style="display:none;"></canvas>
 
 <footer>
   <div class="wrap">
@@ -317,6 +327,73 @@
     });
   }
 
+  // Wraps text onto a canvas across multiple centered lines, returns lines drawn.
+  function wrapCanvasText(ctx, text, centerX, startY, maxWidth, lineHeight){
+    const words = text.split(' ');
+    let line = '';
+    let y = startY;
+    for (let i = 0; i < words.length; i++){
+      const testLine = line ? `${line} ${words[i]}` : words[i];
+      if (ctx.measureText(testLine).width > maxWidth && line){
+        ctx.fillText(line, centerX, y);
+        line = words[i];
+        y += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, centerX, y);
+    return y;
+  }
+
+  // Draws the branded 1080x1080 result card and resolves with a PNG Blob.
+  async function drawResultImage(r){
+    if (document.fonts && document.fonts.load){
+      await Promise.all([
+        document.fonts.load('900 90px "Archivo Black"'),
+        document.fonts.load('700 30px "Space Mono"'),
+        document.fonts.load('400 34px "Inter"')
+      ]);
+    }
+
+    const canvas = document.getElementById('resultCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2;
+
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, '#005E89');
+    grad.addColorStop(1, '#003F5E');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.textAlign = 'center';
+
+    ctx.fillStyle = '#4FB6FF';
+    ctx.font = '700 30px "Space Mono", monospace';
+    ctx.fillText('YOUR PICKLEBALL PERSONALITY', cx, 160);
+
+    ctx.font = '220px sans-serif';
+    ctx.fillText(r.emoji, cx, 420);
+
+    ctx.fillStyle = '#F5F3EE';
+    ctx.font = '900 90px "Archivo Black", sans-serif';
+    ctx.fillText(r.name.toUpperCase(), cx, 560);
+
+    ctx.fillStyle = 'rgba(245,243,238,0.85)';
+    ctx.font = '400 34px "Inter", sans-serif';
+    wrapCanvasText(ctx, r.desc, cx, 650, 820, 48);
+
+    ctx.fillStyle = 'rgba(245,243,238,0.55)';
+    ctx.font = '700 26px "Space Mono", monospace';
+    ctx.fillText('ONE CAVITE PICKLEBALL CLUB', cx, 940);
+    ctx.fillStyle = '#4FB6FF';
+    ctx.font = '400 26px "Inter", sans-serif';
+    ctx.fillText('Take the quiz → onecavitepickleball.club/quiz.html', cx, 985);
+
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  }
+
   function renderResult(){
     progressWrap.innerHTML = QUESTIONS.map(() => `
       <div class="quiz-progress-seg done"><div class="quiz-progress-fill" style="width:100%;"></div></div>
@@ -338,9 +415,10 @@
       </div>
       <div class="quiz-result-actions">
         <button class="btn btn-primary" id="shareBtn">Share My Result</button>
+        <button class="btn btn-ghost" id="downloadBtn">Download Image</button>
         <button class="btn btn-ghost" id="retakeBtn">Retake Quiz</button>
       </div>
-      <div class="quiz-screenshot-tip">Tip: screenshot the card above and share it to your IG story!</div>
+      <div class="quiz-screenshot-tip" id="shareTip">Generating your shareable card…</div>
     `;
 
     document.getElementById('retakeBtn').addEventListener('click', () => {
@@ -349,7 +427,36 @@
       renderQuestion();
     });
 
+    let imageBlob = null;
+    let imageFile = null;
+    drawResultImage(r).then(blob => {
+      imageBlob = blob;
+      imageFile = new File([blob], `ocpc-pickleball-personality-${winner}.png`, { type: 'image/png' });
+      const tip = document.getElementById('shareTip');
+      const url = URL.createObjectURL(blob);
+      tip.textContent = 'Your shareable result card:';
+      const img = document.createElement('img');
+      img.className = 'quiz-result-preview';
+      img.src = url;
+      img.alt = `${r.name} result card`;
+      tip.insertAdjacentElement('afterend', img);
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      if (!imageBlob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(imageBlob);
+      a.download = `ocpc-pickleball-personality-${winner}.png`;
+      a.click();
+    });
+
     document.getElementById('shareBtn').addEventListener('click', async () => {
+      if (imageFile && navigator.canShare && navigator.canShare({ files: [imageFile] })){
+        try {
+          await navigator.share({ title: 'My Pickleball Personality', text: shareText, url: window.location.href, files: [imageFile] });
+          return;
+        } catch (e) { return; /* user cancelled */ }
+      }
       if (navigator.share){
         try {
           await navigator.share({ title: 'My Pickleball Personality', text: shareText, url: window.location.href });
