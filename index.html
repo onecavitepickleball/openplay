@@ -419,24 +419,46 @@
     letter-spacing:0.1em;
     text-transform:uppercase;
     color: var(--ink-faint);
-    margin-bottom:20px;
+    margin-bottom:24px;
   }
-  .sponsor-strip{
+  .sponsor-marquee{
+    overflow:hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .sponsor-track{
+    display:flex;
+    align-items:center;
+    width:max-content;
+    animation: sponsorScroll 28s linear infinite;
+  }
+  .sponsor-track:hover{ animation-play-state: paused; }
+  .sponsor-logo-box{
+    flex-shrink:0;
+    width:160px;
+    height:72px;
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:16px 40px;
-    flex-wrap:wrap;
+    padding:0 24px;
   }
-  .sponsor-chip{
-    font-family: var(--font-display);
-    font-size:17px;
-    text-transform:uppercase;
-    color: var(--ink-faint);
-    letter-spacing:0.02em;
-    transition: color .2s ease;
+  .sponsor-logo-box img{
+    max-width:100%;
+    max-height:100%;
+    object-fit:contain;
+    filter: grayscale(1) opacity(0.55);
+    transition: filter .2s ease;
   }
-  .sponsor-chip:hover{ color: var(--sky-deep); }
+  .sponsor-logo-box img:hover{ filter: grayscale(0) opacity(1); }
+
+  @keyframes sponsorScroll{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(-50%); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .sponsor-track{ animation: none; }
+  }
 
   /* ---- TESTIMONIALS ---- */
   .testimonial-carousel{ position:relative; max-width:720px; margin:0 auto; text-align:center; }
@@ -672,14 +694,22 @@
   <!-- SPONSORS / PARTNERS -->
   <div class="section reveal">
     <div class="sponsor-strip-wrap">
-      <div class="sponsor-strip-label">Clubs &amp; Partners We've Played With</div>
-      <div class="sponsor-strip">
-        <span class="sponsor-chip">JOOLA</span>
-        <span class="sponsor-chip">Prestige Paddle PH</span>
-        <span class="sponsor-chip">Zambales Pickleball Club</span>
-        <span class="sponsor-chip">Court Rebels Club</span>
-        <span class="sponsor-chip">Jungle Base Pickleball</span>
-        <span class="sponsor-chip">Pampanga Pickleball Center</span>
+      <div class="sponsor-strip-label">Sponsors &amp; Partners</div>
+      <div class="sponsor-marquee">
+        <div class="sponsor-track">
+          <div class="sponsor-logo-box"><img src="assets/sponsors/joola.png" alt="JOOLA"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/juego.png" alt="Juego"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/pkl-lab.png" alt="PKL Lab"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/sm-city-rosario.png" alt="SM City Rosario"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/blue.png" alt="B'lue"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/prestige-paddle.png" alt="Prestige Paddle PH"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/joola.png" alt="JOOLA" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/juego.png" alt="Juego" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/pkl-lab.png" alt="PKL Lab" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/sm-city-rosario.png" alt="SM City Rosario" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/blue.png" alt="B'lue" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="assets/sponsors/prestige-paddle.png" alt="Prestige Paddle PH" aria-hidden="true"></div>
+        </div>
       </div>
     </div>
   </div>
