@@ -348,6 +348,12 @@
     return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   }
 
+  // Normalizes a name for display regardless of how it was typed at signup
+  // (e.g. "MARVIN PONIENTE" or "marvin poniente" -> "Marvin Poniente").
+  function toTitleCase(str){
+    return String(str).replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
   // ================= TABS =================
   document.querySelectorAll('.admin-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -400,7 +406,7 @@
         const snap = await getDoc(doc(db, 'players', user.uid));
         if (snap.exists()){
           const p = snap.data();
-          label = `${p.firstName || ''} ${p.lastName || ''}`.trim() || user.email;
+          label = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim() || user.email;
         }
       } catch (err) { /* fall back to email */ }
     }
@@ -449,7 +455,7 @@
       const snap = await getDocs(collection(db, 'roster'));
       snap.docs.forEach(d => {
         const p = d.data();
-        const full = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+        const full = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
         if (full) names.add(full);
       });
     } catch (err) { /* roster unreachable — attendance history names still work */ }
@@ -631,7 +637,7 @@
             <div class="signup-row">
               <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
               <div class="signup-body">
-                <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)}</div>
+                <div class="signup-name">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
                 <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${escapeHtml(p.email || '')} · ${escapeHtml(p.phone || '')}</div>
                 <div class="signup-count ${eligible ? 'eligible' : 'not-eligible'}">${count}/${MIN_CHECKINS_FOR_MEMBERSHIP} check-ins${eligible ? ' — eligible' : ''}</div>
                 <div class="signup-actions">
@@ -651,7 +657,7 @@
           <div class="signup-row">
             <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
             <div class="signup-body">
-              <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)} ${isPlayerAdmin ? '<span class="signup-count eligible" style="margin-left:6px;">Admin</span>' : ''}</div>
+              <div class="signup-name">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))} ${isPlayerAdmin ? '<span class="signup-count eligible" style="margin-left:6px;">Admin</span>' : ''}</div>
               <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${p.sessionsAttended || 0} check-ins recorded at approval</div>
               <div class="signup-actions">
                 <button class="signup-btn ${isPlayerAdmin ? 'reject' : 'approve'}" data-action="toggle-role" data-id="${p.id}" data-role="${isPlayerAdmin ? 'member' : 'admin'}">${isPlayerAdmin ? 'Remove Admin' : 'Make Admin'}</button>

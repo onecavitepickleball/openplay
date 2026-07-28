@@ -251,6 +251,11 @@
     return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   }
 
+  // Normalizes a name for display regardless of how it was typed at signup.
+  function toTitleCase(str){
+    return String(str).replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
   async function loadBirthdays(){
     const now = new Date();
     const month = now.getMonth() + 1;
@@ -284,7 +289,7 @@
     emptyEl.style.display = 'none';
     gridEl.innerHTML = celebrants.map(p => {
       const isToday = p.birthDay === today;
-      const name = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+      const name = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
       return `
         <div class="bday-card ${isToday ? 'is-today' : ''}">
           <div class="bday-photo"><img src="${escapeHtml(p.photoURL || '')}" alt="${escapeHtml(name)}"></div>

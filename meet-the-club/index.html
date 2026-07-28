@@ -451,7 +451,7 @@
       { name: "Mhon", photo: "/assets/directory/mhon.jpg" },
       { name: "Vhen", photo: "/assets/directory/vhen.jpg" },
       { name: "Sia", photo: "/assets/directory/sia.jpg" },
-      { name: "Marvin", photo: "/assets/directory/marvin.jpg" },
+      { name: "Marvin Poniente", photo: "/assets/directory/marvin.jpg" },
       { name: "Ian", photo: "/assets/directory/ian.jpg" },
       { name: "Nene", photo: "/assets/directory/nene.jpg" },
       { name: "Des", photo: "/assets/directory/des.jpg" },
@@ -544,6 +544,11 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  // Normalizes a name for display regardless of how it was typed at signup.
+  function toTitleCase(str){
+    return String(str).replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
   // Syncs approved player signups (from the "roster" collection) into the
   // static team lists above. If a roster name matches an EXISTING static
   // entry (leadership/officers/members), that entry's photo is updated in
@@ -558,7 +563,7 @@
       const allStatic = [...window.team.leadership, ...window.team.officers, ...window.team.members];
 
       roster.forEach(p => {
-        const name = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+        const name = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
         if (!name || !p.photoURL) return;
         const match = allStatic.find(m => m.name.trim().toLowerCase() === name.toLowerCase());
         if (match){

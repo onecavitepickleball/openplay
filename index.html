@@ -1206,6 +1206,11 @@
 
   loadSpotlight();
 
+  // Normalizes a name for display regardless of how it was typed at signup.
+  function toTitleCase(str){
+    return String(str).replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
   // ---- Birthday banner (shows only if someone's birthday is today) ----
   async function loadBirthdayBanner(){
     try {
@@ -1220,7 +1225,7 @@
       const banner = document.getElementById('bdayBanner');
       const photoEl = document.getElementById('bdayBannerPhoto');
       const nameEl = document.getElementById('bdayBannerName');
-      const names = celebrants.map(p => `${p.firstName || ''} ${p.lastName || ''}`.trim()).join(' & ');
+      const names = celebrants.map(p => `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim()).join(' & ');
       photoEl.src = celebrants[0].photoURL || '';
       photoEl.alt = names;
       nameEl.textContent = `Happy Birthday, ${names}!`;
