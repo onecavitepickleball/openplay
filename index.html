@@ -2,6 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-H86SSQPCJ6');
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>One Cavite Pickleball Club — Open Play &amp; Community</title>
 <meta name="description" content="Open play schedule, club info, and merch for One Cavite Pickleball Club. All levels welcome at SM City Rosario, Cavite.">
@@ -629,7 +637,7 @@
     </div>
     <div class="hero-photo">
       <div class="hero-photo-frame">
-        <img src="/assets/hero/hero-home.jpg" alt="OCPC members at open play, SM City Rosario" id="heroPhotoImg">
+        <img src="/assets/hero/hero-home.webp" alt="OCPC members at open play, SM City Rosario" id="heroPhotoImg">
       </div>
       <div class="hero-logo-badge">
         <img src="/assets/logo.png" alt="OCPC logo" style="width:100%;">
@@ -685,7 +693,7 @@
     </div>
     <div class="recent-event-card">
       <div class="recent-event-img">
-        <img src="/assets/gallery/photo-33.jpg" alt="OCPC and Zambales Pickleball Club at The Highgrounds Compound">
+        <img src="/assets/gallery/photo-33.webp" alt="OCPC and Zambales Pickleball Club at The Highgrounds Compound" loading="lazy">
       </div>
       <div class="recent-event-copy">
         <span class="event-tag">Concluded · July 25–26, 2026</span>
@@ -746,12 +754,12 @@
       <a class="btn btn-ghost" href="/gallery/" style="padding:10px 18px; font-size:12px;">View All</a>
     </div>
     <div class="gallery-teaser-strip reveal-stagger">
-      <a href="/gallery/"><img src="/assets/gallery/thumb-02.jpg" alt="OCPC gallery"></a>
-      <a href="/gallery/"><img src="/assets/gallery/thumb-04.jpg" alt="OCPC gallery"></a>
-      <a href="/gallery/"><img src="/assets/gallery/thumb-09.jpg" alt="OCPC gallery"></a>
-      <a href="/gallery/"><img src="/assets/gallery/thumb-11.jpg" alt="OCPC gallery"></a>
-      <a href="/gallery/"><img src="/assets/gallery/thumb-14.jpg" alt="OCPC gallery"></a>
-      <a href="/gallery/"><img src="/assets/gallery/thumb-15.jpg" alt="OCPC gallery"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-02.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-04.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-09.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-11.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-14.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-15.webp" alt="OCPC gallery" loading="lazy"></a>
     </div>
   </div>
 
@@ -772,7 +780,7 @@
         </div>
       </div>
       <div class="merch-teaser-img">
-        <img src="/assets/uniform-front.jpg" alt="OCPC sublimation uniform front design">
+        <img src="/assets/uniform-front.webp" alt="OCPC sublimation uniform front design" loading="lazy">
       </div>
     </div>
   </div>
@@ -787,7 +795,7 @@
     </div>
     <div class="recent-event-card">
       <div class="recent-event-img">
-        <img src="/assets/courts/dink-academy-visit.jpg" alt="OCPC members visiting Dink Academy Pickleball">
+        <img src="/assets/courts/dink-academy-visit.jpg" alt="OCPC members visiting Dink Academy Pickleball" loading="lazy">
       </div>
       <div class="recent-event-copy">
         <span class="event-tag">Visited · July 11, 2026</span>
@@ -833,17 +841,17 @@
     </div>
     <div class="testimonial-carousel" id="testimonialCarousel">
       <div class="testimonial-slide active">
-        <img class="testimonial-avatar" src="/assets/directory/des.jpg" alt="Des">
+        <img class="testimonial-avatar" src="/assets/directory/des.jpg" alt="Des" loading="lazy">
         <div class="testimonial-quote">OCPC is very accommodating and beginner's friendly.</div>
         <div class="testimonial-author">— Des</div>
       </div>
       <div class="testimonial-slide">
-        <img class="testimonial-avatar" src="/assets/directory/joe.jpg" alt="Joe">
+        <img class="testimonial-avatar" src="/assets/directory/joe.jpg" alt="Joe" loading="lazy">
         <div class="testimonial-quote">OCPC is more than just a club, it's a family!!! Best training ground without judgement.</div>
         <div class="testimonial-author">— Joe</div>
       </div>
       <div class="testimonial-slide">
-        <img class="testimonial-avatar" src="/assets/directory/rafael.jpg" alt="Rafael">
+        <img class="testimonial-avatar" src="/assets/directory/rafael.jpg" alt="Rafael" loading="lazy">
         <div class="testimonial-quote">OCPC is the sole reason I get to play pickleball with confidence and pride.</div>
         <div class="testimonial-author">— Raf</div>
       </div>
@@ -1033,9 +1041,61 @@
         <div class="detail-actions">
           <a class="btn btn-primary" href="${d.link}" target="_blank" rel="noopener">Register for this session ${icons.arrow}</a>
           <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(d.venue)}" target="_blank" rel="noopener">Get directions</a>
+          <button class="btn btn-ghost" id="addToCalBtn" type="button">Add to Calendar</button>
         </div>
       </div>
     `;
+
+    document.getElementById('addToCalBtn').addEventListener('click', () => downloadICS(d));
+  }
+
+  // ---- Add to Calendar (.ics download) ----
+  function pad2(n){ return String(n).padStart(2, '0'); }
+
+  function toICSDate(dt){
+    return `${dt.getUTCFullYear()}${pad2(dt.getUTCMonth() + 1)}${pad2(dt.getUTCDate())}T${pad2(dt.getUTCHours())}${pad2(dt.getUTCMinutes())}${pad2(dt.getUTCSeconds())}Z`;
+  }
+
+  function parseSessionEndTime(d, start){
+    const endTimeStr = d.time.split('–')[1].trim();
+    return new Date(`${d.date} ${start.getFullYear()} ${endTimeStr}`);
+  }
+
+  function icsEscape(str){
+    return String(str).replace(/[\\;,]/g, m => '\\' + m).replace(/\n/g, '\\n');
+  }
+
+  function downloadICS(d){
+    const start = parseSessionStart(d);
+    const end = parseSessionEndTime(d, start);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
+
+    const uid = `ocpc-${d.date.replace(/\s+/g, '')}-${start.getFullYear()}@onecavitepickleball.club`;
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//OCPC//Open Play Schedule//EN',
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${toICSDate(new Date())}`,
+      `DTSTART:${toICSDate(start)}`,
+      `DTEND:${toICSDate(end)}`,
+      `SUMMARY:${icsEscape('OCPC Open Play — ' + d.venue)}`,
+      `LOCATION:${icsEscape(d.venue + ' (' + d.court + ')')}`,
+      `DESCRIPTION:${icsEscape('One Cavite Pickleball Club open play session. Register: ' + d.link)}`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([ics], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ocpc-open-play-${d.date.replace(/\s+/g, '-')}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   const defaultSel = findDefaultSelection();
@@ -1084,9 +1144,9 @@
 
   // ---- Rotating hero photo ----
   const rotatingHero = [
-    { img: "/assets/hero/hero-home.jpg", tag: "SM City Rosario" },
-    { img: "/assets/gallery/photo-20.jpg", tag: "The Highgrounds Compound, Zambales" },
-    { img: "/assets/gallery/photo-27.jpg", tag: "Pampanga Pickleball Center" }
+    { img: "/assets/hero/hero-home.webp", tag: "SM City Rosario" },
+    { img: "/assets/gallery/photo-20.webp", tag: "The Highgrounds Compound, Zambales" },
+    { img: "/assets/gallery/photo-27.webp", tag: "Pampanga Pickleball Center" }
   ];
   let heroIdx = 0;
   setInterval(() => {
