@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — One Cavite Pickleball Club</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .admin-hero{ padding:56px 0 12px; }
+  .admin-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(38px, 6vw, 58px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .admin-hero p{
+    margin-top:14px; font-size:15px; color: var(--ink-soft);
+    max-width:520px; line-height:1.6;
+  }
+
+  .admin-login-wrap{ max-width:420px; margin:0 auto; }
+  .form-row{ margin-bottom:16px; }
+  .form-row label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:6px;
+  }
+  .form-row input,
+  .form-row textarea{
+    width:100%;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:11px 13px;
+    font-family: var(--font-body);
+    font-size:14px;
+    color: var(--ink);
+    background: var(--white);
+  }
+  .form-row input:focus,
+  .form-row textarea:focus{ outline:none; border-color: var(--sky-deep); }
+  .form-row textarea{ min-height:110px; resize:vertical; }
+  .admin-msg{ font-size:12.5px; margin-top:8px; min-height:16px; }
+
+  /* ---- TABS ---- */
+  .admin-tabs{
+    display:flex;
+    gap:10px;
+    border-bottom: 1.5px solid var(--line);
+    margin-bottom:32px;
+  }
+  .admin-tab{
+    font-family: var(--font-mono);
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:12px 4px;
+    background:none;
+    border:none;
+    border-bottom: 3px solid transparent;
+    margin-bottom:-1.5px;
+    cursor:pointer;
+    color: var(--ink-soft);
+  }
+  .admin-tab.active{ border-bottom-color: var(--pop); color: var(--ink); }
+  .admin-panel{ display:none; max-width:640px; }
+  .admin-panel.active{ display:block; }
+
+  .admin-list{ margin-top:26px; border-top: 1.5px solid var(--line); padding-top:18px; }
+  .admin-list-label{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:12px;
+  }
+  .admin-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size:13px;
+  }
+  .admin-row-date{ font-weight:700; }
+  .admin-row-names{ color: var(--ink-soft); font-size:12.5px; margin-top:2px; }
+  .admin-delete{
+    background:none;
+    border: 1.5px solid var(--line);
+    border-radius:50%;
+    width:26px; height:26px;
+    flex-shrink:0;
+    cursor:pointer;
+    color: var(--ink-faint);
+    font-size:15px;
+    line-height:1;
+  }
+  .admin-delete:hover{ border-color: var(--pop); color: var(--pop); }
+
+  .admin-signout{
+    margin-top:26px;
+    width:100%;
+    text-align:center;
+    padding:11px;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    background:none;
+    cursor:pointer;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--ink-soft);
+  }
+  .admin-signout:hover{ border-color: var(--pop); color: var(--pop); }
+
+  .signup-empty{ font-size:12.5px; color: var(--ink-faint); padding:6px 0; }
+  .signup-row{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    padding:14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .signup-photo{
+    width:48px; height:48px;
+    border-radius:50%;
+    object-fit:cover;
+    background: var(--paper-dim);
+    flex-shrink:0;
+  }
+  .signup-body{ flex:1; min-width:0; }
+  .signup-name{ font-weight:700; font-size:14.5px; }
+  .signup-meta{ font-size:12.5px; color: var(--ink-soft); margin-top:2px; line-height:1.6; }
+  .signup-count{ font-family: var(--font-mono); font-size:11.5px; margin-top:6px; }
+  .signup-count.eligible{ color: var(--sky-deep); }
+  .signup-count.not-eligible{ color: var(--ink-faint); }
+  .signup-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .signup-btn{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    border: 1.5px solid var(--line);
+    border-radius:20px;
+    padding:6px 14px;
+    background:none;
+    cursor:pointer;
+    color: var(--ink-soft);
+  }
+  .signup-btn.approve{ border-color: var(--sky-deep); color: var(--sky-deep); }
+  .signup-btn.approve:hover{ background: var(--sky-deep); color: var(--white); }
+  .signup-btn.reject:hover{ border-color: var(--pop); color: var(--pop); }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="directory.html">Meet the Club</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="admin-hero">
+    <div class="eyebrow">OCPC Officers Only</div>
+    <h1>Admin.</h1>
+    <p>Record session attendance and manage player membership signups.</p>
+  </div>
+
+  <div class="section reveal">
+
+    <div id="adminLoginView" class="admin-login-wrap">
+      <form id="adminLoginForm">
+        <div class="form-row">
+          <label for="adminEmail">Email</label>
+          <input type="email" id="adminEmail" required autocomplete="username">
+        </div>
+        <div class="form-row">
+          <label for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" required autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Sign In</button>
+        <div class="admin-msg" id="adminLoginError" style="color: var(--pop);"></div>
+      </form>
+    </div>
+
+    <div id="adminPanelView" style="display:none;">
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="attendance">Attendance</button>
+        <button class="admin-tab" data-tab="signups">Player Signups</button>
+      </div>
+
+      <div class="admin-panel active" id="attendancePanel">
+        <h3 id="attFormTitle" style="font-family:var(--font-display); font-size:22px; text-transform:uppercase; margin-bottom:6px;">Record Attendance</h3>
+        <div class="sub" id="attFormSub" style="font-size:13px; color:var(--ink-soft); margin-bottom:20px;">One entry per open play session. Add attendees below.</div>
+        <form id="attendanceForm">
+          <div class="form-row">
+            <label for="attDate">Session Date</label>
+            <input type="date" id="attDate" required>
+          </div>
+          <div class="form-row">
+            <label for="attNames">Attendees (one name per line)</label>
+            <textarea id="attNames" placeholder="Vhen&#10;Sia&#10;Marvin"></textarea>
+          </div>
+          <button class="btn btn-primary" type="submit" id="attSubmitBtn" style="width:100%; justify-content:center;">Save Attendance</button>
+          <button class="admin-signout" type="button" id="attCancelBtn" style="display:none; margin-top:10px;">Cancel Edit</button>
+          <div class="admin-msg" id="attendanceMsg"></div>
+        </form>
+
+        <div class="admin-list">
+          <div class="admin-list-label">Recent Entries</div>
+          <div id="adminList"></div>
+        </div>
+      </div>
+
+      <div class="admin-panel" id="signupsPanel">
+        <div class="admin-list" style="margin-top:0; border-top:none; padding-top:0;">
+          <div class="admin-list-label">Pending Signups</div>
+          <div id="pendingPlayersList"><div class="signup-empty">No pending signups.</div></div>
+        </div>
+
+        <div class="admin-list">
+          <div class="admin-list-label">Active Members</div>
+          <div id="activePlayersList"><div class="signup-empty">No active members yet.</div></div>
+        </div>
+      </div>
+
+      <button class="admin-signout" id="signOutBtn">Sign Out</button>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, updateDoc, getDocs, deleteDoc, doc, setDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import {
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const ADMIN_EMAIL = "ocpc.pickleball@gmail.com";
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const attendanceCol = collection(db, "attendance");
+  const playersCol = collection(db, "players");
+
+  let allRecords = [];
+  let isAdmin = false;
+
+  function isoDate(d){ return d.toISOString().slice(0, 10); }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+
+  // ================= TABS =================
+  document.querySelectorAll('.admin-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab === 'attendance' ? 'attendancePanel' : 'signupsPanel').classList.add('active');
+    });
+  });
+
+  // ================= AUTH =================
+  const loginView = document.getElementById('adminLoginView');
+  const panelView = document.getElementById('adminPanelView');
+  const loginForm = document.getElementById('adminLoginForm');
+  const loginError = document.getElementById('adminLoginError');
+  const signOutBtn = document.getElementById('signOutBtn');
+
+  onAuthStateChanged(auth, (user) => {
+    isAdmin = !!user && user.email === ADMIN_EMAIL;
+    loginView.style.display = isAdmin ? 'none' : 'block';
+    panelView.style.display = isAdmin ? 'block' : 'none';
+    if (isAdmin){ loadAttendance(); loadPlayers(); }
+  });
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.textContent = '';
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      loginError.textContent = 'Sign-in failed — check your email and password.';
+    }
+  });
+
+  signOutBtn.addEventListener('click', () => signOut(auth));
+
+  // ================= ATTENDANCE =================
+  const attendanceForm = document.getElementById('attendanceForm');
+  const attendanceMsg = document.getElementById('attendanceMsg');
+  const adminList = document.getElementById('adminList');
+  const attDateEl = document.getElementById('attDate');
+  const attNamesEl = document.getElementById('attNames');
+  const attSubmitBtn = document.getElementById('attSubmitBtn');
+  const attCancelBtn = document.getElementById('attCancelBtn');
+  const attFormTitle = document.getElementById('attFormTitle');
+  const attFormSub = document.getElementById('attFormSub');
+
+  let editingId = null;
+  attDateEl.value = isoDate(new Date());
+
+  function resetAttendanceForm(){
+    editingId = null;
+    attendanceForm.reset();
+    attDateEl.value = isoDate(new Date());
+    attSubmitBtn.textContent = 'Save Attendance';
+    attCancelBtn.style.display = 'none';
+    attFormTitle.textContent = 'Record Attendance';
+    attFormSub.textContent = 'One entry per open play session. Add attendees below.';
+  }
+
+  function startEditing(r){
+    editingId = r.id;
+    attDateEl.value = r.date;
+    attNamesEl.value = (r.names || []).join('\n');
+    attSubmitBtn.textContent = 'Update Attendance';
+    attCancelBtn.style.display = 'block';
+    attFormTitle.textContent = 'Edit Attendance';
+    attFormSub.textContent = `Editing the entry for ${r.date}.`;
+    attendanceMsg.textContent = '';
+    attNamesEl.focus();
+  }
+
+  attCancelBtn.addEventListener('click', () => {
+    resetAttendanceForm();
+    attendanceMsg.textContent = '';
+  });
+
+  attendanceForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const date = attDateEl.value;
+    const names = attNamesEl.value.split('\n').map(n => n.trim()).filter(Boolean);
+
+    if (!date || names.length === 0){
+      attendanceMsg.style.color = 'var(--pop)';
+      attendanceMsg.textContent = 'Add a date and at least one name.';
+      return;
+    }
+
+    try {
+      if (editingId){
+        await updateDoc(doc(db, 'attendance', editingId), { date, names });
+        attendanceMsg.style.color = 'var(--sky-deep)';
+        attendanceMsg.textContent = `Updated entry for ${date}.`;
+        resetAttendanceForm();
+      } else {
+        await addDoc(attendanceCol, { date, names, createdAt: serverTimestamp() });
+        attendanceMsg.style.color = 'var(--sky-deep)';
+        attendanceMsg.textContent = `Saved ${names.length} attendee(s) for ${date}.`;
+        attNamesEl.value = '';
+      }
+      await loadAttendance();
+    } catch (err) {
+      attendanceMsg.style.color = 'var(--pop)';
+      attendanceMsg.textContent = 'Something went wrong saving this — try again.';
+    }
+  });
+
+  async function loadAttendance(){
+    const snap = await getDocs(attendanceCol);
+    allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAdminList();
+    renderPlayerSignups();
+  }
+
+  function renderAdminList(){
+    const recent = [...allRecords].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 20);
+    adminList.innerHTML = recent.map(r => `
+      <div class="admin-row">
+        <div>
+          <div class="admin-row-date">${escapeHtml(r.date)}</div>
+          <div class="admin-row-names">${escapeHtml((r.names || []).join(', '))}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="admin-delete" data-action="edit" data-id="${r.id}" title="Edit this entry">&#9998;</button>
+          <button class="admin-delete" data-action="delete" data-id="${r.id}" title="Delete this entry">&times;</button>
+        </div>
+      </div>
+    `).join('');
+
+    adminList.querySelectorAll('[data-action="edit"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = allRecords.find(rec => rec.id === btn.dataset.id);
+        if (r) startEditing(r);
+      });
+    });
+
+    adminList.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this attendance entry?')) return;
+        if (editingId === btn.dataset.id) resetAttendanceForm();
+        await deleteDoc(doc(db, 'attendance', btn.dataset.id));
+        await loadAttendance();
+      });
+    });
+  }
+
+  // ================= PLAYER SIGNUPS (membership approval) =================
+  const MIN_CHECKINS_FOR_MEMBERSHIP = 3;
+  let allPlayers = [];
+  const pendingPlayersList = document.getElementById('pendingPlayersList');
+  const activePlayersList = document.getElementById('activePlayersList');
+
+  // Lifetime check-in count for a player, matched against the same
+  // case-insensitive name-string key the attendance system already uses —
+  // scans ALL attendance history, not just a rolling window.
+  function lifetimeCheckins(firstName, lastName){
+    const key = `${firstName} ${lastName}`.trim().toLowerCase();
+    let count = 0;
+    allRecords.forEach(r => {
+      (r.names || []).forEach(n => {
+        if (String(n).trim().toLowerCase() === key) count++;
+      });
+    });
+    return count;
+  }
+
+  async function loadPlayers(){
+    try {
+      const snap = await getDocs(playersCol);
+      allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      pendingPlayersList.innerHTML = '<div class="signup-empty">Couldn\'t load signups — check that firestore.rules has been deployed.</div>';
+      activePlayersList.innerHTML = '';
+      return;
+    }
+    renderPlayerSignups();
+  }
+
+  function renderPlayerSignups(){
+    const pending = allPlayers.filter(p => p.status !== 'active');
+    const active = allPlayers.filter(p => p.status === 'active');
+
+    pendingPlayersList.innerHTML = pending.length === 0
+      ? '<div class="signup-empty">No pending signups.</div>'
+      : pending.map(p => {
+          const count = lifetimeCheckins(p.firstName, p.lastName);
+          const eligible = count >= MIN_CHECKINS_FOR_MEMBERSHIP;
+          return `
+            <div class="signup-row">
+              <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
+              <div class="signup-body">
+                <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)}</div>
+                <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${escapeHtml(p.email || '')} · ${escapeHtml(p.phone || '')}</div>
+                <div class="signup-count ${eligible ? 'eligible' : 'not-eligible'}">${count}/${MIN_CHECKINS_FOR_MEMBERSHIP} check-ins${eligible ? ' — eligible' : ''}</div>
+                <div class="signup-actions">
+                  <button class="signup-btn approve" data-action="approve" data-id="${p.id}">Approve as Member</button>
+                  <button class="signup-btn reject" data-action="reject" data-id="${p.id}">Reject</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+    activePlayersList.innerHTML = active.length === 0
+      ? '<div class="signup-empty">No active members yet.</div>'
+      : active.map(p => `
+          <div class="signup-row">
+            <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
+            <div class="signup-body">
+              <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)}</div>
+              <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${p.sessionsAttended || 0} check-ins recorded at approval</div>
+              <div class="signup-actions">
+                <button class="signup-btn reject" data-action="revoke" data-id="${p.id}">Revoke Membership</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+    pendingPlayersList.querySelectorAll('[data-action="approve"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const p = allPlayers.find(pl => pl.id === btn.dataset.id);
+        if (!p) return;
+        const count = lifetimeCheckins(p.firstName, p.lastName);
+        await setDoc(doc(db, 'roster', p.id), {
+          firstName: p.firstName, lastName: p.lastName,
+          photoURL: p.photoURL || '', skillRating: p.skillRating || '',
+          birthMonth: p.birthMonth, birthDay: p.birthDay,
+          sessionsAttended: count
+        });
+        await updateDoc(doc(db, 'players', p.id), { status: 'active', sessionsAttended: count, promotedAt: serverTimestamp() });
+        await loadPlayers();
+      });
+    });
+
+    pendingPlayersList.querySelectorAll('[data-action="reject"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Reject and delete this signup?')) return;
+        await deleteDoc(doc(db, 'players', btn.dataset.id));
+        await loadPlayers();
+      });
+    });
+
+    activePlayersList.querySelectorAll('[data-action="revoke"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Revoke membership? They will be removed from Meet the Club and birthday shoutouts.')) return;
+        await deleteDoc(doc(db, 'roster', btn.dataset.id));
+        await updateDoc(doc(db, 'players', btn.dataset.id), { status: 'pending' });
+        await loadPlayers();
+      });
+    });
+  }
+</script>
+
+</body>
+</html>

@@ -157,30 +157,6 @@
     display:none;
   }
 
-  .lb-footer-row{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    margin-top:36px;
-  }
-  .admin-trigger{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    font-family: var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.06em;
-    text-transform:uppercase;
-    color: var(--ink-faint);
-    background:none;
-    border: 1.5px solid var(--line);
-    border-radius:20px;
-    padding:8px 16px;
-    cursor:pointer;
-    transition: all .15s ease;
-  }
-  .admin-trigger:hover{ border-color: var(--pop); color: var(--ink); }
-
   /* ---- ADMIN MODAL ---- */
   .admin-modal{
     position:fixed;
@@ -221,119 +197,8 @@
     margin-bottom:6px;
   }
   .admin-modal .sub{ font-size:13px; color: var(--ink-soft); margin-bottom:22px; }
-  .admin-modal .form-row{ margin-bottom:16px; }
-  .admin-modal label{
-    display:block;
-    font-family: var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color: var(--ink-faint);
-    margin-bottom:6px;
-  }
-  .admin-modal input,
-  .admin-modal textarea{
-    width:100%;
-    border: 1.5px solid var(--line);
-    border-radius:4px;
-    padding:11px 13px;
-    font-family: var(--font-body);
-    font-size:14px;
-    color: var(--ink);
-    background: var(--white);
-  }
-  .admin-modal input:focus,
-  .admin-modal textarea:focus{ outline:none; border-color: var(--sky-deep); }
-  .admin-modal textarea{ min-height:110px; resize:vertical; }
   .admin-msg{ font-size:12.5px; margin-top:8px; min-height:16px; }
-
   .admin-list{ margin-top:26px; border-top: 1.5px solid var(--line); padding-top:18px; }
-  .admin-list-label{
-    font-family: var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color: var(--ink-faint);
-    margin-bottom:12px;
-  }
-  .admin-row{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:10px;
-    padding:10px 0;
-    border-bottom: 1px solid var(--line);
-    font-size:13px;
-  }
-  .admin-row-date{ font-weight:700; }
-  .admin-row-names{ color: var(--ink-soft); font-size:12.5px; margin-top:2px; }
-  .admin-delete{
-    background:none;
-    border: 1.5px solid var(--line);
-    border-radius:50%;
-    width:26px; height:26px;
-    flex-shrink:0;
-    cursor:pointer;
-    color: var(--ink-faint);
-    font-size:15px;
-    line-height:1;
-  }
-  .admin-delete:hover{ border-color: var(--pop); color: var(--pop); }
-
-  .admin-signout{
-    margin-top:22px;
-    width:100%;
-    text-align:center;
-    padding:11px;
-    border: 1.5px solid var(--line);
-    border-radius:4px;
-    background:none;
-    cursor:pointer;
-    font-family: var(--font-mono);
-    font-size:11.5px;
-    letter-spacing:0.06em;
-    text-transform:uppercase;
-    color: var(--ink-soft);
-  }
-  .admin-signout:hover{ border-color: var(--pop); color: var(--pop); }
-
-  .signup-empty{ font-size:12.5px; color: var(--ink-faint); padding:6px 0; }
-  .signup-row{
-    display:flex;
-    align-items:flex-start;
-    gap:10px;
-    padding:12px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .signup-photo{
-    width:40px; height:40px;
-    border-radius:50%;
-    object-fit:cover;
-    background: var(--paper-dim);
-    flex-shrink:0;
-  }
-  .signup-body{ flex:1; min-width:0; }
-  .signup-name{ font-weight:700; font-size:13.5px; }
-  .signup-meta{ font-size:11.5px; color: var(--ink-soft); margin-top:2px; line-height:1.5; }
-  .signup-count{ font-family: var(--font-mono); font-size:11px; margin-top:4px; }
-  .signup-count.eligible{ color: var(--sky-deep); }
-  .signup-count.not-eligible{ color: var(--ink-faint); }
-  .signup-actions{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
-  .signup-btn{
-    font-family: var(--font-mono);
-    font-size:10.5px;
-    letter-spacing:0.04em;
-    text-transform:uppercase;
-    border: 1.5px solid var(--line);
-    border-radius:20px;
-    padding:5px 12px;
-    background:none;
-    cursor:pointer;
-    color: var(--ink-soft);
-  }
-  .signup-btn.approve{ border-color: var(--sky-deep); color: var(--sky-deep); }
-  .signup-btn.approve:hover{ background: var(--sky-deep); color: var(--white); }
-  .signup-btn.reject:hover{ border-color: var(--pop); color: var(--pop); }
 </style>
 </head>
 <body>
@@ -391,70 +256,8 @@
       <strong>No attendance recorded in the last 4 weeks yet.</strong><br>
       Check back after the next open play session.
     </div>
-    <div class="lb-footer-row">
-      <button class="admin-trigger" id="adminOpenBtn">Admin</button>
-    </div>
   </div>
 
-</div>
-
-<!-- ADMIN MODAL -->
-<div class="admin-modal" id="adminModal">
-  <div class="admin-modal-inner">
-    <button class="admin-modal-close" id="adminClose" aria-label="Close">&times;</button>
-
-    <div id="adminLoginView">
-      <h3>Admin Sign In</h3>
-      <div class="sub">Sign in to record attendance for a session.</div>
-      <form id="adminLoginForm">
-        <div class="form-row">
-          <label for="adminEmail">Email</label>
-          <input type="email" id="adminEmail" required autocomplete="username">
-        </div>
-        <div class="form-row">
-          <label for="adminPassword">Password</label>
-          <input type="password" id="adminPassword" required autocomplete="current-password">
-        </div>
-        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Sign In</button>
-        <div class="admin-msg" id="adminLoginError" style="color: var(--pop);"></div>
-      </form>
-    </div>
-
-    <div id="adminPanelView" style="display:none;">
-      <h3 id="attFormTitle">Record Attendance</h3>
-      <div class="sub" id="attFormSub">One entry per open play session. Add attendees below.</div>
-      <form id="attendanceForm">
-        <div class="form-row">
-          <label for="attDate">Session Date</label>
-          <input type="date" id="attDate" required>
-        </div>
-        <div class="form-row">
-          <label for="attNames">Attendees (one name per line)</label>
-          <textarea id="attNames" placeholder="Vhen&#10;Sia&#10;Marvin"></textarea>
-        </div>
-        <button class="btn btn-primary" type="submit" id="attSubmitBtn" style="width:100%; justify-content:center;">Save Attendance</button>
-        <button class="admin-signout" type="button" id="attCancelBtn" style="display:none; margin-top:10px;">Cancel Edit</button>
-        <div class="admin-msg" id="attendanceMsg"></div>
-      </form>
-
-      <div class="admin-list">
-        <div class="admin-list-label">Recent Entries</div>
-        <div id="adminList"></div>
-      </div>
-
-      <div class="admin-list">
-        <div class="admin-list-label">Player Signups · Pending</div>
-        <div id="pendingPlayersList"><div class="signup-empty">No pending signups.</div></div>
-      </div>
-
-      <div class="admin-list">
-        <div class="admin-list-label">Player Signups · Active Members</div>
-        <div id="activePlayersList"><div class="signup-empty">No active members yet.</div></div>
-      </div>
-
-      <button class="admin-signout" id="signOutBtn">Sign Out</button>
-    </div>
-  </div>
 </div>
 
 <!-- PLAYER ATTENDANCE MODAL -->
@@ -497,12 +300,7 @@
 <script src="script.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import {
-    getFirestore, collection, addDoc, updateDoc, getDocs, deleteDoc, doc, setDoc, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-  import {
-    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
-  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -513,18 +311,13 @@
     appId: "1:15833259684:web:0f2f4400f9995517ae5031"
   };
 
-  const ADMIN_EMAIL = "ocpc.pickleball@gmail.com";
-
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const auth = getAuth(app);
   const attendanceCol = collection(db, "attendance");
-  const playersCol = collection(db, "players");
 
   // ================= LEADERBOARD =================
   let allRecords = [];
   let currentRecent = [];
-  let isAdmin = false;
 
   function isoDate(d){ return d.toISOString().slice(0, 10); }
 
@@ -538,7 +331,6 @@
     const snap = await getDocs(attendanceCol);
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderLeaderboard();
-    if (isAdmin){ renderAdminList(); renderPlayerSignups(); }
   }
 
   function renderLeaderboard(){
@@ -645,250 +437,6 @@
   playerModal.addEventListener('click', (e) => { if (e.target === playerModal) playerModal.classList.remove('open'); });
 
   loadAttendance();
-
-  // ================= ADMIN =================
-  const adminBtn = document.getElementById('adminOpenBtn');
-  const adminModal = document.getElementById('adminModal');
-  const adminClose = document.getElementById('adminClose');
-  const loginView = document.getElementById('adminLoginView');
-  const panelView = document.getElementById('adminPanelView');
-  const loginForm = document.getElementById('adminLoginForm');
-  const loginError = document.getElementById('adminLoginError');
-  const attendanceForm = document.getElementById('attendanceForm');
-  const attendanceMsg = document.getElementById('attendanceMsg');
-  const adminList = document.getElementById('adminList');
-  const signOutBtn = document.getElementById('signOutBtn');
-  const attDateEl = document.getElementById('attDate');
-  const attNamesEl = document.getElementById('attNames');
-  const attSubmitBtn = document.getElementById('attSubmitBtn');
-  const attCancelBtn = document.getElementById('attCancelBtn');
-  const attFormTitle = document.getElementById('attFormTitle');
-  const attFormSub = document.getElementById('attFormSub');
-
-  let editingId = null;
-
-  attDateEl.value = isoDate(new Date());
-
-  function resetAttendanceForm(){
-    editingId = null;
-    attendanceForm.reset();
-    attDateEl.value = isoDate(new Date());
-    attSubmitBtn.textContent = 'Save Attendance';
-    attCancelBtn.style.display = 'none';
-    attFormTitle.textContent = 'Record Attendance';
-    attFormSub.textContent = 'One entry per open play session. Add attendees below.';
-  }
-
-  function startEditing(r){
-    editingId = r.id;
-    attDateEl.value = r.date;
-    attNamesEl.value = (r.names || []).join('\n');
-    attSubmitBtn.textContent = 'Update Attendance';
-    attCancelBtn.style.display = 'block';
-    attFormTitle.textContent = 'Edit Attendance';
-    attFormSub.textContent = `Editing the entry for ${r.date}.`;
-    attendanceMsg.textContent = '';
-    attNamesEl.focus();
-  }
-
-  attCancelBtn.addEventListener('click', () => {
-    resetAttendanceForm();
-    attendanceMsg.textContent = '';
-  });
-
-  adminBtn.addEventListener('click', () => adminModal.classList.add('open'));
-  adminClose.addEventListener('click', () => adminModal.classList.remove('open'));
-  adminModal.addEventListener('click', (e) => { if (e.target === adminModal) adminModal.classList.remove('open'); });
-
-  onAuthStateChanged(auth, (user) => {
-    isAdmin = !!user && user.email === ADMIN_EMAIL;
-    loginView.style.display = isAdmin ? 'none' : 'block';
-    panelView.style.display = isAdmin ? 'block' : 'none';
-    if (isAdmin){ renderAdminList(); loadPlayers(); }
-  });
-
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    loginError.textContent = '';
-    const email = document.getElementById('adminEmail').value.trim();
-    const password = document.getElementById('adminPassword').value;
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      loginError.textContent = 'Sign-in failed — check your email and password.';
-    }
-  });
-
-  signOutBtn.addEventListener('click', () => signOut(auth));
-
-  attendanceForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const date = attDateEl.value;
-    const names = attNamesEl.value
-      .split('\n').map(n => n.trim()).filter(Boolean);
-
-    if (!date || names.length === 0){
-      attendanceMsg.style.color = 'var(--pop)';
-      attendanceMsg.textContent = 'Add a date and at least one name.';
-      return;
-    }
-
-    try {
-      if (editingId){
-        await updateDoc(doc(db, 'attendance', editingId), { date, names });
-        attendanceMsg.style.color = 'var(--sky-deep)';
-        attendanceMsg.textContent = `Updated entry for ${date}.`;
-        resetAttendanceForm();
-      } else {
-        await addDoc(attendanceCol, { date, names, createdAt: serverTimestamp() });
-        attendanceMsg.style.color = 'var(--sky-deep)';
-        attendanceMsg.textContent = `Saved ${names.length} attendee(s) for ${date}.`;
-        attNamesEl.value = '';
-      }
-      await loadAttendance();
-    } catch (err) {
-      attendanceMsg.style.color = 'var(--pop)';
-      attendanceMsg.textContent = 'Something went wrong saving this — try again.';
-    }
-  });
-
-  function renderAdminList(){
-    const recent = [...allRecords].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 12);
-    adminList.innerHTML = recent.map(r => `
-      <div class="admin-row">
-        <div>
-          <div class="admin-row-date">${escapeHtml(r.date)}</div>
-          <div class="admin-row-names">${escapeHtml((r.names || []).join(', '))}</div>
-        </div>
-        <div style="display:flex; gap:6px; flex-shrink:0;">
-          <button class="admin-delete" data-action="edit" data-id="${r.id}" title="Edit this entry">&#9998;</button>
-          <button class="admin-delete" data-action="delete" data-id="${r.id}" title="Delete this entry">&times;</button>
-        </div>
-      </div>
-    `).join('');
-
-    adminList.querySelectorAll('[data-action="edit"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const r = allRecords.find(rec => rec.id === btn.dataset.id);
-        if (r) startEditing(r);
-      });
-    });
-
-    adminList.querySelectorAll('[data-action="delete"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Delete this attendance entry?')) return;
-        if (editingId === btn.dataset.id) resetAttendanceForm();
-        await deleteDoc(doc(db, 'attendance', btn.dataset.id));
-        await loadAttendance();
-      });
-    });
-  }
-
-  // ================= PLAYER SIGNUPS (membership approval) =================
-  const MIN_CHECKINS_FOR_MEMBERSHIP = 3;
-  let allPlayers = [];
-  const pendingPlayersList = document.getElementById('pendingPlayersList');
-  const activePlayersList = document.getElementById('activePlayersList');
-
-  // Lifetime check-in count for a player, matched against the same
-  // case-insensitive name-string key the attendance system already uses —
-  // scans ALL attendance history, not just the rolling 4-week window.
-  function lifetimeCheckins(firstName, lastName){
-    const key = `${firstName} ${lastName}`.trim().toLowerCase();
-    let count = 0;
-    allRecords.forEach(r => {
-      (r.names || []).forEach(n => {
-        if (String(n).trim().toLowerCase() === key) count++;
-      });
-    });
-    return count;
-  }
-
-  async function loadPlayers(){
-    try {
-      const snap = await getDocs(playersCol);
-      allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch (err) {
-      pendingPlayersList.innerHTML = '<div class="signup-empty">Couldn\'t load signups — check that firestore.rules has been deployed.</div>';
-      activePlayersList.innerHTML = '';
-      return;
-    }
-    renderPlayerSignups();
-  }
-
-  function renderPlayerSignups(){
-    const pending = allPlayers.filter(p => p.status !== 'active');
-    const active = allPlayers.filter(p => p.status === 'active');
-
-    pendingPlayersList.innerHTML = pending.length === 0
-      ? '<div class="signup-empty">No pending signups.</div>'
-      : pending.map(p => {
-          const count = lifetimeCheckins(p.firstName, p.lastName);
-          const eligible = count >= MIN_CHECKINS_FOR_MEMBERSHIP;
-          return `
-            <div class="signup-row">
-              <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
-              <div class="signup-body">
-                <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)}</div>
-                <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${escapeHtml(p.email || '')} · ${escapeHtml(p.phone || '')}</div>
-                <div class="signup-count ${eligible ? 'eligible' : 'not-eligible'}">${count}/${MIN_CHECKINS_FOR_MEMBERSHIP} check-ins${eligible ? ' — eligible' : ''}</div>
-                <div class="signup-actions">
-                  <button class="signup-btn approve" data-action="approve" data-id="${p.id}">Approve as Member</button>
-                  <button class="signup-btn reject" data-action="reject" data-id="${p.id}">Reject</button>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-    activePlayersList.innerHTML = active.length === 0
-      ? '<div class="signup-empty">No active members yet.</div>'
-      : active.map(p => `
-          <div class="signup-row">
-            <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
-            <div class="signup-body">
-              <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)}</div>
-              <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${p.sessionsAttended || 0} check-ins recorded at approval</div>
-              <div class="signup-actions">
-                <button class="signup-btn reject" data-action="revoke" data-id="${p.id}">Revoke Membership</button>
-              </div>
-            </div>
-          </div>
-        `).join('');
-
-    pendingPlayersList.querySelectorAll('[data-action="approve"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const p = allPlayers.find(pl => pl.id === btn.dataset.id);
-        if (!p) return;
-        const count = lifetimeCheckins(p.firstName, p.lastName);
-        await setDoc(doc(db, 'roster', p.id), {
-          firstName: p.firstName, lastName: p.lastName,
-          photoURL: p.photoURL || '', skillRating: p.skillRating || '',
-          birthMonth: p.birthMonth, birthDay: p.birthDay,
-          sessionsAttended: count
-        });
-        await updateDoc(doc(db, 'players', p.id), { status: 'active', sessionsAttended: count, promotedAt: serverTimestamp() });
-        await loadPlayers();
-      });
-    });
-
-    pendingPlayersList.querySelectorAll('[data-action="reject"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Reject and delete this signup?')) return;
-        await deleteDoc(doc(db, 'players', btn.dataset.id));
-        await loadPlayers();
-      });
-    });
-
-    activePlayersList.querySelectorAll('[data-action="revoke"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Revoke membership? They will be removed from Meet the Club and birthday shoutouts.')) return;
-        await deleteDoc(doc(db, 'roster', btn.dataset.id));
-        await updateDoc(doc(db, 'players', btn.dataset.id), { status: 'pending' });
-        await loadPlayers();
-      });
-    });
-  }
 </script>
 
 </body>
