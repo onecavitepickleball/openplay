@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// Deploy this in the Firebase console: Firestore Database → Rules tab → paste → Publish.
+// (Or `firebase deploy --only firestore:rules` if you have the Firebase CLI set up.)
+// This isn't applied automatically — Firebase Console rules aren't stored in this repo.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Existing open-play attendance log. Public can read (leaderboard/spotlight
+    // widgets need this), only the club admin account can write.
+    match /attendance/{sessionId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.email == "ocpc.pickleball@gmail.com";
+    }
+
+    // Full player membership records — PII (address/phone/email) lives here.
+    // Anyone can create their own signup (status must start as "pending" and
+    // they can't self-approve). Only the admin can read, edit, or delete.
+    match /players/{playerId} {
+      allow create: if request.resource.data.status == 'pending'
+        && request.resource.data.firstName is string
+        && request.resource.data.firstName.size() > 0
+        && request.resource.data.lastName is string
+        && request.resource.data.lastName.size() > 0;
+      allow read, update, delete: if request.auth != null
+        && request.auth.token.email == "ocpc.pickleball@gmail.com";
+    }
+
+    // Public-safe copy of an APPROVED player: name, photo, skill rating,
+    // birth month/day only (no birth year, address, phone, or email).
+    // Written only by the admin when they approve a signup from the
+    // Leaderboard admin panel.
+    match /roster/{playerId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.email == "ocpc.pickleball@gmail.com";
+    }
+  }
+}

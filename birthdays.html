@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birthdays — One Cavite Pickleball Club</title>
+<meta name="description" content="This month's OCPC birthday celebrants.">
+
+<meta property="og:title" content="Birthdays — One Cavite Pickleball Club">
+<meta property="og:description" content="This month's OCPC birthday celebrants.">
+<meta property="og:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://onecavitepickleball.club/birthdays.html">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Birthdays — One Cavite Pickleball Club">
+<meta name="twitter:description" content="This month's OCPC birthday celebrants.">
+<meta name="twitter:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="canonical" href="https://onecavitepickleball.club/birthdays.html">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .bday-hero{
+    position:relative;
+    padding:56px 0 32px;
+    text-align:center;
+    overflow:hidden;
+  }
+  .bday-confetti{
+    position:absolute;
+    top:0; left:0; right:0;
+    display:flex;
+    justify-content:space-between;
+    font-size:26px;
+    opacity:0.55;
+    padding:0 2%;
+    pointer-events:none;
+  }
+  .bday-confetti span{ display:inline-block; animation: bday-bob 3.2s ease-in-out infinite; }
+  .bday-confetti span:nth-child(2n){ animation-delay: .5s; }
+  .bday-confetti span:nth-child(3n){ animation-delay: 1s; }
+  @keyframes bday-bob{
+    0%, 100%{ transform: translateY(0) rotate(-4deg); }
+    50%{ transform: translateY(10px) rotate(4deg); }
+  }
+  .bday-hero .eyebrow{ text-align:center; }
+  .bday-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    background: linear-gradient(135deg, var(--pop), var(--sky-deep) 60%, var(--navy));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bday-month-label{
+    font-family: var(--font-mono);
+    font-size:12.5px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    background: linear-gradient(135deg, var(--pop), var(--sky-deep));
+    color: var(--white);
+    padding:10px 22px;
+    border-radius:20px;
+    display:inline-block;
+    margin-top:22px;
+    box-shadow: 0 6px 18px rgba(0,94,137,0.25);
+  }
+
+  .bday-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap:28px;
+  }
+  .bday-card{
+    text-align:center;
+    border-radius:10px;
+    padding:18px 10px 20px;
+    transition: transform .15s ease;
+  }
+  .bday-card.is-today{
+    background: linear-gradient(180deg, rgba(255,79,109,0.08), rgba(44,147,222,0.06));
+  }
+  .bday-card.is-today:hover{ transform: translateY(-3px); }
+  .bday-card.is-today .bday-photo{ border-color: var(--pop); border-width:3px; box-shadow: 0 0 0 5px rgba(255,79,109,0.12); }
+  .bday-photo{
+    width:120px; height:120px;
+    border-radius:50%;
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    overflow:hidden;
+    margin:0 auto 12px;
+  }
+  .bday-photo img{ width:100%; height:100%; object-fit:cover; }
+  .bday-name{ font-size:15px; font-weight:700; }
+  .bday-date{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    color: var(--sky-deep);
+    margin-top:2px;
+  }
+  .bday-today-flag{
+    display:inline-block;
+    margin-top:8px;
+    font-family: var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    background: linear-gradient(135deg, var(--pop), #ff8fa3);
+    color: var(--white);
+    padding:4px 12px;
+    border-radius:20px;
+    animation: bday-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes bday-pulse{
+    0%, 100%{ transform: scale(1); }
+    50%{ transform: scale(1.08); }
+  }
+
+  .empty-state{
+    border: 1.5px dashed var(--line);
+    border-radius:6px;
+    padding:64px 30px;
+    text-align:center;
+  }
+  .empty-state .icon-circle{
+    width:64px; height:64px;
+    border-radius:50%;
+    background: var(--navy);
+    color: var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 20px;
+  }
+  .empty-state h3{
+    font-family: var(--font-display);
+    font-size:24px;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .empty-state p{
+    font-size:14.5px;
+    color: var(--ink-soft);
+    max-width:420px;
+    margin:0 auto;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="events.html">Events</a>
+      <div class="nav-more">
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="queue.html">Queue</a>
+          <a href="leaderboard.html">Leaderboard</a>
+          <a href="coaching.html">Coaching</a>
+          <a href="rules.html">Rules &amp; Etiquette</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="featured-courts.html">Featured Courts</a>
+          <a href="birthdays.html" class="active">Birthdays</a>
+          <a href="gear.html">Gear Picks</a>
+          <a href="contact.html">Contact</a>
+          <a href="quiz.html">Personality Quiz</a>
+          <a href="join.html">Join OCPC</a>
+        </div>
+      </div>
+      <a href="merch.html" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="bday-hero">
+    <div class="bday-confetti" aria-hidden="true">
+      <span>🎉</span><span>🎈</span><span>🎊</span><span>🥳</span><span>🎂</span><span>🎈</span><span>✨</span>
+    </div>
+    <div class="eyebrow">Celebrating Our Players</div>
+    <h1>Birthdays.</h1>
+    <div class="bday-month-label" id="monthLabel"></div>
+  </div>
+
+  <div class="section reveal">
+    <div class="bday-grid" id="bdayGrid"></div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M12 2v4M8 6c0 2 1.8 2 1.8 4S8 12 8 14M16 6c0 2-1.8 2-1.8 4s1.8 2 1.8 4M5 21v-3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3" stroke="#F5F3EE" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <h3>No Birthdays This Month</h3>
+      <p>No celebrants on the books for this month yet — check back next month, or <a href="join.html" style="color:var(--sky-deep);">sign up</a> if you haven't already.</p>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="events.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="merch.html">Shop</a>
+      <a href="rules.html">Rules</a>
+      <a href="coaching.html">Coaching</a>
+      <a href="directory.html">Meet the Club</a>
+      <a href="featured-courts.html">Featured Courts</a>
+      <a href="birthdays.html">Birthdays</a>
+      <a href="contact.html">Contact</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="gear.html">Gear Picks</a>
+      <a href="quiz.html">Quiz</a>
+      <a href="join.html">Join OCPC</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+
+  async function loadBirthdays(){
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const today = now.getDate();
+
+    document.getElementById('monthLabel').textContent = `${MONTH_NAMES[month - 1]} Celebrants`;
+
+    const gridEl = document.getElementById('bdayGrid');
+    const emptyEl = document.getElementById('emptyState');
+    let all = [];
+    try {
+      const snap = await getDocs(collection(db, 'roster'));
+      all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      gridEl.style.display = 'none';
+      emptyEl.style.display = 'block';
+      return;
+    }
+
+    const celebrants = all
+      .filter(p => p.birthMonth === month)
+      .sort((a, b) => a.birthDay - b.birthDay);
+
+    if (celebrants.length === 0){
+      gridEl.style.display = 'none';
+      emptyEl.style.display = 'block';
+      return;
+    }
+
+    gridEl.style.display = 'grid';
+    emptyEl.style.display = 'none';
+    gridEl.innerHTML = celebrants.map(p => {
+      const isToday = p.birthDay === today;
+      const name = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+      return `
+        <div class="bday-card ${isToday ? 'is-today' : ''}">
+          <div class="bday-photo"><img src="${escapeHtml(p.photoURL || '')}" alt="${escapeHtml(name)}"></div>
+          <div class="bday-name">${escapeHtml(name)}</div>
+          <div class="bday-date">${MONTH_NAMES[month - 1].slice(0, 3)} ${p.birthDay}</div>
+          ${isToday ? '<div class="bday-today-flag">🎉 Today!</div>' : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  loadBirthdays();
+</script>
+
+</body>
+</html>

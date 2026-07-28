@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// Deploy this in the Firebase console: Storage → Rules tab → paste → Publish.
+// (Or `firebase deploy --only storage` if you have the Firebase CLI set up.)
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Player signup photos. Anyone can upload their own signup photo;
+    // photos are public-readable since they're shown on Meet the Club /
+    // birthday pages once a player is approved.
+    match /player-photos/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

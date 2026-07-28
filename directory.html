@@ -149,6 +149,8 @@
           <a href="rules.html">Rules &amp; Etiquette</a>
           <a href="directory.html" class="active">Meet the Club</a>
           <a href="featured-courts.html">Featured Courts</a>
+          <a href="birthdays.html">Birthdays</a>
+          <a href="join.html">Join OCPC</a>
           <a href="gear.html">Gear Picks</a>
           <a href="contact.html">Contact</a>
           <a href="quiz.html">Personality Quiz</a>
@@ -191,6 +193,8 @@
       <a href="rules.html">Rules</a>
       <a href="coaching.html">Coaching</a>
       <a href="featured-courts.html">Featured Courts</a>
+      <a href="birthdays.html">Birthdays</a>
+      <a href="join.html">Join OCPC</a>
       <a href="contact.html">Contact</a>
       <a href="leaderboard.html">Leaderboard</a>
       <a href="gear.html">Gear Picks</a>
@@ -261,8 +265,6 @@
   const container = document.getElementById('teamContainer');
   const emptyState = document.getElementById('emptyState');
 
-  const totalCount = team.leadership.length + team.officers.length + team.members.length;
-
   function cardHtml(m){
     return `
       <div class="member-card">
@@ -286,15 +288,68 @@
     `;
   }
 
-  if (totalCount === 0) {
-    container.style.display = 'none';
-    emptyState.style.display = 'block';
-  } else {
+  function renderTeam(){
+    const totalCount = team.leadership.length + team.officers.length + team.members.length;
+    if (totalCount === 0) {
+      container.style.display = 'none';
+      emptyState.style.display = 'block';
+      return;
+    }
+    container.style.display = '';
+    emptyState.style.display = 'none';
     container.innerHTML =
       tierHtml(team.leadership, 'tier-leadership', null) +
       tierHtml(team.officers, 'tier-officers', null) +
       tierHtml(team.members, 'tier-members', 'Members');
   }
+
+  renderTeam();
+
+  window.team = team;
+  window.renderTeam = renderTeam;
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Appends approved player signups (from the "roster" collection) to the
+  // static Members tier above, skipping anyone already listed by name.
+  async function loadRosterMembers(){
+    try {
+      const snap = await getDocs(collection(db, 'roster'));
+      const roster = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (roster.length === 0) return;
+
+      const existingNames = new Set(
+        [...window.team.leadership, ...window.team.officers, ...window.team.members]
+          .map(m => m.name.trim().toLowerCase())
+      );
+
+      roster.forEach(p => {
+        const name = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+        if (!name || existingNames.has(name.toLowerCase())) return;
+        window.team.members.push({ name, photo: p.photoURL || 'assets/directory/blank.svg' });
+        existingNames.add(name.toLowerCase());
+      });
+
+      window.renderTeam();
+    } catch (err) { /* roster not reachable — static list still shows */ }
+  }
+
+  loadRosterMembers();
 </script>
 
 </body>

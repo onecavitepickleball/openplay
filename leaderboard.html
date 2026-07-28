@@ -296,6 +296,44 @@
     color: var(--ink-soft);
   }
   .admin-signout:hover{ border-color: var(--pop); color: var(--pop); }
+
+  .signup-empty{ font-size:12.5px; color: var(--ink-faint); padding:6px 0; }
+  .signup-row{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .signup-photo{
+    width:40px; height:40px;
+    border-radius:50%;
+    object-fit:cover;
+    background: var(--paper-dim);
+    flex-shrink:0;
+  }
+  .signup-body{ flex:1; min-width:0; }
+  .signup-name{ font-weight:700; font-size:13.5px; }
+  .signup-meta{ font-size:11.5px; color: var(--ink-soft); margin-top:2px; line-height:1.5; }
+  .signup-count{ font-family: var(--font-mono); font-size:11px; margin-top:4px; }
+  .signup-count.eligible{ color: var(--sky-deep); }
+  .signup-count.not-eligible{ color: var(--ink-faint); }
+  .signup-actions{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .signup-btn{
+    font-family: var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    border: 1.5px solid var(--line);
+    border-radius:20px;
+    padding:5px 12px;
+    background:none;
+    cursor:pointer;
+    color: var(--ink-soft);
+  }
+  .signup-btn.approve{ border-color: var(--sky-deep); color: var(--sky-deep); }
+  .signup-btn.approve:hover{ background: var(--sky-deep); color: var(--white); }
+  .signup-btn.reject:hover{ border-color: var(--pop); color: var(--pop); }
 </style>
 </head>
 <body>
@@ -323,6 +361,8 @@
           <a href="rules.html">Rules &amp; Etiquette</a>
           <a href="directory.html">Meet the Club</a>
           <a href="featured-courts.html">Featured Courts</a>
+          <a href="birthdays.html">Birthdays</a>
+          <a href="join.html">Join OCPC</a>
           <a href="gear.html">Gear Picks</a>
           <a href="contact.html">Contact</a>
           <a href="quiz.html">Personality Quiz</a>
@@ -402,6 +442,16 @@
         <div id="adminList"></div>
       </div>
 
+      <div class="admin-list">
+        <div class="admin-list-label">Player Signups · Pending</div>
+        <div id="pendingPlayersList"><div class="signup-empty">No pending signups.</div></div>
+      </div>
+
+      <div class="admin-list">
+        <div class="admin-list-label">Player Signups · Active Members</div>
+        <div id="activePlayersList"><div class="signup-empty">No active members yet.</div></div>
+      </div>
+
       <button class="admin-signout" id="signOutBtn">Sign Out</button>
     </div>
   </div>
@@ -433,6 +483,8 @@
       <a href="directory.html">Meet the Club</a>
 
       <a href="featured-courts.html">Featured Courts</a>
+      <a href="birthdays.html">Birthdays</a>
+      <a href="join.html">Join OCPC</a>
       <a href="contact.html">Contact</a>
       <a href="gear.html">Gear Picks</a>
       <a href="quiz.html">Quiz</a>
@@ -446,7 +498,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, updateDoc, getDocs, deleteDoc, doc, serverTimestamp
+    getFirestore, collection, addDoc, updateDoc, getDocs, deleteDoc, doc, setDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -467,6 +519,7 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
   const attendanceCol = collection(db, "attendance");
+  const playersCol = collection(db, "players");
 
   // ================= LEADERBOARD =================
   let allRecords = [];
@@ -485,7 +538,7 @@
     const snap = await getDocs(attendanceCol);
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderLeaderboard();
-    if (isAdmin) renderAdminList();
+    if (isAdmin){ renderAdminList(); renderPlayerSignups(); }
   }
 
   function renderLeaderboard(){
@@ -651,7 +704,7 @@
     isAdmin = !!user && user.email === ADMIN_EMAIL;
     loginView.style.display = isAdmin ? 'none' : 'block';
     panelView.style.display = isAdmin ? 'block' : 'none';
-    if (isAdmin) renderAdminList();
+    if (isAdmin){ renderAdminList(); loadPlayers(); }
   });
 
   loginForm.addEventListener('submit', async (e) => {
@@ -727,6 +780,112 @@
         if (editingId === btn.dataset.id) resetAttendanceForm();
         await deleteDoc(doc(db, 'attendance', btn.dataset.id));
         await loadAttendance();
+      });
+    });
+  }
+
+  // ================= PLAYER SIGNUPS (membership approval) =================
+  const MIN_CHECKINS_FOR_MEMBERSHIP = 3;
+  let allPlayers = [];
+  const pendingPlayersList = document.getElementById('pendingPlayersList');
+  const activePlayersList = document.getElementById('activePlayersList');
+
+  // Lifetime check-in count for a player, matched against the same
+  // case-insensitive name-string key the attendance system already uses —
+  // scans ALL attendance history, not just the rolling 4-week window.
+  function lifetimeCheckins(firstName, lastName){
+    const key = `${firstName} ${lastName}`.trim().toLowerCase();
+    let count = 0;
+    allRecords.forEach(r => {
+      (r.names || []).forEach(n => {
+        if (String(n).trim().toLowerCase() === key) count++;
+      });
+    });
+    return count;
+  }
+
+  async function loadPlayers(){
+    try {
+      const snap = await getDocs(playersCol);
+      allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      pendingPlayersList.innerHTML = '<div class="signup-empty">Couldn\'t load signups — check that firestore.rules has been deployed.</div>';
+      activePlayersList.innerHTML = '';
+      return;
+    }
+    renderPlayerSignups();
+  }
+
+  function renderPlayerSignups(){
+    const pending = allPlayers.filter(p => p.status !== 'active');
+    const active = allPlayers.filter(p => p.status === 'active');
+
+    pendingPlayersList.innerHTML = pending.length === 0
+      ? '<div class="signup-empty">No pending signups.</div>'
+      : pending.map(p => {
+          const count = lifetimeCheckins(p.firstName, p.lastName);
+          const eligible = count >= MIN_CHECKINS_FOR_MEMBERSHIP;
+          return `
+            <div class="signup-row">
+              <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
+              <div class="signup-body">
+                <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)}</div>
+                <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${escapeHtml(p.email || '')} · ${escapeHtml(p.phone || '')}</div>
+                <div class="signup-count ${eligible ? 'eligible' : 'not-eligible'}">${count}/${MIN_CHECKINS_FOR_MEMBERSHIP} check-ins${eligible ? ' — eligible' : ''}</div>
+                <div class="signup-actions">
+                  <button class="signup-btn approve" data-action="approve" data-id="${p.id}">Approve as Member</button>
+                  <button class="signup-btn reject" data-action="reject" data-id="${p.id}">Reject</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+    activePlayersList.innerHTML = active.length === 0
+      ? '<div class="signup-empty">No active members yet.</div>'
+      : active.map(p => `
+          <div class="signup-row">
+            <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
+            <div class="signup-body">
+              <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)}</div>
+              <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${p.sessionsAttended || 0} check-ins recorded at approval</div>
+              <div class="signup-actions">
+                <button class="signup-btn reject" data-action="revoke" data-id="${p.id}">Revoke Membership</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+    pendingPlayersList.querySelectorAll('[data-action="approve"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const p = allPlayers.find(pl => pl.id === btn.dataset.id);
+        if (!p) return;
+        const count = lifetimeCheckins(p.firstName, p.lastName);
+        await setDoc(doc(db, 'roster', p.id), {
+          firstName: p.firstName, lastName: p.lastName,
+          photoURL: p.photoURL || '', skillRating: p.skillRating || '',
+          birthMonth: p.birthMonth, birthDay: p.birthDay,
+          sessionsAttended: count
+        });
+        await updateDoc(doc(db, 'players', p.id), { status: 'active', sessionsAttended: count, promotedAt: serverTimestamp() });
+        await loadPlayers();
+      });
+    });
+
+    pendingPlayersList.querySelectorAll('[data-action="reject"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Reject and delete this signup?')) return;
+        await deleteDoc(doc(db, 'players', btn.dataset.id));
+        await loadPlayers();
+      });
+    });
+
+    activePlayersList.querySelectorAll('[data-action="revoke"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Revoke membership? They will be removed from Meet the Club and birthday shoutouts.')) return;
+        await deleteDoc(doc(db, 'roster', btn.dataset.id));
+        await updateDoc(doc(db, 'players', btn.dataset.id), { status: 'pending' });
+        await loadPlayers();
       });
     });
   }
