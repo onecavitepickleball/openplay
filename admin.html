@@ -259,7 +259,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, updateDoc, getDocs, deleteDoc, doc, setDoc, serverTimestamp
+    getFirestore, collection, addDoc, updateDoc, getDocs, getDoc, deleteDoc, doc, setDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -308,10 +308,26 @@
   const loginError = document.getElementById('adminLoginError');
   const signOutBtn = document.getElementById('signOutBtn');
 
-  onAuthStateChanged(auth, (user) => {
-    isAdmin = !!user && user.email === ADMIN_EMAIL;
+  // Admin = the permanent super-admin account, OR a player promoted to
+  // role:'admin' by an existing admin (see the Active Members list below).
+  async function checkIsAdmin(user){
+    if (!user) return false;
+    if (user.email === ADMIN_EMAIL) return true;
+    try {
+      const snap = await getDoc(doc(db, 'players', user.uid));
+      return snap.exists() && snap.data().role === 'admin';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    isAdmin = await checkIsAdmin(user);
     loginView.style.display = isAdmin ? 'none' : 'block';
     panelView.style.display = isAdmin ? 'block' : 'none';
+    if (!isAdmin && user){
+      loginError.textContent = 'This account is not an OCPC admin.';
+    }
     if (isAdmin){ loadAttendance(); loadPlayers(); }
   });
 
@@ -498,18 +514,22 @@
 
     activePlayersList.innerHTML = active.length === 0
       ? '<div class="signup-empty">No active members yet.</div>'
-      : active.map(p => `
+      : active.map(p => {
+          const isPlayerAdmin = p.role === 'admin';
+          return `
           <div class="signup-row">
             <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
             <div class="signup-body">
-              <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)}</div>
+              <div class="signup-name">${escapeHtml(p.firstName)} ${escapeHtml(p.lastName)} ${isPlayerAdmin ? '<span class="signup-count eligible" style="margin-left:6px;">Admin</span>' : ''}</div>
               <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${p.sessionsAttended || 0} check-ins recorded at approval</div>
               <div class="signup-actions">
+                <button class="signup-btn ${isPlayerAdmin ? 'reject' : 'approve'}" data-action="toggle-role" data-id="${p.id}" data-role="${isPlayerAdmin ? 'member' : 'admin'}">${isPlayerAdmin ? 'Remove Admin' : 'Make Admin'}</button>
                 <button class="signup-btn reject" data-action="revoke" data-id="${p.id}">Revoke Membership</button>
               </div>
             </div>
           </div>
-        `).join('');
+        `;
+        }).join('');
 
     pendingPlayersList.querySelectorAll('[data-action="approve"]').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -540,6 +560,18 @@
         if (!confirm('Revoke membership? They will be removed from Meet the Club and birthday shoutouts.')) return;
         await deleteDoc(doc(db, 'roster', btn.dataset.id));
         await updateDoc(doc(db, 'players', btn.dataset.id), { status: 'pending' });
+        await loadPlayers();
+      });
+    });
+
+    activePlayersList.querySelectorAll('[data-action="toggle-role"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const makingAdmin = btn.dataset.role === 'admin';
+        const msg = makingAdmin
+          ? 'Give this player admin access? They will be able to record attendance and manage all player signups.'
+          : 'Remove admin access from this player?';
+        if (!confirm(msg)) return;
+        await updateDoc(doc(db, 'players', btn.dataset.id), { role: makingAdmin ? 'admin' : 'member' });
         await loadPlayers();
       });
     });
