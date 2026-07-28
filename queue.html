@@ -402,6 +402,35 @@
   }
 
   .reset-row{ margin-top:32px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
+
+  .queue-login-gate{
+    border: 1.5px dashed var(--line);
+    border-radius:6px;
+    padding:64px 30px;
+    text-align:center;
+  }
+  .queue-login-gate .icon-circle{
+    width:64px; height:64px;
+    border-radius:50%;
+    background: var(--navy);
+    color: var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 20px;
+  }
+  .queue-login-gate h3{
+    font-family: var(--font-display);
+    font-size:24px;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .queue-login-gate p{
+    font-size:14.5px;
+    color: var(--ink-soft);
+    max-width:420px;
+    margin:0 auto 22px;
+    line-height:1.6;
+  }
+  .queue-login-gate .gate-actions{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
 </style>
 </head>
 <body>
@@ -417,22 +446,21 @@
     </button>
     <div class="nav-links">
       <a href="index.html">Home</a>
-      <a href="about.html">About</a>
-      <a href="gallery.html">Gallery</a>
+      <a href="directory.html">Meet the Club</a>
       <a href="events.html">Events</a>
+      <a href="join.html">Join OCPC</a>
+      <a href="gear.html">Gear Picks</a>
       <div class="nav-more">
         <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="nav-more-menu">
+          <a href="gallery.html">Gallery</a>
           <a href="queue.html" class="active">Queue</a>
           <a href="leaderboard.html">Leaderboard</a>
           <a href="coaching.html">Coaching</a>
           <a href="rules.html">Rules &amp; Etiquette</a>
-          <a href="directory.html">Meet the Club</a>
           <a href="featured-courts.html">Featured Courts</a>
           <a href="birthdays.html">Birthdays</a>
-          <a href="join.html">Join OCPC</a>
           <a href="profile.html">My Profile</a>
-          <a href="gear.html">Gear Picks</a>
           <a href="contact.html">Contact</a>
           <a href="quiz.html">Personality Quiz</a>
         </div>
@@ -443,6 +471,22 @@
 </nav>
 
 <div class="wrap">
+
+  <div class="section reveal" id="queueLoginGate">
+    <div class="queue-login-gate">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><rect x="4" y="10" width="16" height="10" rx="2" stroke="#F5F3EE" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#F5F3EE" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <h3>Members Only</h3>
+      <p>The Court Queue tool is only available to logged-in players and OCPC officers. Log in to your profile, or sign up if you haven't already.</p>
+      <div class="gate-actions">
+        <a class="btn btn-primary" href="profile.html">Log In</a>
+        <a class="btn btn-ghost" href="join.html">Join OCPC</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="queueContent" style="display:none;">
 
   <div class="queue-hero">
     <div class="eyebrow">Open Play Tool</div>
@@ -523,6 +567,8 @@
       <button class="btn btn-ghost" id="clearHistoryBtn">Clear History</button>
       <button class="btn btn-ghost" id="resetBtn">Reset Queue</button>
     </div>
+  </div>
+
   </div>
 
 </div>
@@ -1214,6 +1260,31 @@
   }
 
   render();
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // Queue tool is gated to logged-in players or the admin account —
+  // anyone signed in (player self-service login or admin) can use it.
+  onAuthStateChanged(auth, (user) => {
+    const loggedIn = !!user;
+    document.getElementById('queueLoginGate').style.display = loggedIn ? 'none' : 'block';
+    document.getElementById('queueContent').style.display = loggedIn ? 'block' : 'none';
+  });
 </script>
 
 </body>
