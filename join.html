@@ -263,7 +263,6 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -276,7 +275,24 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const storage = getStorage(app);
+
+  const CLOUDINARY_CLOUD_NAME = "spakpfuj";
+  const CLOUDINARY_UPLOAD_PRESET = "ocpc_player_photos";
+
+  async function uploadPhoto(file){
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', 'player-photos');
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) throw new Error('Cloudinary upload failed');
+    const data = await res.json();
+    return data.secure_url;
+  }
 
   const form = document.getElementById('joinForm');
   const msgEl = document.getElementById('joinMsg');
@@ -316,11 +332,7 @@
     msgEl.textContent = '';
 
     try {
-      const ext = (photoFile.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = `player-photos/${Date.now()}-${firstName}-${lastName}.${ext}`.replace(/\s+/g, '-');
-      const photoRef = ref(storage, path);
-      await uploadBytes(photoRef, photoFile);
-      const photoURL = await getDownloadURL(photoRef);
+      const photoURL = await uploadPhoto(photoFile);
 
       await addDoc(collection(db, 'players'), {
         firstName, lastName,
