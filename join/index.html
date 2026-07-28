@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join OCPC — One Cavite Pickleball Club</title>
+<meta name="description" content="Sign up as an OCPC player — get on Meet the Club and birthday shoutouts once you've played a few sessions with us.">
+
+<meta property="og:title" content="Join OCPC — One Cavite Pickleball Club">
+<meta property="og:description" content="Sign up as an OCPC player.">
+<meta property="og:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://onecavitepickleball.club/join/">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Join OCPC — One Cavite Pickleball Club">
+<meta name="twitter:description" content="Sign up as an OCPC player.">
+<meta name="twitter:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="canonical" href="https://onecavitepickleball.club/join/">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .join-hero{ padding:56px 0 12px; }
+  .join-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:680px;
+  }
+  .join-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:560px; line-height:1.6;
+  }
+
+  .join-note{
+    display:flex;
+    gap:14px;
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:20px 22px;
+    margin-bottom:32px;
+    font-size:13.5px;
+    color: var(--ink-soft);
+    line-height:1.6;
+    max-width:640px;
+  }
+  .join-note b{ color: var(--ink); }
+
+  .join-form{ max-width:560px; }
+  .form-row{ margin-bottom:20px; }
+  .form-row-pair{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .join-form label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:7px;
+  }
+  .join-form input,
+  .join-form select,
+  .join-form textarea{
+    width:100%;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+    font-family: var(--font-body);
+    font-size:14.5px;
+    color: var(--ink);
+    background: var(--white);
+  }
+  .join-form input:focus,
+  .join-form select:focus,
+  .join-form textarea:focus{ outline:none; border-color: var(--sky-deep); }
+  .join-form textarea{ min-height:80px; resize:vertical; }
+  .form-hint{ font-size:12px; color: var(--ink-faint); margin-top:6px; }
+
+  .photo-picker{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .photo-preview{
+    width:72px; height:72px;
+    border-radius:50%;
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    overflow:hidden;
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .photo-preview img{ width:100%; height:100%; object-fit:cover; }
+  .photo-preview svg{ opacity:0.3; }
+
+  .join-msg{ font-size:13.5px; margin-top:14px; min-height:18px; }
+  .join-success{
+    border: 1.5px solid var(--sky-deep);
+    border-radius:6px;
+    padding:40px 32px;
+    text-align:center;
+    max-width:560px;
+  }
+  .join-success h3{
+    font-family: var(--font-display);
+    font-size:26px;
+    text-transform:uppercase;
+    margin-bottom:12px;
+  }
+  .join-success p{ color: var(--ink-soft); font-size:14.5px; line-height:1.7; }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="logo-chip"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/meet-the-club/">Meet the Club</a>
+      <a href="/events/">Events</a>
+      <a href="/profile/">My Profile</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="/gear/">Gear Picks</a>
+          <a href="/gallery/">Gallery</a>
+          <a href="/queue/">Queue</a>
+          <a href="/leaderboard/">Leaderboard</a>
+          <a href="/coaching/">Coaching</a>
+          <a href="/rules/">Rules &amp; Etiquette</a>
+          <a href="/featured-courts/">Featured Courts</a>
+          <a href="/birthdays/">Birthdays</a>
+          <a href="/contact/">Contact</a>
+          <a href="/quiz/">Personality Quiz</a>
+        </div>
+      </div>
+      <a href="/merch/" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="join-hero">
+    <div class="eyebrow">Player Signup</div>
+    <h1>Join OCPC.</h1>
+    <p>Sign up once — after you've played a few sessions with us, you'll show up on Meet the Club and get a shoutout on your birthday.</p>
+  </div>
+
+  <div class="section reveal">
+    <div class="join-note">
+      <span>🏓</span>
+      <span><b>How it works:</b> signing up doesn't check you in automatically — an OCPC officer records attendance after each session. Once you've been checked in <b>3 times</b> (no need to be back-to-back), your profile goes live on Meet the Club and you'll get a birthday shoutout from us.</span>
+    </div>
+
+    <form class="join-form" id="joinForm">
+      <div class="form-row-pair">
+        <div class="form-row">
+          <label for="fFirstName">First Name</label>
+          <input type="text" id="fFirstName" required autocomplete="given-name">
+        </div>
+        <div class="form-row">
+          <label for="fLastName">Last Name</label>
+          <input type="text" id="fLastName" required autocomplete="family-name">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="fBirthday">Birthday</label>
+        <input type="date" id="fBirthday" required>
+      </div>
+
+      <div class="form-row">
+        <label for="fAddress">Address</label>
+        <textarea id="fAddress" required placeholder="Street, barangay, city"></textarea>
+      </div>
+
+      <div class="form-row-pair">
+        <div class="form-row">
+          <label for="fPhone">Phone Number</label>
+          <input type="tel" id="fPhone" required autocomplete="tel">
+        </div>
+        <div class="form-row">
+          <label for="fEmail">Email</label>
+          <input type="email" id="fEmail" required autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="fPassword">Create a Password</label>
+        <input type="password" id="fPassword" required autocomplete="new-password" minlength="6">
+        <div class="form-hint">You'll use your email and this password to log in and update your profile later.</div>
+      </div>
+
+      <div class="form-row">
+        <label for="fSkill">Skill Rating</label>
+        <select id="fSkill" required>
+          <option value="" disabled selected>Select one</option>
+          <option value="Beginner">Beginner</option>
+          <option value="Intermediate">Intermediate</option>
+          <option value="Advanced">Advanced</option>
+          <option value="Competitive">Competitive / Tournament</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="fPhoto">Photo</label>
+        <div class="photo-picker">
+          <div class="photo-preview" id="photoPreview">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <input type="file" id="fPhoto" accept="image/*" required style="width:auto;">
+        </div>
+        <div class="form-hint">This photo appears on Meet the Club and your birthday shoutout.</div>
+      </div>
+
+      <button class="btn btn-primary" type="submit" id="joinSubmitBtn" style="width:100%; justify-content:center;">Sign Up</button>
+      <div class="join-msg" id="joinMsg"></div>
+    </form>
+
+    <div class="join-success" id="joinSuccess" style="display:none;">
+      <h3>You're In.</h3>
+      <p>Thanks for signing up! Play a few sessions with us and check in with an officer — once you've checked in 3 times, you'll show up on <a href="/meet-the-club/" style="color:var(--sky-deep);">Meet the Club</a> and get a shoutout on your birthday. You can log in anytime with your email and password on <a href="/profile/" style="color:var(--sky-deep);">My Profile</a> to update your info.</p>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="/join/">Join OCPC</a>
+      <a href="/coaching/">Coaching</a>
+      <a href="/gear/">Gear Picks</a>
+      <a href="/contact/">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="/script.js"></script>
+<script type="module" src="/nav-auth.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  const CLOUDINARY_CLOUD_NAME = "spakpfuj";
+  const CLOUDINARY_UPLOAD_PRESET = "ocpc_player_photos";
+
+  async function uploadPhoto(file){
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', 'player-photos');
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) throw new Error('Cloudinary upload failed');
+    const data = await res.json();
+    return data.secure_url;
+  }
+
+  const form = document.getElementById('joinForm');
+  const msgEl = document.getElementById('joinMsg');
+  const submitBtn = document.getElementById('joinSubmitBtn');
+  const photoInput = document.getElementById('fPhoto');
+  const photoPreview = document.getElementById('photoPreview');
+
+  photoInput.addEventListener('change', () => {
+    const file = photoInput.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    photoPreview.innerHTML = `<img src="${url}" alt="Photo preview">`;
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msgEl.style.color = 'var(--pop)';
+
+    const firstName = document.getElementById('fFirstName').value.trim();
+    const lastName = document.getElementById('fLastName').value.trim();
+    const birthdayVal = document.getElementById('fBirthday').value;
+    const address = document.getElementById('fAddress').value.trim();
+    const phone = document.getElementById('fPhone').value.trim();
+    const email = document.getElementById('fEmail').value.trim();
+    const password = document.getElementById('fPassword').value;
+    const skillRating = document.getElementById('fSkill').value;
+    const photoFile = photoInput.files[0];
+
+    if (!firstName || !lastName || !birthdayVal || !address || !phone || !email || !password || !skillRating || !photoFile){
+      msgEl.textContent = 'Please fill in every field, including a photo.';
+      return;
+    }
+    if (password.length < 6){
+      msgEl.textContent = 'Password must be at least 6 characters.';
+      return;
+    }
+
+    const [birthYear, birthMonth, birthDay] = birthdayVal.split('-').map(n => parseInt(n, 10));
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing Up…';
+    msgEl.textContent = '';
+
+    try {
+      const photoURL = await uploadPhoto(photoFile);
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+      await setDoc(doc(db, 'players', cred.user.uid), {
+        firstName, lastName,
+        birthYear, birthMonth, birthDay,
+        address, phone, email, skillRating,
+        photoURL,
+        status: 'pending',
+        joinedAt: serverTimestamp()
+      });
+
+      form.style.display = 'none';
+      document.getElementById('joinSuccess').style.display = 'block';
+    } catch (err) {
+      msgEl.textContent = err.code === 'auth/email-already-in-use'
+        ? 'An account with this email already exists — log in on My Profile instead.'
+        : 'Something went wrong submitting this — please try again.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign Up';
+    }
+  });
+</script>
+
+</body>
+</html>

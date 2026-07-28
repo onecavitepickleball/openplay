@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery — One Cavite Pickleball Club</title>
+<meta name="description" content="Photos from One Cavite Pickleball Club open play sessions, tournaments, and events.">
+
+<meta property="og:title" content="Gallery — One Cavite Pickleball Club">
+<meta property="og:description" content="Photos from OCPC open play sessions, tournaments, and events.">
+<meta property="og:image" content="https://onecavitepickleball.club/assets/gallery/photo-02.jpg">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="1200">
+<meta property="og:url" content="https://onecavitepickleball.club/gallery/">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Gallery — One Cavite Pickleball Club">
+<meta name="twitter:description" content="Photos from OCPC open play sessions, tournaments, and events.">
+<meta name="twitter:image" content="https://onecavitepickleball.club/assets/gallery/photo-02.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="canonical" href="https://onecavitepickleball.club/gallery/">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .gallery-hero{ padding:56px 0 12px; }
+  .gallery-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .gallery-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:480px; line-height:1.6;
+  }
+
+  .gallery-grid{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:4px;
+  }
+  .gallery-item{
+    position:relative;
+    overflow:hidden;
+    cursor:pointer;
+    aspect-ratio: 1 / 1;
+    background: var(--navy-deep);
+  }
+  .gallery-item img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+    transition: transform .35s ease, filter .35s ease;
+    filter: grayscale(0.15);
+  }
+  .gallery-item:hover img{
+    transform: scale(1.06);
+    filter: grayscale(0);
+  }
+  .gallery-item::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    box-shadow: inset 0 0 0 0 var(--pop);
+    transition: box-shadow .2s ease;
+    pointer-events:none;
+  }
+  .gallery-item:hover::after{
+    box-shadow: inset 0 0 0 3px var(--pop);
+  }
+
+  @media (max-width: 860px){
+    .gallery-grid{ grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 560px){
+    .gallery-grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* lightbox */
+  .lightbox{
+    position:fixed;
+    inset:0;
+    background: rgba(10,21,38,0.97);
+    z-index:200;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .lightbox.open{ display:flex; }
+  .lightbox-inner{
+    position:relative;
+    max-width:1000px;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+  }
+  .lightbox-inner img{
+    max-width:100%;
+    max-height:76vh;
+    width:auto;
+    border-radius:4px;
+  }
+  .lightbox-counter{
+    font-family: var(--font-mono);
+    font-size:12.5px;
+    letter-spacing:0.1em;
+    color: rgba(246,242,234,0.6);
+    text-transform:uppercase;
+  }
+  .lightbox-close{
+    position:absolute;
+    top:-8px;
+    right:-8px;
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background: var(--pop);
+    color: var(--white);
+    border:none;
+    font-size:22px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .lightbox-nav{
+    position:absolute;
+    top:50%;
+    transform: translateY(-50%);
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    background: rgba(246,242,234,0.1);
+    border: 1.5px solid rgba(246,242,234,0.3);
+    color: var(--paper);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    transition: background .15s ease;
+  }
+  .lightbox-nav:hover{ background: rgba(246,242,234,0.2); }
+  .lightbox-prev{ left:-8px; }
+  .lightbox-next{ right:-8px; }
+  @media (max-width: 720px){
+    .lightbox-nav{ display:none; }
+  }
+
+  .community-cta{
+    background: var(--navy);
+    color: var(--paper);
+    border-radius:6px;
+    padding:52px 44px;
+    text-align:center;
+  }
+  .community-cta h3{
+    font-family: var(--font-display);
+    font-size:clamp(28px,4vw,38px);
+    text-transform:uppercase;
+    margin-bottom:12px;
+  }
+  .community-cta p{
+    color: rgba(246,242,234,0.75);
+    font-size:15px;
+    max-width:480px;
+    margin:0 auto 24px;
+  }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="logo-chip"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/meet-the-club/">Meet the Club</a>
+      <a href="/events/">Events</a>
+      <a href="/profile/">My Profile</a>
+      <div class="nav-more">
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="/gear/">Gear Picks</a>
+          <a href="/gallery/" class="active">Gallery</a>
+          <a href="/queue/">Queue</a>
+          <a href="/leaderboard/">Leaderboard</a>
+          <a href="/coaching/">Coaching</a>
+          <a href="/rules/">Rules &amp; Etiquette</a>
+          <a href="/featured-courts/">Featured Courts</a>
+          <a href="/birthdays/">Birthdays</a>
+          <a href="/contact/">Contact</a>
+          <a href="/quiz/">Personality Quiz</a>
+        </div>
+      </div>
+      <a href="/merch/" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="gallery-hero">
+    <div class="eyebrow">On The Courts</div>
+    <h1>Gallery.</h1>
+    <p>Open play, tournaments, and everything in between — a look at OCPC in action.</p>
+  </div>
+
+  <div class="section">
+    <div class="gallery-grid reveal-stagger" id="galleryGrid"></div>
+  </div>
+
+  <div class="section reveal">
+    <div class="community-cta">
+      <h3>Got Photos to Share?</h3>
+      <p>Send us your shots from a session or event and we might add them to the gallery.</p>
+      <a class="btn btn-primary" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Message us on Facebook</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" id="lbClose" aria-label="Close">&times;</button>
+    <button class="lightbox-nav lightbox-prev" id="lbPrev" aria-label="Previous">&#8249;</button>
+    <img id="lbImg" src="" alt="OCPC gallery photo">
+    <button class="lightbox-nav lightbox-next" id="lbNext" aria-label="Next">&#8250;</button>
+    <div class="lightbox-counter" id="lbCounter"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="/join/">Join OCPC</a>
+      <a href="/coaching/">Coaching</a>
+      <a href="/gear/">Gear Picks</a>
+      <a href="/contact/">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="/script.js"></script>
+<script type="module" src="/nav-auth.js"></script>
+<script>
+  // ================= PHOTOS =================
+  // Add/remove entries here to update the gallery. thumb = grid image, full = lightbox image.
+  const photos = [
+    { thumb: "/assets/gallery/thumb-18.jpg", full: "/assets/gallery/photo-18.jpg" },
+    { thumb: "/assets/gallery/thumb-19.jpg", full: "/assets/gallery/photo-19.jpg" },
+    { thumb: "/assets/gallery/thumb-20.jpg", full: "/assets/gallery/photo-20.jpg" },
+    { thumb: "/assets/gallery/thumb-21.jpg", full: "/assets/gallery/photo-21.jpg" },
+    { thumb: "/assets/gallery/thumb-22.jpg", full: "/assets/gallery/photo-22.jpg" },
+    { thumb: "/assets/gallery/thumb-23.jpg", full: "/assets/gallery/photo-23.jpg" },
+    { thumb: "/assets/gallery/thumb-24.jpg", full: "/assets/gallery/photo-24.jpg" },
+    { thumb: "/assets/gallery/thumb-25.jpg", full: "/assets/gallery/photo-25.jpg" },
+    { thumb: "/assets/gallery/thumb-26.jpg", full: "/assets/gallery/photo-26.jpg" },
+    { thumb: "/assets/gallery/thumb-27.jpg", full: "/assets/gallery/photo-27.jpg" },
+    { thumb: "/assets/gallery/thumb-28.jpg", full: "/assets/gallery/photo-28.jpg" },
+    { thumb: "/assets/gallery/thumb-29.jpg", full: "/assets/gallery/photo-29.jpg" },
+    { thumb: "/assets/gallery/thumb-30.jpg", full: "/assets/gallery/photo-30.jpg" },
+    { thumb: "/assets/gallery/thumb-31.jpg", full: "/assets/gallery/photo-31.jpg" },
+    { thumb: "/assets/gallery/thumb-32.jpg", full: "/assets/gallery/photo-32.jpg" },
+    { thumb: "/assets/gallery/thumb-33.jpg", full: "/assets/gallery/photo-33.jpg" },
+    { thumb: "/assets/gallery/thumb-17.jpg", full: "/assets/gallery/photo-17.jpg" },
+    { thumb: "/assets/gallery/thumb-01.jpg", full: "/assets/gallery/photo-01.jpg" },
+    { thumb: "/assets/gallery/thumb-02.jpg", full: "/assets/gallery/photo-02.jpg" },
+    { thumb: "/assets/gallery/thumb-03.jpg", full: "/assets/gallery/photo-03.jpg" },
+    { thumb: "/assets/gallery/thumb-04.jpg", full: "/assets/gallery/photo-04.jpg" },
+    { thumb: "/assets/gallery/thumb-05.jpg", full: "/assets/gallery/photo-05.jpg" },
+    { thumb: "/assets/gallery/thumb-06.jpg", full: "/assets/gallery/photo-06.jpg" },
+    { thumb: "/assets/gallery/thumb-07.jpg", full: "/assets/gallery/photo-07.jpg" },
+    { thumb: "/assets/gallery/thumb-08.jpg", full: "/assets/gallery/photo-08.jpg" },
+    { thumb: "/assets/gallery/thumb-09.jpg", full: "/assets/gallery/photo-09.jpg" },
+    { thumb: "/assets/gallery/thumb-10.jpg", full: "/assets/gallery/photo-10.jpg" },
+    { thumb: "/assets/gallery/thumb-11.jpg", full: "/assets/gallery/photo-11.jpg" },
+    { thumb: "/assets/gallery/thumb-12.jpg", full: "/assets/gallery/photo-12.jpg" },
+    { thumb: "/assets/gallery/thumb-13.jpg", full: "/assets/gallery/photo-13.jpg" },
+    { thumb: "/assets/gallery/thumb-14.jpg", full: "/assets/gallery/photo-14.jpg" },
+    { thumb: "/assets/gallery/thumb-15.jpg", full: "/assets/gallery/photo-15.jpg" },
+    { thumb: "/assets/gallery/thumb-16.jpg", full: "/assets/gallery/photo-16.jpg" }
+  ];
+  // ============================================
+
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = photos.map((p, i) => `
+    <div class="gallery-item" data-index="${i}">
+      <img src="${p.thumb}" alt="OCPC gallery photo ${i + 1}" loading="lazy">
+    </div>
+  `).join('');
+
+  const lightbox = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lbImg');
+  const lbCounter = document.getElementById('lbCounter');
+  let currentIndex = 0;
+
+  function openLightbox(index){
+    currentIndex = index;
+    updateLightbox();
+    lightbox.classList.add('open');
+  }
+  function updateLightbox(){
+    lbImg.src = photos[currentIndex].full;
+    lbCounter.textContent = `${currentIndex + 1} / ${photos.length}`;
+  }
+  function closeLightbox(){
+    lightbox.classList.remove('open');
+  }
+  function nextPhoto(){
+    currentIndex = (currentIndex + 1) % photos.length;
+    updateLightbox();
+  }
+  function prevPhoto(){
+    currentIndex = (currentIndex - 1 + photos.length) % photos.length;
+    updateLightbox();
+  }
+
+  grid.querySelectorAll('.gallery-item').forEach(item => {
+    item.addEventListener('click', () => openLightbox(parseInt(item.dataset.index)));
+  });
+
+  document.getElementById('lbClose').addEventListener('click', closeLightbox);
+  document.getElementById('lbNext').addEventListener('click', nextPhoto);
+  document.getElementById('lbPrev').addEventListener('click', prevPhoto);
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') nextPhoto();
+    if (e.key === 'ArrowLeft') prevPhoto();
+  });
+</script>
+
+</body>
+</html>

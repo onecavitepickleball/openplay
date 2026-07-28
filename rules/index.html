@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rules &amp; Etiquette — One Cavite Pickleball Club</title>
+<meta name="description" content="A quick guide to basic pickleball rules and OCPC court etiquette — built for absolute beginners.">
+
+<meta property="og:title" content="Rules & Etiquette — One Cavite Pickleball Club">
+<meta property="og:description" content="A quick guide to basic pickleball rules and OCPC court etiquette.">
+<meta property="og:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://onecavitepickleball.club/rules/">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Rules & Etiquette — One Cavite Pickleball Club">
+<meta name="twitter:description" content="A quick guide to basic pickleball rules and OCPC court etiquette.">
+<meta name="twitter:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="canonical" href="https://onecavitepickleball.club/rules/">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .rules-hero{ padding:56px 0 12px; }
+  .rules-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .rules-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:520px; line-height:1.6;
+  }
+
+  .rule-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .rule-card{
+    background: var(--paper);
+    padding:28px 26px;
+    transition: background .2s ease;
+  }
+  .rule-card:hover{ background: var(--paper-dim); }
+  .rule-card .num{
+    font-family: var(--font-display);
+    font-size:26px;
+    color: var(--sky-deep);
+    margin-bottom:10px;
+    display:block;
+  }
+  .rule-card h3{
+    font-size:16.5px;
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  .rule-card p{
+    font-size:14px;
+    line-height:1.65;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 700px){
+    .rule-grid{ grid-template-columns:1fr; }
+  }
+
+  /* etiquette list */
+  .etiquette-list{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+  }
+  .etiquette-row{
+    display:grid;
+    grid-template-columns: 44px 1fr;
+    gap:16px;
+    padding:20px 4px;
+    border-top: 1px solid var(--line);
+    align-items:flex-start;
+  }
+  .etiquette-row:last-child{ border-bottom: 1px solid var(--line); }
+  .etiquette-icon{
+    width:44px; height:44px;
+    border-radius:50%;
+    background: var(--navy);
+    color: var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-display);
+    font-size:16px;
+    flex-shrink:0;
+  }
+  .etiquette-row h4{ font-size:15.5px; font-weight:700; margin-bottom:4px; }
+  .etiquette-row p{ font-size:14px; line-height:1.6; color: var(--ink-soft); }
+
+  .kitchen-note{
+    background: var(--navy);
+    color: var(--paper);
+    border-radius:6px;
+    padding:36px 40px;
+    display:flex;
+    align-items:center;
+    gap:24px;
+    flex-wrap:wrap;
+  }
+  .kitchen-note .tag{
+    font-family: var(--font-display);
+    font-size:15px;
+    background: var(--sky);
+    color: var(--navy-deep);
+    padding:8px 16px;
+    border-radius:3px;
+    flex-shrink:0;
+  }
+  .kitchen-note p{ font-size:14.5px; line-height:1.6; color: rgba(245,243,238,0.85); flex:1; min-width:220px; }
+
+  /* ---- INTERACTIVE COURT MAP ---- */
+  .court-interactive{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap:32px;
+    align-items:start;
+  }
+  .court-svg-wrap{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:20px;
+    background: var(--white);
+  }
+  .court-svg-wrap svg{ width:100%; height:auto; display:block; }
+  .court-zone{ cursor:pointer; transition: fill .15s ease, opacity .15s ease; }
+  .court-zone.zone-kitchen{ fill: rgba(79,182,255,0.14); }
+  .court-zone.zone-kitchen:hover, .court-zone.zone-kitchen.active{ fill: rgba(79,182,255,0.4); }
+  .court-zone.zone-service{ fill: rgba(0,94,137,0.05); }
+  .court-zone.zone-service:hover, .court-zone.zone-service.active{ fill: rgba(0,94,137,0.22); }
+  .court-zone.zone-baseline{ fill: rgba(255,90,54,0.12); }
+  .court-zone.zone-baseline:hover, .court-zone.zone-baseline.active{ fill: rgba(255,90,54,0.35); }
+  .court-svg-wrap svg line{ pointer-events: none; }
+  .court-hint{
+    text-align:center;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-top:12px;
+  }
+
+  .court-info-panel{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:26px 24px;
+    min-height:220px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .court-info-panel .zone-tag{
+    display:inline-flex;
+    align-self:flex-start;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border-radius:3px;
+    background: var(--navy);
+    color: var(--paper);
+  }
+  .court-info-panel h4{ font-size:19px; font-weight:700; }
+  .court-info-panel p{ font-size:14.5px; line-height:1.7; color: var(--ink-soft); }
+  .zone-buttons{ display:flex; gap:8px; flex-wrap:wrap; margin-top:auto; padding-top:16px; }
+  .zone-buttons button{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:8px 12px;
+    border-radius:4px;
+    border: 1.5px solid var(--line);
+    background: var(--white);
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .zone-buttons button:hover{ border-color: var(--sky-deep); }
+  .zone-buttons button.active{ background: var(--navy); color: var(--paper); border-color: var(--navy); }
+
+  @media (max-width: 780px){
+    .court-interactive{ grid-template-columns:1fr; }
+  }
+
+  /* ---- TWO-BOUNCE STEPPER ---- */
+  .bounce-stepper{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap:32px;
+    align-items:center;
+  }
+  .stepper-svg-wrap{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:20px;
+    background: var(--white);
+  }
+  .stepper-svg-wrap svg{ width:100%; height:auto; display:block; }
+  #stepperBall{ transition: cx 0.5s ease, cy 0.5s ease; }
+  #stepperBounceMark{ transition: opacity 0.3s ease; }
+  #stepperPlayerA, #stepperPlayerB{ transition: transform 0.6s ease; }
+
+  .stepper-panel{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .stepper-count{
+    font-family: var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+  }
+  .stepper-panel h4{ font-size:20px; font-weight:700; }
+  .stepper-panel p{ font-size:14.5px; line-height:1.7; color: var(--ink-soft); min-height:76px; }
+  .stepper-controls{ display:flex; gap:10px; }
+  .stepper-controls button{
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    padding:12px 20px;
+    border-radius:4px;
+    border:none;
+    cursor:pointer;
+  }
+  .stepper-controls .btn-next{ background: var(--pop); color: var(--white); flex:1; }
+  .stepper-controls .btn-next:hover{ background: var(--pop-deep); }
+  .stepper-controls .btn-reset{ background: transparent; border: 1.5px solid var(--line); color: var(--ink); }
+  .stepper-controls .btn-reset:hover{ border-color: var(--ink); }
+  .stepper-dots{ display:flex; gap:6px; }
+  .stepper-dots span{ width:8px; height:8px; border-radius:50%; background: var(--line); transition: background .2s ease; }
+  .stepper-dots span.active{ background: var(--sky-deep); }
+
+  @media (max-width: 780px){
+    .bounce-stepper{ grid-template-columns:1fr; }
+  }
+
+  /* ---- PARTNER POSITION VISUALIZER ---- */
+  .position-stepper{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap:32px;
+    align-items:center;
+  }
+  .position-svg-wrap{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:20px;
+    background: var(--white);
+  }
+  .position-svg-wrap svg{ width:100%; height:auto; display:block; }
+  .player-silhouette{ transition: transform 0.5s ease; }
+  .serve-badge{ transition: opacity 0.3s ease, transform 0.5s ease; }
+
+  .position-panel{ display:flex; flex-direction:column; gap:12px; }
+  .position-score-row{
+    display:flex;
+    gap:20px;
+    font-family: var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+  .position-score-row .team-blue{ color: var(--sky-deep); font-weight:700; }
+  .position-score-row .team-green{ color: #2E9E5B; font-weight:700; }
+  .position-panel h4{ font-size:19px; font-weight:700; }
+  .position-panel p{ font-size:14px; line-height:1.7; color: var(--ink-soft); min-height:96px; }
+
+  @media (max-width: 780px){
+    .position-stepper{ grid-template-columns:1fr; }
+  }
+
+  /* ---- SCORING MODE TABS ---- */
+  .mode-tabs{
+    display:flex;
+    gap:0;
+    border-bottom: 1.5px solid var(--line);
+    margin-bottom:28px;
+  }
+  .mode-tab{
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:12px 20px;
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    border-bottom: 3px solid transparent;
+    margin-bottom:-1.5px;
+  }
+  .mode-tab.active{ color: var(--ink); border-bottom-color: var(--pop); }
+  .mode-panel{ display:none; }
+  .mode-panel.active{ display:block; }
+
+  .rally-basics{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom:28px;
+  }
+  .rally-fact{ background: var(--paper); padding:20px 16px; text-align:center; }
+  .rally-fact .num{ display:block; font-family: var(--font-display); font-size:30px; color: var(--sky-deep); margin-bottom:6px; }
+  .rally-fact .lbl{ font-family: var(--font-mono); font-size:10.5px; letter-spacing:0.05em; text-transform:uppercase; color: var(--ink-soft); line-height:1.5; }
+  @media (max-width: 700px){ .rally-basics{ grid-template-columns:1fr; } }
+
+  .target-toggle{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:20px;
+    justify-content:center;
+  }
+  .target-toggle span{ font-family: var(--font-mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color: var(--ink-faint); }
+  .target-toggle button{
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size:12px;
+    padding:8px 16px;
+    border-radius:4px;
+    border: 1.5px solid var(--line);
+    background: var(--white);
+    cursor:pointer;
+  }
+  .target-toggle button.active{ background: var(--navy); color: var(--paper); border-color: var(--navy); }
+
+  .compare-table{ width:100%; border-collapse:collapse; margin-top:8px; }
+  .compare-table th, .compare-table td{ padding:12px 14px; text-align:left; border-bottom: 1px solid var(--line); font-size:13.5px; vertical-align:top; }
+  .compare-table th{ font-family: var(--font-mono); font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color: var(--sky-deep); }
+  .compare-table td.label-cell{ font-weight:700; font-family: var(--font-mono); font-size:11px; letter-spacing:0.04em; text-transform:uppercase; color: var(--ink-soft); white-space:nowrap; }
+
+  /* ---- SCORING VISUALIZER ---- */
+  .scoring-basics{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom:32px;
+  }
+  .score-fact{
+    background: var(--paper);
+    padding:22px 18px;
+    text-align:center;
+  }
+  .score-fact .num{
+    display:block;
+    font-family: var(--font-display);
+    font-size:38px;
+    color: var(--sky-deep);
+    line-height:1;
+    margin-bottom:8px;
+  }
+  .score-fact .lbl{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color: var(--ink-soft);
+    line-height:1.5;
+  }
+  @media (max-width: 700px){
+    .scoring-basics{ grid-template-columns:1fr; }
+  }
+
+  .scoreboard-sim{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:32px;
+    text-align:center;
+  }
+  .scoreboard-display{
+    background: var(--navy);
+    border-radius:6px;
+    padding:28px 20px;
+    margin-bottom:20px;
+  }
+  .scoreboard-numbers{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .sb-team{ display:flex; flex-direction:column; align-items:center; gap:6px; transition: transform .2s ease; }
+  .sb-team.serving{ transform: scale(1.08); }
+  .sb-num{
+    font-family: var(--font-display);
+    font-size:52px;
+    color: var(--paper);
+    line-height:1;
+  }
+  .sb-team.serving .sb-num{ color: var(--sky); }
+  .sb-label{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: rgba(245,243,238,0.6);
+  }
+  .sb-dash{ font-family: var(--font-display); font-size:36px; color: rgba(245,243,238,0.3); }
+  .sb-serving-tag{
+    margin-top:16px;
+    font-family: var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky);
+  }
+  .sb-narration{
+    font-size:14px;
+    line-height:1.65;
+    color: var(--ink-soft);
+    max-width:560px;
+    margin: 0 auto 22px;
+    min-height:64px;
+  }
+  .sb-controls{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .sb-controls button{ flex:1; min-width:180px; max-width:240px; }
+
+  /* ---- GLOSSARY ---- */
+  .glossary-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:14px;
+  }
+  .glossary-card{
+    text-align:left;
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:18px 20px;
+    cursor:pointer;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    transition: border-color .15s ease;
+    width:100%;
+    font-family: var(--font-body);
+  }
+  .glossary-card:hover{ border-color: var(--sky-deep); }
+  .glossary-term{ font-weight:700; font-size:15px; flex:1; color: var(--ink); }
+  .glossary-icon{
+    font-family: var(--font-display);
+    font-size:18px;
+    color: var(--sky-deep);
+    transition: transform .2s ease;
+    flex-shrink:0;
+  }
+  .glossary-card.open .glossary-icon{ transform: rotate(45deg); }
+  .glossary-def{
+    flex-basis:100%;
+    max-height:0;
+    overflow:hidden;
+    font-size:13.5px;
+    color: var(--ink-soft);
+    line-height:1.6;
+    transition: max-height .3s ease;
+    text-align:left;
+  }
+  .glossary-card.open .glossary-def{ max-height:200px; margin-top:4px; }
+
+  @media (max-width:640px){
+    .glossary-grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="logo-chip"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/meet-the-club/">Meet the Club</a>
+      <a href="/events/">Events</a>
+      <a href="/profile/">My Profile</a>
+      <div class="nav-more">
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="/gear/">Gear Picks</a>
+          <a href="/gallery/">Gallery</a>
+          <a href="/queue/">Queue</a>
+          <a href="/leaderboard/">Leaderboard</a>
+          <a href="/coaching/">Coaching</a>
+          <a href="/rules/" class="active">Rules &amp; Etiquette</a>
+          <a href="/featured-courts/">Featured Courts</a>
+          <a href="/birthdays/">Birthdays</a>
+          <a href="/contact/">Contact</a>
+          <a href="/quiz/">Personality Quiz</a>
+        </div>
+      </div>
+      <a href="/merch/" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="rules-hero">
+    <div class="eyebrow">New Here?</div>
+    <h1>Rules &amp; Etiquette.</h1>
+    <p>The short version of pickleball basics and how we play at OCPC — everything a first-timer needs before stepping on court.</p>
+  </div>
+
+  <!-- BASIC RULES -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">01</span>
+      <h2>The Basics</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="rule-grid">
+      <div class="rule-card">
+        <span class="num">01</span>
+        <h3>Serve underhand, diagonally</h3>
+        <p>Serves are hit underhand and must land in the opposite diagonal service box. You get one serve attempt (no second serve like tennis).</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">02</span>
+        <h3>Two-bounce rule</h3>
+        <p>After the serve, the ball must bounce once on each side before anyone can volley it (hit it out of the air). After that, you can volley freely — outside the kitchen.</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">03</span>
+        <h3>No volleying in the kitchen</h3>
+        <p>The "kitchen" is the 7-foot no-volley zone on each side of the net. You can stand in it, but you can't hit the ball out of the air while any part of you is touching it.</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">04</span>
+        <h3>Points only on serve</h3>
+        <p>In traditional scoring, only the serving side can score a point. Games are typically played to 11, win by 2.</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">05</span>
+        <h3>Call your own lines</h3>
+        <p>At the open-play level, players call their own in/out shots. Call it as you see it, and when in doubt, favor your opponent — it's part of the culture.</p>
+      </div>
+      <div class="rule-card">
+        <span class="num">06</span>
+        <h3>Doubles is standard</h3>
+        <p>Most open play is doubles (2v2). Rotations mean you'll play with different partners throughout a session — that's the point.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE COURT MAP -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">02</span>
+      <h2>Try It: Court Map</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="court-interactive">
+      <div>
+        <div class="court-svg-wrap">
+          <svg viewBox="0 0 440 220" xmlns="http://www.w3.org/2000/svg">
+            <!-- outer court -->
+            <rect x="10" y="10" width="420" height="200" fill="none" stroke="#0B2436" stroke-width="2"/>
+            <!-- service boxes (clickable) -->
+            <rect class="court-zone zone-service" data-zone="service" x="10" y="10" width="140" height="100"/>
+            <rect class="court-zone zone-service" data-zone="service" x="10" y="110" width="140" height="100"/>
+            <rect class="court-zone zone-service" data-zone="service" x="290" y="10" width="140" height="100"/>
+            <rect class="court-zone zone-service" data-zone="service" x="290" y="110" width="140" height="100"/>
+            <!-- kitchen / NVZ (clickable) -->
+            <rect class="court-zone zone-kitchen" data-zone="kitchen" x="150" y="10" width="70" height="200"/>
+            <rect class="court-zone zone-kitchen" data-zone="kitchen" x="220" y="10" width="70" height="200"/>
+            <!-- baseline strips (clickable) -->
+            <rect class="court-zone zone-baseline" data-zone="baseline" x="10" y="10" width="14" height="200"/>
+            <rect class="court-zone zone-baseline" data-zone="baseline" x="416" y="10" width="14" height="200"/>
+            <!-- centerlines -->
+            <line x1="10" y1="110" x2="150" y2="110" stroke="#0B2436" stroke-width="1.5"/>
+            <line x1="290" y1="110" x2="430" y2="110" stroke="#0B2436" stroke-width="1.5"/>
+            <!-- kitchen lines -->
+            <line x1="150" y1="10" x2="150" y2="210" stroke="#0B2436" stroke-width="1.5"/>
+            <line x1="290" y1="10" x2="290" y2="210" stroke="#0B2436" stroke-width="1.5"/>
+            <!-- net -->
+            <line x1="220" y1="4" x2="220" y2="216" stroke="#005E89" stroke-width="4"/>
+            <text x="220" y="-6" text-anchor="middle" font-size="11" fill="#0B2436" font-family="monospace"></text>
+          </svg>
+        </div>
+        <div class="court-hint">Tap a zone on the court — or use the buttons — to learn what happens there</div>
+      </div>
+      <div class="court-info-panel">
+        <span class="zone-tag" id="zoneTag">Kitchen</span>
+        <h4 id="zoneTitle">The Non-Volley Zone</h4>
+        <p id="zoneDesc">Also called "the kitchen" — the 7-foot zone on each side of the net. You can stand in it, but you can't hit the ball out of the air (volley) while any part of you is touching this zone. Let it bounce first.</p>
+        <div class="zone-buttons" id="zoneButtons">
+          <button data-zone="kitchen" class="active">Kitchen</button>
+          <button data-zone="service">Service Box</button>
+          <button data-zone="baseline">Baseline</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TWO-BOUNCE STEPPER -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">03</span>
+      <h2>Try It: The Two-Bounce Rule</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="bounce-stepper">
+      <div class="stepper-svg-wrap">
+        <svg viewBox="0 0 440 220" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="10" width="420" height="200" fill="none" stroke="#0B2436" stroke-width="2"/>
+          <rect x="150" y="10" width="70" height="200" fill="rgba(79,182,255,0.14)"/>
+          <rect x="220" y="10" width="70" height="200" fill="rgba(79,182,255,0.14)"/>
+          <line x1="10" y1="110" x2="150" y2="110" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="290" y1="110" x2="430" y2="110" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="150" y1="10" x2="150" y2="210" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="290" y1="10" x2="290" y2="210" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="220" y1="4" x2="220" y2="216" stroke="#005E89" stroke-width="4"/>
+          <circle id="stepperBounceMark" cx="110" cy="60" r="10" fill="none" stroke="#FF5A36" stroke-width="2" opacity="0"/>
+
+          <g id="stepperPlayerA" class="player-silhouette" transform="translate(35,110)">
+            <circle cx="0" cy="-9" r="8" fill="#005E89"/>
+            <path d="M-12,20 Q-12,-2 0,0 Q12,-2 12,20 Z" fill="#005E89"/>
+          </g>
+          <g id="stepperPlayerB" class="player-silhouette" transform="translate(405,110)">
+            <circle cx="0" cy="-9" r="8" fill="#2E9E5B"/>
+            <path d="M-12,20 Q-12,-2 0,0 Q12,-2 12,20 Z" fill="#2E9E5B"/>
+          </g>
+
+          <circle id="stepperBall" cx="30" cy="60" r="7" fill="#0B2436"/>
+        </svg>
+      </div>
+      <div class="stepper-panel">
+        <div class="stepper-count" id="stepCount">Step 1 of 5</div>
+        <h4 id="stepTitle">The Serve</h4>
+        <p id="stepDesc">The serve is hit underhand, diagonally crosscourt, landing in the opponent's service box.</p>
+        <div class="stepper-dots" id="stepDots">
+          <span class="active"></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="stepper-controls">
+          <button class="btn-reset" id="stepReset">Reset</button>
+          <button class="btn-next" id="stepNext">Next Step →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARTNER POSITIONS & SERVING -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">04</span>
+      <h2>Try It: Partner Positions</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="position-stepper">
+      <div class="position-svg-wrap">
+        <svg viewBox="0 0 440 260" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="30" width="420" height="200" fill="none" stroke="#0B2436" stroke-width="2"/>
+          <rect x="150" y="30" width="70" height="200" fill="rgba(79,182,255,0.1)"/>
+          <rect x="220" y="30" width="70" height="200" fill="rgba(79,182,255,0.1)"/>
+          <line x1="10" y1="130" x2="150" y2="130" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="290" y1="130" x2="430" y2="130" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="150" y1="30" x2="150" y2="230" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="290" y1="30" x2="290" y2="230" stroke="#0B2436" stroke-width="1.5"/>
+          <line x1="220" y1="24" x2="220" y2="236" stroke="#005E89" stroke-width="4"/>
+
+          <!-- court half labels -->
+          <text x="80" y="80" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">ODD COURT</text>
+          <text x="80" y="182" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">EVEN COURT</text>
+          <text x="360" y="80" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">EVEN COURT</text>
+          <text x="360" y="182" text-anchor="middle" font-size="10" font-family="monospace" fill="#0B2436" opacity="0.4">ODD COURT</text>
+
+          <!-- Blue team silhouettes (left side) -->
+          <g id="blue1" class="player-silhouette" transform="translate(80,80)">
+            <circle cx="0" cy="-10" r="9" fill="#005E89"/>
+            <path d="M-14,22 Q-14,-2 0,0 Q14,-2 14,22 Z" fill="#005E89"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" font-family="monospace" fill="#F5F3EE" font-weight="700">B1</text>
+          </g>
+          <g id="blue2" class="player-silhouette" transform="translate(80,182)">
+            <circle cx="0" cy="-10" r="9" fill="#2C93DE"/>
+            <path d="M-14,22 Q-14,-2 0,0 Q14,-2 14,22 Z" fill="#2C93DE"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" font-family="monospace" fill="#F5F3EE" font-weight="700">B2</text>
+          </g>
+
+          <!-- Green team silhouettes (right side) -->
+          <g id="green1" class="player-silhouette" transform="translate(360,80)">
+            <circle cx="0" cy="-10" r="9" fill="#2E9E5B"/>
+            <path d="M-14,22 Q-14,-2 0,0 Q14,-2 14,22 Z" fill="#2E9E5B"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" font-family="monospace" fill="#F5F3EE" font-weight="700">G1</text>
+          </g>
+          <g id="green2" class="player-silhouette" transform="translate(360,182)">
+            <circle cx="0" cy="-10" r="9" fill="#6BC98D"/>
+            <path d="M-14,22 Q-14,-2 0,0 Q14,-2 14,22 Z" fill="#6BC98D"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" font-family="monospace" fill="#F5F3EE" font-weight="700">G2</text>
+          </g>
+
+          <!-- serve badge -->
+          <g id="serveBadge" class="serve-badge" transform="translate(80,55)">
+            <circle cx="0" cy="0" r="7" fill="#FF5A36"/>
+            <text x="0" y="3" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">S</text>
+          </g>
+        </svg>
+      </div>
+      <div class="position-panel">
+        <div class="position-score-row">
+          <span class="team-blue" id="posScoreBlue">BLUE: 0</span>
+          <span class="team-green" id="posScoreGreen">GREEN: 0</span>
+        </div>
+        <div class="stepper-count" id="posStepCount">Step 1 of 6</div>
+        <h4 id="posTitle">Game Start — Serve from the Even Court</h4>
+        <p id="posDesc">Score is 0–0 (even). The server always starts on the even-numbered side of their own court — commonly called the "right" court. Blue 1 serves diagonally to Green's court.</p>
+        <div class="stepper-dots" id="posDots">
+          <span class="active"></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="stepper-controls">
+          <button class="btn-reset" id="posReset">Reset</button>
+          <button class="btn-next" id="posNext">Next Step →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORING -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">05</span>
+      <h2>Try It: Scoring</h2>
+      <span class="section-rule"></span>
+    </div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="sideout">Side-Out Scoring</button>
+      <button class="mode-tab" data-mode="rally">Rally Scoring</button>
+    </div>
+
+    <!-- SIDE-OUT MODE -->
+    <div class="mode-panel active" id="modeSideOut">
+      <div class="scoring-basics">
+        <div class="score-fact">
+          <span class="num">11</span>
+          <span class="lbl">Points to win<br>(win by 2)</span>
+        </div>
+        <div class="score-fact">
+          <span class="num">1</span>
+          <span class="lbl">Side scores —<br>only the serving team</span>
+        </div>
+        <div class="score-fact">
+          <span class="num">3</span>
+          <span class="lbl">Numbers called —<br>Serving · Receiving · Server #</span>
+        </div>
+      </div>
+
+      <div class="scoreboard-sim">
+        <div class="scoreboard-display">
+          <div class="scoreboard-numbers">
+            <div class="sb-team" id="sbTeamA">
+              <span class="sb-num" id="sbScoreA">0</span>
+              <span class="sb-label">Team A</span>
+            </div>
+            <span class="sb-dash">–</span>
+            <div class="sb-team" id="sbTeamB">
+              <span class="sb-num" id="sbScoreB">0</span>
+              <span class="sb-label">Team B</span>
+            </div>
+            <span class="sb-dash">–</span>
+            <div class="sb-team">
+              <span class="sb-num" id="sbServerNum">2</span>
+              <span class="sb-label">Server #</span>
+            </div>
+          </div>
+          <div class="sb-serving-tag" id="sbServingTag">Team A is serving</div>
+        </div>
+
+        <div class="sb-narration" id="sbNarration">
+          This is the very first serve of the game — the serving team only gets one server turn to start (no "server 1"), so it's called as Server #2. Tap a button below to simulate who wins each rally.
+        </div>
+
+        <div class="sb-controls">
+          <button class="btn btn-navy" id="sbWinA">Team A Wins Rally</button>
+          <button class="btn btn-navy" id="sbWinB">Team B Wins Rally</button>
+        </div>
+        <button class="btn btn-ghost" id="sbReset" style="margin-top:10px;">Reset Score</button>
+      </div>
+    </div>
+
+    <!-- RALLY MODE -->
+    <div class="mode-panel" id="modeRally">
+      <div class="rally-basics">
+        <div class="rally-fact">
+          <span class="num">Any</span>
+          <span class="lbl">Side scores —<br>whoever wins the rally</span>
+        </div>
+        <div class="rally-fact">
+          <span class="num">No</span>
+          <span class="lbl">Position switching —<br>partners stay put</span>
+        </div>
+        <div class="rally-fact">
+          <span class="num">15/21</span>
+          <span class="lbl">Points to win<br>(win by 2)</span>
+        </div>
+      </div>
+
+      <p style="font-size:14.5px; line-height:1.75; color:var(--ink-soft); max-width:640px; margin:0 auto 24px;">
+        In <b>rally scoring</b>, every rally results in a point — for whichever side wins it, whether they served
+        or not. Because scoring isn't tied to who's serving, doubles play doesn't need the "first server / second
+        server" sequence from side-out scoring, and partners don't switch sides between points since court
+        position isn't used to track who serves next. Serve still follows the normal serve rules (underhand,
+        diagonal, one attempt), and possession simply passes to whichever side is due next. This format plays
+        faster and more predictably than side-out scoring, which is why it shows up often in team and
+        tournament formats. Games are commonly played to <b>15</b> points by default, though some formats go to
+        <b>21</b> — always win by 2.
+      </p>
+
+      <div class="target-toggle">
+        <span>Play to:</span>
+        <button class="active" data-target="15">15</button>
+        <button data-target="21">21</button>
+      </div>
+
+      <div class="scoreboard-sim">
+        <div class="scoreboard-display">
+          <div class="scoreboard-numbers">
+            <div class="sb-team" id="rbTeamA">
+              <span class="sb-num" id="rbScoreA">0</span>
+              <span class="sb-label">Team A</span>
+            </div>
+            <span class="sb-dash">–</span>
+            <div class="sb-team" id="rbTeamB">
+              <span class="sb-num" id="rbScoreB">0</span>
+              <span class="sb-label">Team B</span>
+            </div>
+          </div>
+          <div class="sb-serving-tag" id="rbTag">Playing to 15, win by 2</div>
+        </div>
+
+        <div class="sb-narration" id="rbNarration">
+          Either team can score on any rally. Tap a button to simulate who wins each point.
+        </div>
+
+        <div class="sb-controls">
+          <button class="btn btn-navy" id="rbWinA">Team A Wins Rally</button>
+          <button class="btn btn-navy" id="rbWinB">Team B Wins Rally</button>
+        </div>
+        <button class="btn btn-ghost" id="rbReset" style="margin-top:10px;">Reset Score</button>
+      </div>
+
+      <table class="compare-table" style="margin-top:32px;">
+        <thead>
+          <tr><th>What Changes</th><th>Side-Out Scoring</th><th>Rally Scoring</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="label-cell">Who can score</td><td>Only the serving team</td><td>Either team, every rally</td></tr>
+          <tr><td class="label-cell">Server sequence</td><td>First &amp; second server per team</td><td>No second-server rule</td></tr>
+          <tr><td class="label-cell">Switching sides</td><td>Server switches sides after each point won</td><td>Partners stay in place</td></tr>
+          <tr><td class="label-cell">Typical target</td><td>11 points, win by 2</td><td>15 or 21 points, win by 2</td></tr>
+          <tr><td class="label-cell">Common use</td><td>Everyday open play, rec leagues</td><td>Team formats, some tournaments</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- KITCHEN CALLOUT -->
+  <div class="section reveal">
+    <div class="kitchen-note">
+      <span class="tag">Rule of Thumb</span>
+      <p>If you're not sure whether you're allowed to hit a shot, ask before you swing — regulars are always happy to walk new players through a rule mid-game. Nobody expects you to know everything on day one.</p>
+    </div>
+  </div>
+
+  <!-- ETIQUETTE -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">06</span>
+      <h2>Court Etiquette</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="etiquette-list">
+      <div class="etiquette-row">
+        <span class="etiquette-icon">1</span>
+        <div>
+          <h4>Rotate in, rotate out</h4>
+          <p>Open play runs on rotation — after your game, clear the court quickly so the next group can start. If there's a queue, sit out gracefully and wait your turn.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">2</span>
+        <div>
+          <h4>Return balls that roll onto your court</h4>
+          <p>If a ball rolls in from another court, pause your play and return it once there's a break — don't just kick it aside.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">3</span>
+        <div>
+          <h4>Keep score out loud</h4>
+          <p>Call the score before every serve so both sides are on the same page — it avoids disputes later in the game.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">4</span>
+        <div>
+          <h4>No coaching from the sidelines mid-game</h4>
+          <p>Unless it's a beginner clinic, let players figure out their own shots during a game. Save the tips for after.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">5</span>
+        <div>
+          <h4>Good sportsmanship, always</h4>
+          <p>Tap paddles after a game, thank your partner and opponents, and keep the energy positive — win or lose. That's the culture we're building.</p>
+        </div>
+      </div>
+      <div class="etiquette-row">
+        <span class="etiquette-icon">6</span>
+        <div>
+          <h4>Come prepared</h4>
+          <p>Bring your own water, wear non-marking court shoes, and show up a few minutes early so rotations stay on schedule.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GLOSSARY -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">07</span>
+      <h2>Glossary</h2>
+      <span class="section-rule"></span>
+    </div>
+    <p style="color:var(--ink-soft); font-size:14.5px; margin-bottom:24px; max-width:600px;">Tap a term to see what it means.</p>
+    <div class="glossary-grid" id="glossaryGrid"></div>
+  </div>
+
+  <div class="section reveal">
+    <div class="community-cta" style="background:var(--navy); color:var(--paper); border-radius:6px; padding:52px 44px; text-align:center;">
+      <h3 style="font-family:var(--font-display); font-size:clamp(28px,4vw,38px); text-transform:uppercase; margin-bottom:12px;">Ready to Play?</h3>
+      <p style="color:rgba(245,243,238,0.75); font-size:15px; max-width:480px; margin:0 auto 24px;">Check this week's schedule and register for your first open play session.</p>
+      <a class="btn btn-sky" href="/#schedule">See This Week's Schedule</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="/join/">Join OCPC</a>
+      <a href="/coaching/">Coaching</a>
+      <a href="/gear/">Gear Picks</a>
+      <a href="/contact/">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="/script.js"></script>
+<script type="module" src="/nav-auth.js"></script>
+<script>
+  // ---- Interactive court map ----
+  const zoneData = {
+    kitchen: {
+      tag: 'Kitchen',
+      title: 'The Non-Volley Zone',
+      desc: `Also called "the kitchen" — the 7-foot zone on each side of the net. You can stand in it, but you can't hit the ball out of the air (volley) while any part of you is touching this zone. Let it bounce first.`
+    },
+    service: {
+      tag: 'Service Box',
+      title: 'Where Serves Land',
+      desc: `Serves must land diagonally in the opposite service box. It's also where returns and early rally shots typically land before players move up toward the kitchen line.`
+    },
+    baseline: {
+      tag: 'Baseline',
+      title: 'Where You Serve From',
+      desc: `You must serve from behind this line — stepping on it or over it during your serve is a fault. Regular play can happen anywhere behind the kitchen, including right up against the baseline.`
+    }
+  };
+
+  const zoneTag = document.getElementById('zoneTag');
+  const zoneTitle = document.getElementById('zoneTitle');
+  const zoneDesc = document.getElementById('zoneDesc');
+  const zoneButtons = document.querySelectorAll('#zoneButtons button');
+  const zoneSvgEls = document.querySelectorAll('.court-zone');
+
+  function setZone(zone){
+    const d = zoneData[zone];
+    zoneTag.textContent = d.tag;
+    zoneTitle.textContent = d.title;
+    zoneDesc.textContent = d.desc;
+    zoneButtons.forEach(b => b.classList.toggle('active', b.dataset.zone === zone));
+    zoneSvgEls.forEach(el => el.classList.toggle('active', el.dataset.zone === zone));
+  }
+
+  zoneSvgEls.forEach(el => el.addEventListener('click', () => setZone(el.dataset.zone)));
+  zoneButtons.forEach(btn => btn.addEventListener('click', () => setZone(btn.dataset.zone)));
+  setZone('kitchen');
+
+  // ---- Two-bounce rule stepper ----
+  const bounceSteps = [
+    { title: 'The Serve', desc: 'The server hits underhand, diagonally crosscourt, aiming for the opponent\'s service box on the far side of the net.', ballX: 35, ballY: 165, bounce: null, playerAx: 35, playerBx: 405 },
+    { title: 'Bounce #1 — Receiving Side', desc: 'The serve must bounce once on the receiving side (the far side, where it landed) before that player can hit it. No volleys yet.', ballX: 365, ballY: 60, bounce: {x: 365, y: 60}, playerAx: 35, playerBx: 405 },
+    { title: 'Return of Serve', desc: 'The receiver returns the ball back across the net to the serving side — also off the bounce, not out of the air.', ballX: 90, ballY: 175, bounce: null, playerAx: 35, playerBx: 405 },
+    { title: 'Bounce #2 — Serving Side', desc: 'The return must also bounce once on the serving side (back where the server started) before that team can hit it. This is the "two" in two-bounce rule.', ballX: 90, ballY: 175, bounce: {x: 90, y: 175}, playerAx: 35, playerBx: 405 },
+    { title: 'Free Play Begins', desc: 'Both mandatory bounces are done — from here, either side can volley (as long as they\'re outside the kitchen) or let it bounce. Both players move up toward the kitchen line to take a better position for the rest of the rally. Normal rally rules apply.', ballX: 180, ballY: 110, bounce: null, playerAx: 140, playerBx: 300 }
+  ];
+
+  let stepIndex = 0;
+  const stepCount = document.getElementById('stepCount');
+  const stepTitle = document.getElementById('stepTitle');
+  const stepDesc = document.getElementById('stepDesc');
+  const stepDots = document.querySelectorAll('#stepDots span');
+  const stepperBall = document.getElementById('stepperBall');
+  const stepperBounceMark = document.getElementById('stepperBounceMark');
+  const stepperPlayerA = document.getElementById('stepperPlayerA');
+  const stepperPlayerB = document.getElementById('stepperPlayerB');
+  const stepNextBtn = document.getElementById('stepNext');
+
+  function renderStep(){
+    const s = bounceSteps[stepIndex];
+    stepCount.textContent = `Step ${stepIndex + 1} of ${bounceSteps.length}`;
+    stepTitle.textContent = s.title;
+    stepDesc.textContent = s.desc;
+    stepDots.forEach((d, i) => d.classList.toggle('active', i === stepIndex));
+    stepperBall.setAttribute('cx', s.ballX);
+    stepperBall.setAttribute('cy', s.ballY);
+    stepperPlayerA.setAttribute('transform', `translate(${s.playerAx},110)`);
+    stepperPlayerB.setAttribute('transform', `translate(${s.playerBx},110)`);
+    if (s.bounce){
+      stepperBounceMark.setAttribute('cx', s.bounce.x);
+      stepperBounceMark.setAttribute('cy', s.bounce.y);
+      stepperBounceMark.setAttribute('opacity', '1');
+    } else {
+      stepperBounceMark.setAttribute('opacity', '0');
+    }
+    stepNextBtn.textContent = stepIndex === bounceSteps.length - 1 ? 'Start Over ↺' : 'Next Step →';
+  }
+
+  stepNextBtn.addEventListener('click', () => {
+    stepIndex = (stepIndex + 1) % bounceSteps.length;
+    renderStep();
+  });
+  document.getElementById('stepReset').addEventListener('click', () => {
+    stepIndex = 0;
+    renderStep();
+  });
+
+  renderStep();
+
+  // ---- Scoring simulator ----
+  let sb = {
+    scoreA: 0,
+    scoreB: 0,
+    servingTeam: 'A',
+    serverNum: 2,       // real rule: the very first serve of the game is called "2" (no server 1 turn)
+    firstServeOfGame: true,
+    gameOver: false
+  };
+
+  const sbScoreA = document.getElementById('sbScoreA');
+  const sbScoreB = document.getElementById('sbScoreB');
+  const sbServerNum = document.getElementById('sbServerNum');
+  const sbTeamA = document.getElementById('sbTeamA');
+  const sbTeamB = document.getElementById('sbTeamB');
+  const sbServingTag = document.getElementById('sbServingTag');
+  const sbNarration = document.getElementById('sbNarration');
+
+  function renderScoreboard(message){
+    sbScoreA.textContent = sb.scoreA;
+    sbScoreB.textContent = sb.scoreB;
+    sbServerNum.textContent = sb.serverNum;
+    sbTeamA.classList.toggle('serving', sb.servingTeam === 'A');
+    sbTeamB.classList.toggle('serving', sb.servingTeam === 'B');
+    sbServingTag.textContent = sb.gameOver
+      ? `Team ${sb.scoreA > sb.scoreB ? 'A' : 'B'} wins the game!`
+      : `Team ${sb.servingTeam} is serving`;
+    if (message) sbNarration.textContent = message;
+  }
+
+  function playRally(winner){
+    if (sb.gameOver) return;
+
+    if (winner === sb.servingTeam){
+      // serving team wins the rally -> they score
+      if (sb.servingTeam === 'A') sb.scoreA++; else sb.scoreB++;
+
+      const leading = Math.max(sb.scoreA, sb.scoreB);
+      const trailing = Math.min(sb.scoreA, sb.scoreB);
+      if (leading >= 11 && (leading - trailing) >= 2){
+        sb.gameOver = true;
+        renderScoreboard(`Game! Team ${sb.scoreA > sb.scoreB ? 'A' : 'B'} wins ${Math.max(sb.scoreA,sb.scoreB)}–${Math.min(sb.scoreA,sb.scoreB)}. Only the serving team can score, so every point tells you exactly who was serving when it happened.`);
+        return;
+      }
+
+      renderScoreboard(`Team ${sb.servingTeam} was serving and won the rally — they score a point and keep serving as Server #${sb.serverNum}. Only the serving team can add to their score.`);
+    } else {
+      // receiving team wins -> side out logic
+      if (sb.firstServeOfGame){
+        sb.firstServeOfGame = false;
+        sb.servingTeam = sb.servingTeam === 'A' ? 'B' : 'A';
+        sb.serverNum = 1;
+        renderScoreboard(`Side out — that was the special first serve of the game (only one server turn), so it passes straight to Team ${sb.servingTeam} as Server #1. No point scored since they weren't serving.`);
+      } else if (sb.serverNum === 1){
+        sb.serverNum = 2;
+        renderScoreboard(`Team ${sb.servingTeam} lost the rally — but in doubles, their second player now serves as Server #2 before the ball passes to the other team. No point scored.`);
+      } else {
+        sb.servingTeam = sb.servingTeam === 'A' ? 'B' : 'A';
+        sb.serverNum = 1;
+        renderScoreboard(`Side out! Both servers on that team have now lost a rally, so serve passes to Team ${sb.servingTeam} as Server #1. No point scored — only the serving team can score.`);
+      }
+    }
+  }
+
+  document.getElementById('sbWinA').addEventListener('click', () => playRally('A'));
+  document.getElementById('sbWinB').addEventListener('click', () => playRally('B'));
+  document.getElementById('sbReset').addEventListener('click', () => {
+    sb = { scoreA: 0, scoreB: 0, servingTeam: 'A', serverNum: 2, firstServeOfGame: true, gameOver: false };
+    renderScoreboard(`This is the very first serve of the game — the serving team only gets one server turn to start (no "server 1"), so it's called as Server #2. Tap a button below to simulate who wins each rally.`);
+  });
+
+  renderScoreboard();
+
+  // ---- Mode tabs (Side-Out vs Rally) ----
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(tab.dataset.mode === 'sideout' ? 'modeSideOut' : 'modeRally').classList.add('active');
+    });
+  });
+
+  // ---- Rally scoring simulator ----
+  let rb = { scoreA: 0, scoreB: 0, target: 15, gameOver: false };
+  const rbScoreA = document.getElementById('rbScoreA');
+  const rbScoreB = document.getElementById('rbScoreB');
+  const rbTag = document.getElementById('rbTag');
+  const rbNarration = document.getElementById('rbNarration');
+
+  function renderRally(message){
+    rbScoreA.textContent = rb.scoreA;
+    rbScoreB.textContent = rb.scoreB;
+    rbTag.textContent = rb.gameOver
+      ? `Game! Team ${rb.scoreA > rb.scoreB ? 'A' : 'B'} wins.`
+      : `Playing to ${rb.target}, win by 2`;
+    if (message) rbNarration.textContent = message;
+  }
+
+  function playRallyPoint(winner){
+    if (rb.gameOver) return;
+    if (winner === 'A') rb.scoreA++; else rb.scoreB++;
+    const leading = Math.max(rb.scoreA, rb.scoreB);
+    const trailing = Math.min(rb.scoreA, rb.scoreB);
+    if (leading >= rb.target && (leading - trailing) >= 2){
+      rb.gameOver = true;
+      renderRally(`Game! Team ${rb.scoreA > rb.scoreB ? 'A' : 'B'} wins ${leading}–${trailing}. Since either side can score at any time, the final gap can be tighter or wider than side-out games — it just comes down to who wins more rallies.`);
+      return;
+    }
+    renderRally(`Team ${winner} wins that rally and scores a point — no need to check who was serving, both teams stay in the running every rally.`);
+  }
+
+  document.getElementById('rbWinA').addEventListener('click', () => playRallyPoint('A'));
+  document.getElementById('rbWinB').addEventListener('click', () => playRallyPoint('B'));
+  document.getElementById('rbReset').addEventListener('click', () => {
+    rb = { scoreA: 0, scoreB: 0, target: rb.target, gameOver: false };
+    renderRally('Either team can score on any rally. Tap a button to simulate who wins each point.');
+  });
+  document.querySelectorAll('.target-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.target-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      rb = { scoreA: 0, scoreB: 0, target: parseInt(btn.dataset.target), gameOver: false };
+      renderRally(`Target changed to ${rb.target} — score reset. Either team can score on any rally.`);
+    });
+  });
+  renderRally();
+
+  // ---- Partner position stepper ----
+  const posSteps = [
+    {
+      title: 'Game Start — Serve from the Even Court',
+      desc: `Score is 0–0 (even). The server always starts on the even-numbered side of their own court — the side closer to their right hand when facing the net, which is why it's commonly called the "right" court. For Blue, that's the bottom court in this diagram, where Blue 2 is standing — so Blue 2 serves first.`,
+      scoreBlue: 0, scoreGreen: 0, serverPos: 'blue2-even', swap: null
+    },
+    {
+      title: 'Blue Wins the Rally — Score Becomes Odd',
+      desc: `Blue scored, so their team score is now 1 (odd). Because the score is odd, the server's team switches sides — Blue 1 and Blue 2 swap positions, and Blue 2 (still serving) now serves from the odd court.`,
+      scoreBlue: 1, scoreGreen: 0, serverPos: 'blue2-odd', swap: 'blue'
+    },
+    {
+      title: 'Blue Wins Again — Back to Even',
+      desc: `Blue's score is now 2 (even) — so Blue 1 and Blue 2 switch back, and Blue 2 serves from the even court again. This side-switch happens every time the serving team scores.`,
+      scoreBlue: 2, scoreGreen: 0, serverPos: 'blue2-even', swap: 'blue'
+    },
+    {
+      title: 'Blue Loses the Rally — Side Out',
+      desc: `Blue loses this rally. Since this was the very first service of the game (a special one-serve-only turn), it's an immediate side-out — no second server for Blue this time. Serve passes to Green.`,
+      scoreBlue: 2, scoreGreen: 0, serverPos: null, swap: null
+    },
+    {
+      title: `Green Serves From Wherever They're Standing`,
+      desc: `Positions are NOT reset at a side-out. Green's score is 0 (even), so whichever Green player is currently on their even court serves next — in this case, Green 1. They just follow the same even/odd rule from here for their own score.`,
+      scoreBlue: 2, scoreGreen: 0, serverPos: 'green1-even', swap: null
+    },
+    {
+      title: 'After a First Fault, the Partner Serves Next',
+      desc: `From here on (past the very first serve of the game), if a server loses a rally, it's not an automatic side-out — their partner becomes the "second server" and serves next from whichever side matches their team's current score, before the ball passes to the other team.`,
+      scoreBlue: 2, scoreGreen: 0, serverPos: null, swap: null
+    }
+  ];
+
+  let posIndex = 0;
+  const posStepCount = document.getElementById('posStepCount');
+  const posTitle = document.getElementById('posTitle');
+  const posDesc = document.getElementById('posDesc');
+  const posDots = document.querySelectorAll('#posDots span');
+  const posScoreBlue = document.getElementById('posScoreBlue');
+  const posScoreGreen = document.getElementById('posScoreGreen');
+  const serveBadge = document.getElementById('serveBadge');
+
+  const posCoords = {
+    'blue1-even': { x: 80, y: 182 },
+    'blue1-odd':  { x: 80, y: 80 },
+    'blue2-even': { x: 80, y: 182 },
+    'blue2-odd':  { x: 80, y: 80 },
+    'green1-even': { x: 360, y: 55 },
+    'green1-odd':  { x: 360, y: 157 },
+    'green2-even': { x: 360, y: 55 },
+    'green2-odd':  { x: 360, y: 157 }
+  };
+
+  function renderPosition(){
+    const s = posSteps[posIndex];
+    posStepCount.textContent = `Step ${posIndex + 1} of ${posSteps.length}`;
+    posTitle.textContent = s.title;
+    posDesc.textContent = s.desc;
+    posDots.forEach((d, i) => d.classList.toggle('active', i === posIndex));
+    posScoreBlue.textContent = `BLUE: ${s.scoreBlue}`;
+    posScoreGreen.textContent = `GREEN: ${s.scoreGreen}`;
+
+    // swap blue1/blue2 vertical positions if this step calls for a switch
+    const blue1El = document.getElementById('blue1');
+    const blue2El = document.getElementById('blue2');
+    if (s.swap === 'blue'){
+      const b1y = blue1El.getAttribute('transform').includes('182') ? 182 : 80;
+      const newB1y = b1y === 80 ? 182 : 80;
+      const newB2y = newB1y === 80 ? 182 : 80;
+      blue1El.setAttribute('transform', `translate(80,${newB1y})`);
+      blue2El.setAttribute('transform', `translate(80,${newB2y})`);
+    }
+
+    if (s.serverPos && posCoords[s.serverPos]){
+      serveBadge.style.opacity = '1';
+      const c = posCoords[s.serverPos];
+      const yOffset = s.serverPos.includes('blue') ? -25 : (s.serverPos.includes('even') ? -25 : 25);
+      serveBadge.setAttribute('transform', `translate(${c.x},${c.y + yOffset})`);
+    } else {
+      serveBadge.style.opacity = '0';
+    }
+
+    document.getElementById('posNext').textContent = posIndex === posSteps.length - 1 ? 'Start Over ↺' : 'Next Step →';
+  }
+
+  document.getElementById('posNext').addEventListener('click', () => {
+    posIndex = (posIndex + 1) % posSteps.length;
+    renderPosition();
+  });
+  document.getElementById('posReset').addEventListener('click', () => {
+    posIndex = 0;
+    document.getElementById('blue1').setAttribute('transform', 'translate(80,80)');
+    document.getElementById('blue2').setAttribute('transform', 'translate(80,182)');
+    renderPosition();
+  });
+
+  renderPosition();
+
+  // ---- Glossary ----
+  const glossaryTerms = [
+    { term: "Dink", def: "A soft, arcing shot hit from near the kitchen line that drops just over the net into the opponent's kitchen — used to set up an attack or reset the point." },
+    { term: "Kitchen", def: "The 7-foot non-volley zone on each side of the net. Players can't volley the ball (hit it out of the air) while standing inside it." },
+    { term: "Erne", def: "An advanced shot where a player jumps around the kitchen, without touching it, to volley the ball from outside the zone, closer to the net." },
+    { term: "ATP (Around The Post)", def: "A shot hit around the outside of the net post, below the height of the net, rather than over it. Legal, and often a highlight-reel winner." },
+    { term: "Third Shot Drop", def: "A soft shot hit by the serving team on their third shot of the point, aimed to land in the kitchen and neutralize the return team's advantage at the net." },
+    { term: "Let", def: "A serve that clips the net but still lands in the correct service court. Replayed with no penalty under current rules." },
+    { term: "Stacking", def: "A doubles strategy where partners line up out of standard position before the serve or return to keep a stronger player on their preferred side." },
+    { term: "Poach", def: "When a player crosses into their partner's side of the court to intercept a shot, usually to attack a weak return." }
+  ];
+
+  function renderGlossary(){
+    const grid = document.getElementById('glossaryGrid');
+    if (!grid) return;
+    grid.innerHTML = glossaryTerms.map((g, i) => `
+      <button class="glossary-card" data-i="${i}" type="button">
+        <span class="glossary-term">${g.term}</span>
+        <span class="glossary-icon">+</span>
+        <span class="glossary-def">${g.def}</span>
+      </button>
+    `).join('');
+    grid.querySelectorAll('.glossary-card').forEach(card => {
+      card.addEventListener('click', () => card.classList.toggle('open'));
+    });
+  }
+  renderGlossary();
+</script>
+
+</body>
+</html>

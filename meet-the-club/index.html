@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meet the Club — One Cavite Pickleball Club</title>
+<meta name="description" content="Who One Cavite Pickleball Club is, the players and organizers behind it, and answers to common questions.">
+
+<meta property="og:title" content="Meet the Club — One Cavite Pickleball Club">
+<meta property="og:description" content="Who we are, the players and organizers behind OCPC, and answers to common questions.">
+<meta property="og:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://onecavitepickleball.club/meet-the-club/">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Meet the Club — One Cavite Pickleball Club">
+<meta name="twitter:description" content="Who we are, the players and organizers behind OCPC, and answers to common questions.">
+<meta name="twitter:image" content="https://onecavitepickleball.club/assets/social/og-default.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="canonical" href="https://onecavitepickleball.club/meet-the-club/">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .directory-hero{ padding:56px 0 12px; }
+  .directory-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .directory-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:520px; line-height:1.6;
+  }
+
+  .about-photo{
+    border-radius:6px;
+    overflow:hidden;
+    margin-bottom:12px;
+  }
+  .about-photo img{ width:100%; height:auto; display:block; }
+  .about-photo-caption{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    text-align:center;
+    margin-bottom:40px;
+  }
+
+  .story-grid{
+    display:grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap:56px;
+    align-items:start;
+  }
+  .story-copy p{
+    font-size:15.5px;
+    line-height:1.8;
+    color: var(--ink-soft);
+    margin-bottom:16px;
+  }
+  .story-copy p b{ color: var(--ink); }
+  .story-stats{
+    display:flex;
+    flex-direction:column;
+    gap:1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .stat-box{
+    background: var(--paper);
+    padding:24px 22px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    transition: background .2s ease;
+  }
+  .stat-box:hover{ background: var(--paper-dim); }
+  .stat-box .num{
+    font-family: var(--font-display);
+    font-size:30px;
+    color: var(--sky-deep);
+    line-height:1;
+  }
+  .stat-box .lbl{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    text-align:right;
+  }
+
+  .team-tier{
+    margin-bottom:48px;
+  }
+  .team-tier:last-child{ margin-bottom:0; }
+  .team-tier-label{
+    text-align:center;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+    margin-bottom:20px;
+  }
+  .team-row{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:32px;
+  }
+  .member-card{
+    text-align:center;
+    width:180px;
+  }
+  .member-photo{
+    width:100%;
+    aspect-ratio: 1/1;
+    border-radius:50%;
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    overflow:hidden;
+    margin:0 auto 14px;
+  }
+  .member-photo img{ width:100%; height:100%; object-fit:cover; }
+  .member-name{ font-size:15px; font-weight:700; }
+  .member-role{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+    margin-top:2px;
+  }
+  .member-bio{ font-size:13px; color: var(--ink-soft); margin-top:8px; line-height:1.5; }
+
+  .team-row.tier-leadership .member-card{ width:190px; }
+  .team-row.tier-officers .member-card{ width:150px; }
+  .team-row.tier-members .member-card{ width:120px; }
+  .team-row.tier-members .member-name{ font-size:13.5px; }
+
+  @media (max-width: 560px){
+    .team-row.tier-leadership .member-card{ width:150px; }
+    .team-row.tier-officers .member-card{ width:130px; }
+    .team-row.tier-members .member-card{ width:100px; }
+    .team-row{ gap:20px; }
+  }
+
+  .empty-state{
+    border: 1.5px dashed var(--line);
+    border-radius:6px;
+    padding:64px 30px;
+    text-align:center;
+  }
+  .empty-state .icon-circle{
+    width:64px; height:64px;
+    border-radius:50%;
+    background: var(--navy);
+    color: var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 20px;
+  }
+  .empty-state h3{
+    font-family: var(--font-display);
+    font-size:24px;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .empty-state p{
+    font-size:14.5px;
+    color: var(--ink-soft);
+    max-width:420px;
+    margin:0 auto;
+    line-height:1.6;
+  }
+
+  /* FAQ */
+  .faq-list{ display:flex; flex-direction:column; }
+  .faq-item{
+    border-top: 1.5px solid var(--line);
+  }
+  .faq-item:last-child{ border-bottom: 1.5px solid var(--line); }
+  .faq-q{
+    width:100%;
+    background:none;
+    border:none;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-weight:700;
+    font-size:16.5px;
+    text-align:left;
+    padding:22px 4px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+  }
+  .faq-q .icon{
+    font-family: var(--font-display);
+    font-size:20px;
+    color: var(--sky-deep);
+    flex-shrink:0;
+    transition: transform .2s ease;
+  }
+  .faq-item.open .faq-q .icon{ transform: rotate(45deg); }
+  .faq-a{
+    max-height:0;
+    overflow:hidden;
+    transition: max-height .3s ease;
+    padding:0 4px;
+  }
+  .faq-item.open .faq-a{
+    max-height:320px;
+    padding:0 4px 22px;
+  }
+  .faq-a p{
+    font-size:14.5px;
+    line-height:1.7;
+    color: var(--ink-soft);
+    max-width:640px;
+  }
+  .faq-a a{ color: var(--sky-deep); text-decoration:underline; }
+
+  /* community CTA */
+  .map-embed{
+    border-radius:6px;
+    overflow:hidden;
+    border: 1.5px solid var(--line);
+  }
+  .map-embed iframe{ display:block; }
+
+  .community-cta{
+    background: var(--navy);
+    color: var(--paper);
+    border-radius:6px;
+    padding:52px 44px;
+    text-align:center;
+  }
+  .community-cta h3{
+    font-family: var(--font-display);
+    font-size:clamp(28px,4vw,38px);
+    text-transform:uppercase;
+    margin-bottom:12px;
+  }
+  .community-cta p{
+    color: rgba(245,243,238,0.75);
+    font-size:15px;
+    max-width:480px;
+    margin:0 auto 24px;
+  }
+
+  @media (max-width: 780px){
+    .story-grid{ grid-template-columns:1fr; gap:32px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="logo-chip"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/meet-the-club/" class="active">Meet the Club</a>
+      <a href="/events/">Events</a>
+      <a href="/profile/">My Profile</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="/gear/">Gear Picks</a>
+          <a href="/gallery/">Gallery</a>
+          <a href="/queue/">Queue</a>
+          <a href="/leaderboard/">Leaderboard</a>
+          <a href="/coaching/">Coaching</a>
+          <a href="/rules/">Rules &amp; Etiquette</a>
+          <a href="/featured-courts/">Featured Courts</a>
+          <a href="/birthdays/">Birthdays</a>
+          <a href="/contact/">Contact</a>
+          <a href="/quiz/">Personality Quiz</a>
+        </div>
+      </div>
+      <a href="/merch/" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="directory-hero">
+    <div class="eyebrow">Our Story</div>
+    <h1>Meet the Club.</h1>
+    <p>Who we are, the players and organizers who make OCPC what it is, and answers to common questions.</p>
+  </div>
+
+  <div class="section reveal">
+    <div class="about-photo">
+      <img src="/assets/gallery/photo-17.jpg" alt="OCPC members at SM City Rosario open play">
+    </div>
+    <div class="about-photo-caption">One Cavite Pickleball Club · SM City Rosario</div>
+  </div>
+
+  <div class="section story-grid reveal">
+    <div class="story-copy">
+      <p><b>One Cavite Pickleball Club (OCPC)</b> is a community of players in Cavite who gather for open play sessions every week — no tryouts, no fixed teams, just a rotating group that shows up to play.</p>
+      <p>Whether you've never held a paddle or you're chasing your next tournament, our open play format mixes skill levels so everyone gets real games and real reps. Regulars help newcomers pick up the rules fast, and the group has grown mostly by word of mouth and a very active Facebook page.</p>
+      <p>We keep things simple: check the weekly schedule, register your session, show up with a paddle (or borrow one), and rotate onto a court.</p>
+    </div>
+    <div class="story-stats">
+      <div class="stat-box"><span class="lbl">Skill Levels</span><span class="num">All</span></div>
+      <div class="stat-box"><span class="lbl">Sessions / Week</span><span class="num">2–4x</span></div>
+      <div class="stat-box"><span class="lbl">Home Venue</span><span class="num">1</span></div>
+    </div>
+  </div>
+
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">The People</span>
+      <h2>Who You'll Play With</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div id="teamContainer"></div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><circle cx="12" cy="8" r="4" stroke="#F5F3EE" stroke-width="2"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke="#F5F3EE" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <h3>Profiles Coming Soon</h3>
+      <p>We're putting this page together — check back soon to meet the players and organizers behind OCPC.</p>
+    </div>
+  </div>
+
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">FAQ</span>
+      <h2>Common Questions</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="faq-list" id="faqList">
+      <div class="faq-item open">
+        <button class="faq-q"><span>Do I need to be good at pickleball to join?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>Not at all. Open play is built for mixed levels — beginners rotate in alongside more experienced players, and regulars are usually happy to help you get the hang of it.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>Is there a fee to play?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>First-timers at OCPC pay a ₱200 open play fee, regardless of skill level. After your first session, the fee drops to ₱100 per person — good for the whole session. First-timers are encouraged to pay as they join, preferably via GCash. Once you're a regular, fees can be settled on-site.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>Do I need my own paddle?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>It's best to bring your own if you have one, but paddle rental is available on-site for ₱50 if you're just trying it out.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>What should I bring?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>Non-marking court shoes, comfortable athletic wear, and your own water — courts get warm and there isn't always a store nearby. Our sublimation uniform is optional but a nice way to rep the club — check the Shop page.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>How do I register for a session?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>Head to the Schedule section on the home page, pick your day, and tap "Register for this session" — it'll take you straight to that day's Reclub sign-up.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q"><span>Do you offer coaching?</span><span class="icon">+</span></button>
+        <div class="faq-a"><p>Yes, subject to availability — coaching and beginner clinics are ₱250/hour/player, offered only on days we already have open play scheduled, in the 3:30–4:30 PM or 4:30–5:30 PM slots. Requests aren't guaranteed until we confirm with you directly. See the <a href="/coaching/">Coaching page</a> to request a slot.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">FAQ</span>
+      <h2>Find Us</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="map-embed">
+      <iframe
+        src="https://www.google.com/maps?q=SM+City+Rosario,+Cavite&output=embed"
+        width="100%" height="360" style="border:0;" allowfullscreen="" loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade" title="SM City Rosario location map">
+      </iframe>
+    </div>
+  </div>
+
+  <div class="section reveal">
+    <div class="community-cta">
+      <h3>Join the Community</h3>
+      <p>Announcements, schedule changes, and club updates are posted first on our Facebook page. It's the best way to stay in the loop.</p>
+      <a class="btn btn-sky" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Follow us on Facebook</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="/join/">Join OCPC</a>
+      <a href="/coaching/">Coaching</a>
+      <a href="/gear/">Gear Picks</a>
+      <a href="/contact/">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="/script.js"></script>
+<script type="module" src="/nav-auth.js"></script>
+<script>
+  document.querySelectorAll('.faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.parentElement.classList.toggle('open');
+    });
+  });
+
+  // ================= EDIT THIS TO ADD MEMBERS =================
+  // Three tiers, each rendered as its own centered row, largest on top:
+  //   leadership -> biggest photos, top row
+  //   officers   -> medium photos, second row
+  //   members    -> smaller photos, third row (role is optional here)
+  //
+  // Each entry needs: name, photo (path to a square-ish image).
+  // "role" is optional — leave it out for a plain member listing.
+  // Leave ALL three arrays empty to show the "Profiles Coming Soon" placeholder.
+  const team = {
+    leadership: [
+      { name: "Ria Asa", role: "Club President / Director of Operations", photo: "/assets/directory/ria-asa.jpg" },
+      { name: "James Castillo", role: "Club Vice President / Head of Tech and Social Media", photo: "/assets/directory/james-castillo.jpg" },
+    ],
+    officers: [
+      { name: "Michael Rivera", role: "Queue Master / Asst. Court Manager", photo: "/assets/directory/michael-rivera.jpg" },
+      { name: "Uzz Pascual", role: "Asst. Court Manager", photo: "/assets/directory/uzz-pascual.jpg" },
+    ],
+    members: [
+      { name: "Jerome", photo: "/assets/directory/jerome.jpg" },
+      { name: "Marjun", photo: "/assets/directory/marjun.jpg" },
+      { name: "Heart", photo: "/assets/directory/heart.jpg" },
+      { name: "Jass", photo: "/assets/directory/jass.jpg" },
+      { name: "Mhon", photo: "/assets/directory/mhon.jpg" },
+      { name: "Vhen", photo: "/assets/directory/vhen.jpg" },
+      { name: "Sia", photo: "/assets/directory/sia.jpg" },
+      { name: "Marvin", photo: "/assets/directory/marvin.jpg" },
+      { name: "Ian", photo: "/assets/directory/ian.jpg" },
+      { name: "Nene", photo: "/assets/directory/nene.jpg" },
+      { name: "Des", photo: "/assets/directory/des.jpg" },
+      { name: "Joe", photo: "/assets/directory/joe.jpg" },
+      { name: "Rafael", photo: "/assets/directory/rafael.jpg" },
+      { name: "Denzel", photo: "/assets/directory/denzel.jpg" },
+      { name: "Lanze", photo: "/assets/directory/lanze.jpg" },
+      { name: "Carl", photo: "/assets/directory/carl.jpg" },
+      { name: "Greg", photo: "/assets/directory/blank.svg" },
+      { name: "Bam", photo: "/assets/directory/blank.svg" },
+      { name: "Urie", photo: "/assets/directory/blank.svg" },
+      { name: "Jonas", photo: "/assets/directory/blank.svg" },
+      { name: "Dante", photo: "/assets/directory/blank.svg" },
+      { name: "Vic", photo: "/assets/directory/blank.svg" },
+      { name: "Liam", photo: "/assets/directory/blank.svg" },
+      { name: "Sean", photo: "/assets/directory/blank.svg" },
+      { name: "Dirk", photo: "/assets/directory/blank.svg" },
+      { name: "Dwayne", photo: "/assets/directory/blank.svg" },
+      { name: "Niel", photo: "/assets/directory/blank.svg" },
+      { name: "Jay", photo: "/assets/directory/blank.svg" },
+      { name: "Ten", photo: "/assets/directory/blank.svg" },
+      { name: "Kath", photo: "/assets/directory/blank.svg" },
+      { name: "Gaea", photo: "/assets/directory/blank.svg" },
+      { name: "Laly", photo: "/assets/directory/blank.svg" },
+    ],
+  };
+  // ===============================================================
+
+  const container = document.getElementById('teamContainer');
+  const emptyState = document.getElementById('emptyState');
+
+  function cardHtml(m){
+    return `
+      <div class="member-card">
+        <div class="member-photo"><img src="${m.photo}" alt="${m.name}"></div>
+        <div class="member-name">${m.name}</div>
+        ${m.role ? `<div class="member-role">${m.role}</div>` : ''}
+        ${m.bio ? `<div class="member-bio">${m.bio}</div>` : ''}
+      </div>
+    `;
+  }
+
+  function tierHtml(list, tierClass, label){
+    if (list.length === 0) return '';
+    return `
+      <div class="team-tier reveal-stagger">
+        ${label ? `<div class="team-tier-label">${label}</div>` : ''}
+        <div class="team-row ${tierClass}">
+          ${list.map(cardHtml).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTeam(){
+    const totalCount = team.leadership.length + team.officers.length + team.members.length;
+    if (totalCount === 0) {
+      container.style.display = 'none';
+      emptyState.style.display = 'block';
+      return;
+    }
+    container.style.display = '';
+    emptyState.style.display = 'none';
+    container.innerHTML =
+      tierHtml(team.leadership, 'tier-leadership', null) +
+      tierHtml(team.officers, 'tier-officers', null) +
+      tierHtml(team.members, 'tier-members', 'Members');
+  }
+
+  renderTeam();
+
+  window.team = team;
+  window.renderTeam = renderTeam;
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Appends approved player signups (from the "roster" collection) to the
+  // static Members tier above, skipping anyone already listed by name.
+  async function loadRosterMembers(){
+    try {
+      const snap = await getDocs(collection(db, 'roster'));
+      const roster = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (roster.length === 0) return;
+
+      const existingNames = new Set(
+        [...window.team.leadership, ...window.team.officers, ...window.team.members]
+          .map(m => m.name.trim().toLowerCase())
+      );
+
+      roster.forEach(p => {
+        const name = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+        if (!name || existingNames.has(name.toLowerCase())) return;
+        window.team.members.push({ name, photo: p.photoURL || '/assets/directory/blank.svg' });
+        existingNames.add(name.toLowerCase());
+      });
+
+      window.renderTeam();
+      // renderTeam() replaces #teamContainer's innerHTML, so the fresh
+      // .reveal-stagger nodes were never seen by script.js's scroll
+      // IntersectionObserver (which only ran once, on the ORIGINAL nodes,
+      // before this async roster fetch finished) — without this they'd
+      // stay at opacity:0 forever since nothing will ever reveal them.
+      document.querySelectorAll('#teamContainer .reveal-stagger').forEach(el => el.classList.add('in-view'));
+    } catch (err) { /* roster not reachable — static list still shows */ }
+  }
+
+  loadRosterMembers();
+</script>
+
+</body>
+</html>
