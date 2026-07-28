@@ -157,6 +157,7 @@
     overflow-x:auto;
   }
   .day-tab{
+    position:relative;
     flex:1 1 auto;
     min-width:110px;
     background:none;
@@ -166,8 +167,9 @@
     text-align:center;
     border-bottom: 3px solid transparent;
     margin-bottom:-1.5px;
-    transition: border-color .15s ease;
+    transition: border-color .15s ease, background .15s ease;
   }
+  .day-tab.is-today:not(.active){ background: rgba(79,182,255,0.08); }
   .day-tab .wk{
     display:block;
     font-family: var(--font-mono);
@@ -183,10 +185,20 @@
     font-size:22px;
     color: var(--ink-soft);
   }
+  .day-tab .today-flag{
+    display:block;
+    font-family: var(--font-mono);
+    font-size:9px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+    margin-top:5px;
+  }
   .day-tab:hover{ border-bottom-color: rgba(79,182,255,0.5); }
   .day-tab.active{ border-bottom-color: var(--pop); }
   .day-tab.active .wk{ color: var(--sky-deep); }
   .day-tab.active .dt{ color: var(--ink); }
+  .day-tab.is-today .wk{ color: var(--sky-deep); }
 
   .week-tabs{ display:flex; gap:10px; margin-bottom:20px; }
   .week-tab{
@@ -830,6 +842,47 @@
 
   let activeWeek = 0;
 
+  // Parses a "Jul 27"-style date against the current year, rolling into
+  // next year if the date is far enough in the past (handles Dec/Jan weeks).
+  function parseDayDate(dateStr){
+    const now = new Date();
+    const dt = new Date(`${dateStr} ${now.getFullYear()}`);
+    dt.setHours(0, 0, 0, 0);
+    const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (dt.getTime() < today0.getTime() - 200 * 86400000) dt.setFullYear(now.getFullYear() + 1);
+    return dt;
+  }
+
+  function isToday(dateStr){
+    const today0 = new Date();
+    today0.setHours(0, 0, 0, 0);
+    return parseDayDate(dateStr).getTime() === today0.getTime();
+  }
+
+  // Picks which week/day to show on load: today's session if there's one
+  // this week, otherwise the soonest upcoming session across all weeks.
+  function findDefaultSelection(){
+    const today0 = new Date();
+    today0.setHours(0, 0, 0, 0);
+
+    for (let wi = 0; wi < weeks.length; wi++){
+      const days = weeks[wi].days;
+      for (let di = 0; di < days.length; di++){
+        if (parseDayDate(days[di].date).getTime() === today0.getTime()) return { week: wi, index: di };
+      }
+    }
+
+    let best = null;
+    for (let wi = 0; wi < weeks.length; wi++){
+      const days = weeks[wi].days;
+      for (let di = 0; di < days.length; di++){
+        const t = parseDayDate(days[di].date).getTime();
+        if (t > today0.getTime() && (!best || t < best.t)) best = { week: wi, index: di, t };
+      }
+    }
+    return best ? { week: best.week, index: best.index } : { week: 0, index: 0 };
+  }
+
   function renderWeekTabs(){
     if (weeks.length <= 1){
       weekPillsEl.innerHTML = '';
@@ -864,9 +917,10 @@
     }
 
     pillsEl.innerHTML = schedule.map((d, i) => `
-      <button class="day-tab ${i === activeIndex ? 'active' : ''}" data-index="${i}">
+      <button class="day-tab ${i === activeIndex ? 'active' : ''} ${isToday(d.date) ? 'is-today' : ''}" data-index="${i}">
         <span class="wk">${d.weekday}</span>
         <span class="dt">${d.date}</span>
+        ${isToday(d.date) ? '<span class="today-flag">Today</span>' : ''}
       </button>
     `).join('');
 
@@ -899,8 +953,10 @@
     `;
   }
 
+  const defaultSel = findDefaultSelection();
+  activeWeek = defaultSel.week;
   renderWeekTabs();
-  render(0);
+  render(defaultSel.index);
 
   // ---- Hero countdown to next open play session ----
   function parseSessionStart(d){
