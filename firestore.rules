@@ -16,15 +16,32 @@ service cloud.firestore {
     }
 
     // Full player membership records — PII (address/phone/email) lives here.
-    // Anyone can create their own signup (status must start as "pending" and
-    // they can't self-approve). Only the admin can read, edit, or delete.
+    // Document ID == the player's Firebase Auth UID, created at signup
+    // (join.html creates the auth account first, then this doc).
+    // A player can create/read/update only their OWN doc, and can't touch
+    // status/sessionsAttended/promotedAt (membership approval fields) —
+    // those stay admin-only. Full read/write for the admin account.
     match /players/{playerId} {
-      allow create: if request.resource.data.status == 'pending'
+      allow create: if request.auth != null && request.auth.uid == playerId
+        && request.resource.data.status == 'pending'
         && request.resource.data.firstName is string
         && request.resource.data.firstName.size() > 0
         && request.resource.data.lastName is string
         && request.resource.data.lastName.size() > 0;
-      allow read, update, delete: if request.auth != null
+
+      allow read: if request.auth != null
+        && (request.auth.uid == playerId || request.auth.token.email == "ocpc.pickleball@gmail.com");
+
+      allow update: if request.auth != null && (
+        request.auth.token.email == "ocpc.pickleball@gmail.com"
+        || (
+          request.auth.uid == playerId
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.sessionsAttended == resource.data.sessionsAttended
+        )
+      );
+
+      allow delete: if request.auth != null
         && request.auth.token.email == "ocpc.pickleball@gmail.com";
     }
 

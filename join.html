@@ -147,6 +147,7 @@
           <a href="contact.html">Contact</a>
           <a href="quiz.html">Personality Quiz</a>
           <a href="join.html" class="active">Join OCPC</a>
+          <a href="profile.html">My Profile</a>
         </div>
       </div>
       <a href="merch.html" class="nav-highlight">Shop</a>
@@ -202,6 +203,12 @@
       </div>
 
       <div class="form-row">
+        <label for="fPassword">Create a Password</label>
+        <input type="password" id="fPassword" required autocomplete="new-password" minlength="6">
+        <div class="form-hint">You'll use your email and this password to log in and update your profile later.</div>
+      </div>
+
+      <div class="form-row">
         <label for="fSkill">Skill Rating</label>
         <select id="fSkill" required>
           <option value="" disabled selected>Select one</option>
@@ -229,7 +236,7 @@
 
     <div class="join-success" id="joinSuccess" style="display:none;">
       <h3>You're In.</h3>
-      <p>Thanks for signing up! Play a few sessions with us and check in with an officer — once you've checked in 3 times, you'll show up on <a href="directory.html" style="color:var(--sky-deep);">Meet the Club</a> and get a shoutout on your birthday.</p>
+      <p>Thanks for signing up! Play a few sessions with us and check in with an officer — once you've checked in 3 times, you'll show up on <a href="directory.html" style="color:var(--sky-deep);">Meet the Club</a> and get a shoutout on your birthday. You can log in anytime with your email and password on <a href="profile.html" style="color:var(--sky-deep);">My Profile</a> to update your info.</p>
     </div>
   </div>
 
@@ -252,7 +259,8 @@
 <script src="script.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -265,6 +273,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
 
   const CLOUDINARY_CLOUD_NAME = "spakpfuj";
   const CLOUDINARY_UPLOAD_PRESET = "ocpc_player_photos";
@@ -307,11 +316,16 @@
     const address = document.getElementById('fAddress').value.trim();
     const phone = document.getElementById('fPhone').value.trim();
     const email = document.getElementById('fEmail').value.trim();
+    const password = document.getElementById('fPassword').value;
     const skillRating = document.getElementById('fSkill').value;
     const photoFile = photoInput.files[0];
 
-    if (!firstName || !lastName || !birthdayVal || !address || !phone || !email || !skillRating || !photoFile){
+    if (!firstName || !lastName || !birthdayVal || !address || !phone || !email || !password || !skillRating || !photoFile){
       msgEl.textContent = 'Please fill in every field, including a photo.';
+      return;
+    }
+    if (password.length < 6){
+      msgEl.textContent = 'Password must be at least 6 characters.';
       return;
     }
 
@@ -323,8 +337,9 @@
 
     try {
       const photoURL = await uploadPhoto(photoFile);
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-      await addDoc(collection(db, 'players'), {
+      await setDoc(doc(db, 'players', cred.user.uid), {
         firstName, lastName,
         birthYear, birthMonth, birthDay,
         address, phone, email, skillRating,
@@ -336,7 +351,9 @@
       form.style.display = 'none';
       document.getElementById('joinSuccess').style.display = 'block';
     } catch (err) {
-      msgEl.textContent = 'Something went wrong submitting this — please try again.';
+      msgEl.textContent = err.code === 'auth/email-already-in-use'
+        ? 'An account with this email already exists — log in on My Profile instead.'
+        : 'Something went wrong submitting this — please try again.';
       submitBtn.disabled = false;
       submitBtn.textContent = 'Sign Up';
     }

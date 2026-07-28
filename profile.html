@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile — One Cavite Pickleball Club</title>
+<meta name="description" content="Log in to update your OCPC player profile.">
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="canonical" href="https://onecavitepickleball.club/profile.html">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .profile-hero{ padding:56px 0 12px; }
+  .profile-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:680px;
+  }
+  .profile-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:560px; line-height:1.6;
+  }
+
+  .profile-login-wrap{ max-width:420px; }
+  .form-row{ margin-bottom:20px; }
+  .form-row-pair{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .profile-form label,
+  .profile-login-wrap label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:7px;
+  }
+  .profile-form input,
+  .profile-form select,
+  .profile-form textarea,
+  .profile-login-wrap input{
+    width:100%;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+    font-family: var(--font-body);
+    font-size:14.5px;
+    color: var(--ink);
+    background: var(--white);
+  }
+  .profile-form input:focus,
+  .profile-form select:focus,
+  .profile-form textarea:focus,
+  .profile-login-wrap input:focus{ outline:none; border-color: var(--sky-deep); }
+  .profile-form textarea{ min-height:80px; resize:vertical; }
+  .form-hint{ font-size:12px; color: var(--ink-faint); margin-top:6px; }
+  .profile-msg{ font-size:13.5px; margin-top:14px; min-height:18px; }
+  .profile-link-btn{
+    background:none; border:none; padding:0; margin-top:10px;
+    font-size:12.5px; color: var(--sky-deep); text-decoration:underline; cursor:pointer;
+  }
+
+  .profile-form{ max-width:560px; }
+  .profile-status{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    padding:8px 16px;
+    border-radius:20px;
+    margin-bottom:28px;
+  }
+  .profile-status.status-active{ background: var(--navy); color: var(--paper); }
+  .profile-status.status-pending{ background: var(--paper-dim); color: var(--ink-soft); border:1.5px solid var(--line); }
+
+  .photo-picker{ display:flex; align-items:center; gap:16px; }
+  .photo-preview{
+    width:72px; height:72px;
+    border-radius:50%;
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .photo-preview img{ width:100%; height:100%; object-fit:cover; }
+
+  .profile-signout{
+    margin-top:8px;
+    padding:11px 20px;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    background:none;
+    cursor:pointer;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--ink-soft);
+  }
+  .profile-signout:hover{ border-color: var(--pop); color: var(--pop); }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html">
+      <span class="logo-chip"><img src="assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="events.html">Events</a>
+      <div class="nav-more">
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="queue.html">Queue</a>
+          <a href="leaderboard.html">Leaderboard</a>
+          <a href="coaching.html">Coaching</a>
+          <a href="rules.html">Rules &amp; Etiquette</a>
+          <a href="directory.html">Meet the Club</a>
+          <a href="featured-courts.html">Featured Courts</a>
+          <a href="birthdays.html">Birthdays</a>
+          <a href="join.html">Join OCPC</a>
+          <a href="profile.html" class="active">My Profile</a>
+          <a href="gear.html">Gear Picks</a>
+          <a href="contact.html">Contact</a>
+          <a href="quiz.html">Personality Quiz</a>
+        </div>
+      </div>
+      <a href="merch.html" class="nav-highlight">Shop</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="profile-hero">
+    <div class="eyebrow">Player Account</div>
+    <h1>My Profile.</h1>
+    <p id="heroSub">Log in with the email and password you used to sign up.</p>
+  </div>
+
+  <div class="section reveal">
+
+    <div id="loginView" class="profile-login-wrap">
+      <form id="loginForm">
+        <div class="form-row">
+          <label for="pEmail">Email</label>
+          <input type="email" id="pEmail" required autocomplete="username">
+        </div>
+        <div class="form-row">
+          <label for="pPassword">Password</label>
+          <input type="password" id="pPassword" required autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Log In</button>
+        <div class="profile-msg" id="loginMsg" style="color: var(--pop);"></div>
+        <button type="button" class="profile-link-btn" id="forgotBtn">Forgot your password?</button>
+      </form>
+      <p style="margin-top:24px; font-size:13.5px; color: var(--ink-soft);">
+        Haven't signed up yet? <a href="join.html" style="color:var(--sky-deep);">Join OCPC</a>.
+      </p>
+    </div>
+
+    <div id="profileView" style="display:none;">
+      <div class="profile-status" id="profileStatus"></div>
+
+      <form class="profile-form" id="profileForm">
+        <div class="form-row">
+          <label for="editPhoto">Photo</label>
+          <div class="photo-picker">
+            <div class="photo-preview" id="photoPreview"></div>
+            <input type="file" id="editPhoto" accept="image/*" style="width:auto;">
+          </div>
+          <div class="form-hint">Leave blank to keep your current photo.</div>
+        </div>
+
+        <div class="form-row-pair">
+          <div class="form-row">
+            <label for="editFirstName">First Name</label>
+            <input type="text" id="editFirstName" required>
+          </div>
+          <div class="form-row">
+            <label for="editLastName">Last Name</label>
+            <input type="text" id="editLastName" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="editBirthday">Birthday</label>
+          <input type="date" id="editBirthday" required>
+        </div>
+
+        <div class="form-row">
+          <label for="editAddress">Address</label>
+          <textarea id="editAddress" required></textarea>
+        </div>
+
+        <div class="form-row-pair">
+          <div class="form-row">
+            <label for="editPhone">Phone Number</label>
+            <input type="tel" id="editPhone" required>
+          </div>
+          <div class="form-row">
+            <label for="editEmail">Email</label>
+            <input type="email" id="editEmail" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="editSkill">Skill Rating</label>
+          <select id="editSkill" required>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+            <option value="Competitive">Competitive / Tournament</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" type="submit" id="saveBtn" style="width:100%; justify-content:center;">Save Changes</button>
+        <div class="profile-msg" id="profileMsg"></div>
+      </form>
+
+      <button class="profile-signout" id="signOutBtn" style="margin-top:24px;">Log Out</button>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="join.html">Join OCPC</a>
+      <a href="coaching.html">Coaching</a>
+      <a href="gear.html">Gear Picks</a>
+      <a href="contact.html">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import {
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const ADMIN_EMAIL = "ocpc.pickleball@gmail.com";
+
+  const CLOUDINARY_CLOUD_NAME = "spakpfuj";
+  const CLOUDINARY_UPLOAD_PRESET = "ocpc_player_photos";
+
+  async function uploadPhoto(file){
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', 'player-photos');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('Cloudinary upload failed');
+    const data = await res.json();
+    return data.secure_url;
+  }
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  const loginView = document.getElementById('loginView');
+  const profileView = document.getElementById('profileView');
+  const heroSub = document.getElementById('heroSub');
+  const loginForm = document.getElementById('loginForm');
+  const loginMsg = document.getElementById('loginMsg');
+  const forgotBtn = document.getElementById('forgotBtn');
+  const profileForm = document.getElementById('profileForm');
+  const profileMsg = document.getElementById('profileMsg');
+  const profileStatus = document.getElementById('profileStatus');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const photoInput = document.getElementById('editPhoto');
+  const photoPreview = document.getElementById('photoPreview');
+  const saveBtn = document.getElementById('saveBtn');
+
+  let currentPhotoURL = '';
+  let currentUid = null;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user || user.email === ADMIN_EMAIL){
+      loginView.style.display = 'block';
+      profileView.style.display = 'none';
+      heroSub.textContent = 'Log in with the email and password you used to sign up.';
+      return;
+    }
+
+    currentUid = user.uid;
+    loginView.style.display = 'none';
+    profileView.style.display = 'block';
+    heroSub.textContent = 'Update your info below anytime.';
+    await loadProfile(user.uid);
+  });
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginMsg.textContent = '';
+    const email = document.getElementById('pEmail').value.trim();
+    const password = document.getElementById('pPassword').value;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      loginMsg.textContent = 'Log-in failed — check your email and password.';
+    }
+  });
+
+  forgotBtn.addEventListener('click', async () => {
+    const email = document.getElementById('pEmail').value.trim();
+    if (!email){
+      loginMsg.style.color = 'var(--pop)';
+      loginMsg.textContent = 'Enter your email above first, then click "Forgot your password?" again.';
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      loginMsg.style.color = 'var(--sky-deep)';
+      loginMsg.textContent = 'Password reset email sent — check your inbox.';
+    } catch (err) {
+      loginMsg.style.color = 'var(--pop)';
+      loginMsg.textContent = 'Could not send reset email — check that the address is correct.';
+    }
+  });
+
+  signOutBtn.addEventListener('click', () => signOut(auth));
+
+  photoInput.addEventListener('change', () => {
+    const file = photoInput.files[0];
+    if (!file) return;
+    photoPreview.innerHTML = `<img src="${URL.createObjectURL(file)}" alt="Photo preview">`;
+  });
+
+  async function loadProfile(uid){
+    profileMsg.textContent = '';
+    try {
+      const snap = await getDoc(doc(db, 'players', uid));
+      if (!snap.exists()){
+        profileMsg.style.color = 'var(--pop)';
+        profileMsg.textContent = "Couldn't find your profile — contact an OCPC officer.";
+        return;
+      }
+      const p = snap.data();
+      currentPhotoURL = p.photoURL || '';
+      photoPreview.innerHTML = currentPhotoURL ? `<img src="${currentPhotoURL}" alt="Current photo">` : '';
+      document.getElementById('editFirstName').value = p.firstName || '';
+      document.getElementById('editLastName').value = p.lastName || '';
+      if (p.birthYear && p.birthMonth && p.birthDay){
+        const mm = String(p.birthMonth).padStart(2, '0');
+        const dd = String(p.birthDay).padStart(2, '0');
+        document.getElementById('editBirthday').value = `${p.birthYear}-${mm}-${dd}`;
+      }
+      document.getElementById('editAddress').value = p.address || '';
+      document.getElementById('editPhone').value = p.phone || '';
+      document.getElementById('editEmail').value = p.email || '';
+      document.getElementById('editSkill').value = p.skillRating || 'Beginner';
+
+      const isActive = p.status === 'active';
+      profileStatus.className = `profile-status ${isActive ? 'status-active' : 'status-pending'}`;
+      profileStatus.textContent = isActive
+        ? 'Active Member'
+        : 'Pending — play a few sessions to unlock Meet the Club';
+    } catch (err) {
+      profileMsg.style.color = 'var(--pop)';
+      profileMsg.textContent = "Couldn't load your profile — try refreshing.";
+    }
+  }
+
+  profileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentUid) return;
+
+    const firstName = document.getElementById('editFirstName').value.trim();
+    const lastName = document.getElementById('editLastName').value.trim();
+    const birthdayVal = document.getElementById('editBirthday').value;
+    const address = document.getElementById('editAddress').value.trim();
+    const phone = document.getElementById('editPhone').value.trim();
+    const email = document.getElementById('editEmail').value.trim();
+    const skillRating = document.getElementById('editSkill').value;
+    const photoFile = photoInput.files[0];
+
+    if (!firstName || !lastName || !birthdayVal || !address || !phone || !email || !skillRating){
+      profileMsg.style.color = 'var(--pop)';
+      profileMsg.textContent = 'Please fill in every field.';
+      return;
+    }
+
+    const [birthYear, birthMonth, birthDay] = birthdayVal.split('-').map(n => parseInt(n, 10));
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    profileMsg.textContent = '';
+
+    try {
+      let photoURL = currentPhotoURL;
+      if (photoFile) photoURL = await uploadPhoto(photoFile);
+
+      await updateDoc(doc(db, 'players', currentUid), {
+        firstName, lastName,
+        birthYear, birthMonth, birthDay,
+        address, phone, email, skillRating,
+        photoURL
+      });
+
+      currentPhotoURL = photoURL;
+      profileMsg.style.color = 'var(--sky-deep)';
+      profileMsg.textContent = 'Saved!';
+    } catch (err) {
+      profileMsg.style.color = 'var(--pop)';
+      profileMsg.textContent = 'Something went wrong saving this — try again.';
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Changes';
+    }
+  });
+</script>
+
+</body>
+</html>
