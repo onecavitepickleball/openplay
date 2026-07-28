@@ -1,4 +1,7 @@
 User-agent: *
 Disallow: /admin.html
 Disallow: /profile/
+Disallow: /queue/
 Disallow: /*.html$
+
+Sitemap: https://onecavitepickleball.club/sitemap.xml
