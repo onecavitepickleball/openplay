@@ -88,6 +88,40 @@
   .profile-status.status-active{ background: var(--navy); color: var(--paper); }
   .profile-status.status-pending{ background: var(--paper-dim); color: var(--ink-soft); border:1.5px solid var(--line); }
 
+  .stats-row{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+    margin-bottom:28px;
+  }
+  .stats-box{
+    background: var(--paper);
+    padding:18px 14px;
+    text-align:center;
+  }
+  .stats-box .num{
+    font-family: var(--font-display);
+    font-size:26px;
+    color: var(--sky-deep);
+    line-height:1;
+  }
+  .stats-box .lbl{
+    font-family: var(--font-mono);
+    font-size:10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-top:6px;
+  }
+  @media (max-width: 480px){
+    .stats-box .num{ font-size:20px; }
+    .stats-box .lbl{ font-size:9px; }
+  }
+
   .photo-picker{ display:flex; align-items:center; gap:16px; }
   .photo-preview{
     width:72px; height:72px;
@@ -184,6 +218,12 @@
     <div id="profileView" style="display:none;">
       <div class="profile-status" id="profileStatus"></div>
 
+      <div class="stats-row" id="statsRow" style="display:none;">
+        <div class="stats-box"><div class="num" id="statLifetime">0</div><div class="lbl">Lifetime Check-Ins</div></div>
+        <div class="stats-box"><div class="num" id="statRecent">0</div><div class="lbl">Last 4 Weeks</div></div>
+        <div class="stats-box"><div class="num" id="statRank">—</div><div class="lbl">Leaderboard Rank</div></div>
+      </div>
+
       <form class="profile-form" id="profileForm">
         <div class="form-row">
           <label for="editPhoto">Photo</label>
@@ -265,7 +305,7 @@
 <script type="module" src="/nav-auth.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
@@ -399,10 +439,53 @@
         : 'Pending — play a few sessions to unlock Meet the Club';
 
       document.getElementById('adminPanelLink').style.display = p.role === 'admin' ? 'flex' : 'none';
+
+      await loadStats(p.firstName, p.lastName);
     } catch (err) {
       profileMsg.style.color = 'var(--pop)';
       profileMsg.textContent = "Couldn't load your profile — try refreshing.";
     }
+  }
+
+  // Pulls attendance stats for this player by matching their name against
+  // the public "attendance" collection — the same case-insensitive name-key
+  // approach the Leaderboard/admin panel already use.
+  async function loadStats(firstName, lastName){
+    const statsRow = document.getElementById('statsRow');
+    const key = `${firstName || ''} ${lastName || ''}`.trim().toLowerCase();
+    if (!key) return;
+
+    try {
+      const snap = await getDocs(collection(db, 'attendance'));
+      const allRecords = snap.docs.map(d => d.data());
+
+      let lifetime = 0;
+      allRecords.forEach(r => (r.names || []).forEach(n => {
+        if (String(n).trim().toLowerCase() === key) lifetime++;
+      }));
+
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 28);
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      const recent = allRecords.filter(r => typeof r.date === 'string' && r.date >= cutoffStr);
+
+      const counts = {};
+      recent.forEach(r => (r.names || []).forEach(n => {
+        const clean = String(n).trim();
+        if (!clean) return;
+        const k = clean.toLowerCase();
+        counts[k] = (counts[k] || 0) + 1;
+      }));
+
+      const recentCount = counts[key] || 0;
+      const ranked = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+      const rank = recentCount > 0 ? ranked.indexOf(key) + 1 : null;
+
+      document.getElementById('statLifetime').textContent = lifetime;
+      document.getElementById('statRecent').textContent = recentCount;
+      document.getElementById('statRank').textContent = rank ? `#${rank}` : '—';
+      statsRow.style.display = 'grid';
+    } catch (err) { /* stats unavailable — profile still usable without them */ }
   }
 
   profileForm.addEventListener('submit', async (e) => {
