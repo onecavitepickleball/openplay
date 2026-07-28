@@ -543,24 +543,29 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Appends approved player signups (from the "roster" collection) to the
-  // static Members tier above, skipping anyone already listed by name.
+  // Syncs approved player signups (from the "roster" collection) into the
+  // static team lists above. If a roster name matches an EXISTING static
+  // entry (leadership/officers/members), that entry's photo is updated in
+  // place — keeping their role/tier — instead of being added twice. New
+  // names with no static match get appended to the plain Members tier.
   async function loadRosterMembers(){
     try {
       const snap = await getDocs(collection(db, 'roster'));
       const roster = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       if (roster.length === 0) return;
 
-      const existingNames = new Set(
-        [...window.team.leadership, ...window.team.officers, ...window.team.members]
-          .map(m => m.name.trim().toLowerCase())
-      );
+      const allStatic = [...window.team.leadership, ...window.team.officers, ...window.team.members];
 
       roster.forEach(p => {
         const name = `${p.firstName || ''} ${p.lastName || ''}`.trim();
-        if (!name || existingNames.has(name.toLowerCase())) return;
-        window.team.members.push({ name, photo: p.photoURL || '/assets/directory/blank.svg' });
-        existingNames.add(name.toLowerCase());
+        if (!name || !p.photoURL) return;
+        const match = allStatic.find(m => m.name.trim().toLowerCase() === name.toLowerCase());
+        if (match){
+          match.photo = p.photoURL;
+        } else {
+          window.team.members.push({ name, photo: p.photoURL });
+          allStatic.push({ name, photo: p.photoURL });
+        }
       });
 
       window.renderTeam();
