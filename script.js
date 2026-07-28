@@ -1,4 +1,12 @@
 // Shared across all pages: mobile nav toggle, "More" dropdown, scroll-reveal animations
+
+// ---- PWA service worker registration ----
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* registration failed, site still works normally */ });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // ---- Mobile hamburger toggle ----
