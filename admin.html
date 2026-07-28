@@ -161,6 +161,29 @@
   .signup-btn.approve{ border-color: var(--sky-deep); color: var(--sky-deep); }
   .signup-btn.approve:hover{ background: var(--sky-deep); color: var(--white); }
   .signup-btn.reject:hover{ border-color: var(--pop); color: var(--pop); }
+
+  .att-chip-list{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .att-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    border-radius:20px;
+    padding:5px 8px 5px 12px;
+    font-size:12.5px;
+    font-weight:600;
+  }
+  .att-chip button{
+    background:none;
+    border:none;
+    cursor:pointer;
+    color: var(--ink-faint);
+    font-size:14px;
+    line-height:1;
+    padding:2px;
+  }
+  .att-chip button:hover{ color: var(--pop); }
 </style>
 </head>
 <body>
@@ -239,8 +262,10 @@
             <input type="date" id="attDate" required>
           </div>
           <div class="form-row">
-            <label for="attNames">Attendees (one name per line)</label>
-            <textarea id="attNames" placeholder="Vhen&#10;Sia&#10;Marvin"></textarea>
+            <label for="attNameInput">Attendees</label>
+            <input type="text" id="attNameInput" list="knownNamesList" autocomplete="off" placeholder="Type a name, press Enter to add">
+            <datalist id="knownNamesList"></datalist>
+            <div class="att-chip-list" id="attChipList"></div>
           </div>
           <button class="btn btn-primary" type="submit" id="attSubmitBtn" style="width:100%; justify-content:center;">Save Attendance</button>
           <button class="admin-signout" type="button" id="attCancelBtn" style="display:none; margin-top:10px;">Cancel Edit</button>
@@ -401,19 +426,70 @@
   const attendanceMsg = document.getElementById('attendanceMsg');
   const adminList = document.getElementById('adminList');
   const attDateEl = document.getElementById('attDate');
-  const attNamesEl = document.getElementById('attNames');
+  const attNameInput = document.getElementById('attNameInput');
+  const attChipList = document.getElementById('attChipList');
+  const knownNamesList = document.getElementById('knownNamesList');
   const attSubmitBtn = document.getElementById('attSubmitBtn');
   const attCancelBtn = document.getElementById('attCancelBtn');
   const attFormTitle = document.getElementById('attFormTitle');
   const attFormSub = document.getElementById('attFormSub');
 
   let editingId = null;
+  let attNames = [];
   attDateEl.value = isoDate(new Date());
+
+  // Populates the name-input autocomplete with every name seen so far —
+  // full "First Last" names from approved roster signups (to help tell
+  // apart two players who share a first name) plus every distinct name
+  // string ever typed into attendance historically.
+  async function loadKnownNames(){
+    const names = new Set();
+    allRecords.forEach(r => (r.names || []).forEach(n => { if (n && n.trim()) names.add(n.trim()); }));
+    try {
+      const snap = await getDocs(collection(db, 'roster'));
+      snap.docs.forEach(d => {
+        const p = d.data();
+        const full = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+        if (full) names.add(full);
+      });
+    } catch (err) { /* roster unreachable — attendance history names still work */ }
+    knownNamesList.innerHTML = Array.from(names).sort().map(n => `<option value="${escapeHtml(n)}">`).join('');
+  }
+
+  function renderChips(){
+    attChipList.innerHTML = attNames.map((n, i) => `
+      <span class="att-chip">${escapeHtml(n)}<button type="button" data-i="${i}" aria-label="Remove">&times;</button></span>
+    `).join('');
+    attChipList.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        attNames.splice(parseInt(btn.dataset.i), 1);
+        renderChips();
+      });
+    });
+  }
+
+  function addNameFromInput(){
+    const val = attNameInput.value.trim();
+    if (!val) return;
+    if (!attNames.some(n => n.toLowerCase() === val.toLowerCase())) attNames.push(val);
+    attNameInput.value = '';
+    renderChips();
+  }
+
+  attNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ','){
+      e.preventDefault();
+      addNameFromInput();
+    }
+  });
+  attNameInput.addEventListener('blur', addNameFromInput);
 
   function resetAttendanceForm(){
     editingId = null;
     attendanceForm.reset();
     attDateEl.value = isoDate(new Date());
+    attNames = [];
+    renderChips();
     attSubmitBtn.textContent = 'Save Attendance';
     attCancelBtn.style.display = 'none';
     attFormTitle.textContent = 'Record Attendance';
@@ -423,13 +499,14 @@
   function startEditing(r){
     editingId = r.id;
     attDateEl.value = r.date;
-    attNamesEl.value = (r.names || []).join('\n');
+    attNames = [...(r.names || [])];
+    renderChips();
     attSubmitBtn.textContent = 'Update Attendance';
     attCancelBtn.style.display = 'block';
     attFormTitle.textContent = 'Edit Attendance';
     attFormSub.textContent = `Editing the entry for ${r.date}.`;
     attendanceMsg.textContent = '';
-    attNamesEl.focus();
+    attNameInput.focus();
   }
 
   attCancelBtn.addEventListener('click', () => {
@@ -439,8 +516,9 @@
 
   attendanceForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    addNameFromInput();
     const date = attDateEl.value;
-    const names = attNamesEl.value.split('\n').map(n => n.trim()).filter(Boolean);
+    const names = attNames;
 
     if (!date || names.length === 0){
       attendanceMsg.style.color = 'var(--pop)';
@@ -458,7 +536,8 @@
         await addDoc(attendanceCol, { date, names, createdAt: serverTimestamp() });
         attendanceMsg.style.color = 'var(--sky-deep)';
         attendanceMsg.textContent = `Saved ${names.length} attendee(s) for ${date}.`;
-        attNamesEl.value = '';
+        attNames = [];
+        renderChips();
       }
       await loadAttendance();
     } catch (err) {
@@ -472,6 +551,7 @@
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderAdminList();
     renderPlayerSignups();
+    loadKnownNames();
   }
 
   function renderAdminList(){

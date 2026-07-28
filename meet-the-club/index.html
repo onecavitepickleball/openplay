@@ -484,10 +484,11 @@
   const emptyState = document.getElementById('emptyState');
 
   function cardHtml(m){
+    const firstName = m.name.trim().split(' ')[0];
     return `
       <div class="member-card">
         <div class="member-photo"><img src="${m.photo}" alt="${m.name}"></div>
-        <div class="member-name">${m.name}</div>
+        <div class="member-name">${firstName}</div>
         ${m.role ? `<div class="member-role">${m.role}</div>` : ''}
         ${m.bio ? `<div class="member-bio">${m.bio}</div>` : ''}
       </div>
