@@ -4,4 +4,4 @@ Disallow: /profile/
 Disallow: /queue/
 Disallow: /*.html$
 
-Sitemap: https://onecavitepickleball.club/sitemap.xml
+Sitemap: https://www.onecavitepickleball.club/sitemap.xml
