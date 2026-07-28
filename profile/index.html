@@ -232,7 +232,8 @@
         <div class="profile-msg" id="profileMsg"></div>
       </form>
 
-      <button class="profile-signout" id="signOutBtn" style="margin-top:24px;">Log Out</button>
+      <a class="btn btn-ghost" href="/admin.html" id="adminPanelLink" style="display:none; margin-top:24px; width:100%; justify-content:center;">Go to Admin Panel</a>
+      <button class="profile-signout" id="signOutBtn" style="margin-top:12px;">Log Out</button>
     </div>
 
   </div>
@@ -388,6 +389,8 @@
       profileStatus.textContent = isActive
         ? 'Active Member'
         : 'Pending — play a few sessions to unlock Meet the Club';
+
+      document.getElementById('adminPanelLink').style.display = p.role === 'admin' ? 'flex' : 'none';
     } catch (err) {
       profileMsg.style.color = 'var(--pop)';
       profileMsg.textContent = "Couldn't load your profile — try refreshing.";
