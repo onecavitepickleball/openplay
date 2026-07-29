@@ -34,6 +34,132 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ---- Generic click-toggle dropdown helper (used by notifications + account) ----
+  function wireDropdown(wrapSelector, btnSelector, onOpen){
+    const wrap = document.querySelector(wrapSelector);
+    const btn = document.querySelector(btnSelector);
+    if (!wrap || !btn) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opening = !wrap.classList.contains('open');
+      document.querySelectorAll('.nav-notif.open, .nav-account.open').forEach(el => {
+        if (el !== wrap) { el.classList.remove('open'); el.classList.remove('anim'); }
+      });
+      wrap.classList.toggle('open', opening);
+      if (opening) {
+        requestAnimationFrame(() => wrap.classList.add('anim'));
+        if (onOpen) onOpen();
+      } else {
+        wrap.classList.remove('anim');
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target)) { wrap.classList.remove('open'); wrap.classList.remove('anim'); }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { wrap.classList.remove('open'); wrap.classList.remove('anim'); }
+    });
+  }
+
+  wireDropdown('.nav-notif', '.nav-notif-btn', () => {
+    const dot = document.getElementById('navNotifDot');
+    if (dot) {
+      setTimeout(() => {
+        dot.hidden = true;
+        try { localStorage.setItem('ocpc_notif_seen', new Date().toISOString().slice(0, 10)); } catch (err) {}
+      }, 1200);
+    }
+  });
+
+  wireDropdown('.nav-account', '.nav-account-btn');
+
+  // ---- Expandable search ----
+  const searchWrap = document.querySelector('.nav-search');
+  const searchBtn = document.querySelector('.nav-search-btn');
+  const searchInput = document.getElementById('navSearchInput');
+  const searchResults = document.getElementById('navSearchResults');
+  const searchForm = document.getElementById('navSearchForm');
+
+  const SEARCH_INDEX = [
+    { title: 'Home', desc: 'Open play schedule & club overview', url: '/', kw: 'schedule open play home this week' },
+    { title: 'Meet the Club', desc: 'Player roster', url: '/meet-the-club/', kw: 'players roster members' },
+    { title: 'Events', desc: 'Outings, tournaments & recaps', url: '/events/', kw: 'tournament outing rainbow rally zambales' },
+    { title: 'My Profile', desc: 'Manage your player profile', url: '/profile/', kw: 'login account sign in profile' },
+    { title: 'Join OCPC', desc: 'Sign up as a player', url: '/join/', kw: 'signup register join new player' },
+    { title: 'Gear Picks', desc: 'Recommended paddles & gear', url: '/gear/', kw: 'paddle shoes bag grip gear equipment' },
+    { title: 'Gallery', desc: 'Photos from sessions & events', url: '/gallery/', kw: 'photos pictures gallery' },
+    { title: 'Queue', desc: 'Live open play queue', url: '/queue/', kw: 'queue court rotation' },
+    { title: 'Leaderboard', desc: 'Most active players', url: '/leaderboard/', kw: 'leaderboard rank top players stats' },
+    { title: 'Coaching', desc: 'Coaching sessions & clinics', url: '/coaching/', kw: 'coach lesson clinic training' },
+    { title: 'Rules & Etiquette', desc: 'Pickleball basics for beginners', url: '/rules/', kw: 'rules etiquette kitchen scoring beginner' },
+    { title: 'Featured Courts', desc: 'Court spotlight', url: '/featured-courts/', kw: 'courts venues' },
+    { title: 'Birthdays', desc: 'This month’s celebrants', url: '/birthdays/', kw: 'birthday celebrant' },
+    { title: 'Contact', desc: 'Get in touch with OCPC', url: '/contact/', kw: 'contact email message ask' },
+    { title: 'Personality Quiz', desc: 'What pickleball player are you?', url: '/quiz/', kw: 'quiz fun personality' },
+    { title: 'Shop', desc: 'Uniform & OCPC T-Shirt v1', url: '/merch/', kw: 'shop merch uniform tshirt shirt sublimation heat press order' },
+    { title: 'Zambales Trip', desc: 'OCPC Goes to Zambales recap', url: '/zambales-trip/', kw: 'zambales trip pampanga highgrounds' },
+    { title: 'Privacy Policy', desc: 'How we handle your data', url: '/privacy-policy/', kw: 'privacy data legal' },
+    { title: 'Accessibility Help', desc: 'Accessibility commitment & feedback', url: '/accessibility/', kw: 'accessibility a11y disability' },
+    { title: 'Privacy Notice', desc: 'Quick data collection summary', url: '/privacy-notice/', kw: 'privacy notice data rights' },
+    { title: 'Terms & Conditions', desc: 'Rules for using OCPC & this site', url: '/terms/', kw: 'terms conditions legal waiver liability' },
+    { title: 'Social Media Policy', desc: 'Guidelines for our social channels', url: '/social-media-policy/', kw: 'social media facebook policy' },
+  ];
+
+  function renderSearchResults(query){
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      searchResults.innerHTML = '';
+      searchWrap.classList.remove('results-open');
+      return;
+    }
+    const matches = SEARCH_INDEX.filter(item =>
+      item.title.toLowerCase().includes(q) || item.kw.includes(q)
+    ).slice(0, 8);
+    searchWrap.classList.add('results-open');
+    searchResults.innerHTML = matches.length
+      ? matches.map(m => `
+          <a class="nav-search-result" href="${m.url}">
+            <div class="r-title">${m.title}</div>
+            <div class="r-desc">${m.desc}</div>
+          </a>
+        `).join('')
+      : `<div class="nav-search-empty">No matches for “${query}”</div>`;
+  }
+
+  if (searchWrap && searchBtn && searchInput) {
+    searchBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opening = !searchWrap.classList.contains('open');
+      searchWrap.classList.toggle('open', opening);
+      if (opening) {
+        setTimeout(() => searchInput.focus(), 50);
+      } else {
+        searchWrap.classList.remove('results-open');
+        searchInput.value = '';
+      }
+    });
+    searchInput.addEventListener('input', () => renderSearchResults(searchInput.value));
+    if (searchForm) {
+      searchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const first = searchResults.querySelector('.nav-search-result');
+        if (first) window.location.href = first.getAttribute('href');
+      });
+    }
+    document.addEventListener('click', (e) => {
+      if (!searchWrap.contains(e.target)) {
+        searchWrap.classList.remove('open', 'results-open');
+        searchInput.value = '';
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        searchWrap.classList.remove('open', 'results-open');
+        searchInput.value = '';
+      }
+    });
+  }
+
   // ---- Floating Messenger widget ----
   const msgWidget = document.createElement('div');
   msgWidget.className = 'fb-msg-widget';

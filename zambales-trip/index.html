@@ -207,7 +207,6 @@
       <a href="/">Home</a>
       <a href="/meet-the-club/">Meet the Club</a>
       <a href="/events/">Events</a>
-      <a href="/profile/">My Profile</a>
       <div class="nav-more">
         <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="nav-more-menu">
@@ -223,7 +222,49 @@
           <a href="/quiz/">Personality Quiz</a>
         </div>
       </div>
-      <a href="/merch/" class="nav-highlight">Shop</a>
+      <div class="nav-search">
+        <button class="nav-icon-btn nav-search-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round"/></svg>
+        </button>
+        <form class="nav-search-form" id="navSearchForm" autocomplete="off">
+          <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search the site…" aria-label="Search the site">
+        </form>
+        <div class="nav-search-results" id="navSearchResults"></div>
+      </div>
+
+      <div class="nav-notif">
+        <button class="nav-icon-btn nav-notif-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="nav-notif-dot" id="navNotifDot" hidden></span>
+        </button>
+        <div class="nav-notif-panel">
+          <div class="nav-notif-head">Notifications</div>
+          <div class="nav-notif-list" id="navNotifList">
+            <div class="nav-notif-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <a href="/merch/" class="nav-shop" aria-label="Shop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 6h18" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 10a4 4 0 0 1-8 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+
+      <div class="nav-account">
+        <button class="nav-account-btn" id="navAccountBtn">
+          <span id="navAccountLabel">Join OCPC</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="nav-account-panel" id="navAccountPanel">
+          <a class="nav-account-opt" href="/profile/">
+            <div class="o-title">Sign In</div>
+            <div class="o-desc">Log in to manage your profile</div>
+          </a>
+          <a class="nav-account-opt" href="/join/">
+            <div class="o-title">Sign Up</div>
+            <div class="o-desc">New here? Create your player profile</div>
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 </nav>
@@ -446,6 +487,8 @@
       <a href="/privacy-policy/">Privacy Policy</a>
       <a href="/accessibility/">Accessibility Help</a>
       <a href="/privacy-notice/">Privacy Notice</a>
+      <a href="/terms/">Terms &amp; Conditions</a>
+      <a href="/social-media-policy/">Social Media Policy</a>
     </div>
     <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
   </div>

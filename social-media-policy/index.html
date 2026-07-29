@@ -11,21 +11,21 @@
   gtag('config', 'G-H86SSQPCJ6');
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Privacy Policy — One Cavite Pickleball Club</title>
-<meta name="description" content="How One Cavite Pickleball Club collects, uses, and protects your personal information across the site, player profiles, and merch orders.">
+<title>Social Media Policy — One Cavite Pickleball Club</title>
+<meta name="description" content="Guidelines for how OCPC's official social channels are run and how members should engage with the club on social media.">
 
-<meta property="og:title" content="Privacy Policy — One Cavite Pickleball Club">
-<meta property="og:description" content="How One Cavite Pickleball Club collects, uses, and protects your personal information across the site, player profiles, and merch orders.">
+<meta property="og:title" content="Social Media Policy — One Cavite Pickleball Club">
+<meta property="og:description" content="Guidelines for how OCPC's official social channels are run and how members should engage with the club on social media.">
 <meta property="og:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://www.onecavitepickleball.club/privacy-policy/">
+<meta property="og:url" content="https://www.onecavitepickleball.club/social-media-policy/">
 <meta property="og:site_name" content="One Cavite Pickleball Club">
 <meta property="og:type" content="website">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Privacy Policy — One Cavite Pickleball Club">
-<meta name="twitter:description" content="How One Cavite Pickleball Club collects, uses, and protects your personal information across the site, player profiles, and merch orders.">
+<meta name="twitter:title" content="Social Media Policy — One Cavite Pickleball Club">
+<meta name="twitter:description" content="Guidelines for how OCPC's official social channels are run and how members should engage with the club on social media.">
 <meta name="twitter:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
 
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
@@ -33,7 +33,7 @@
 <link rel="apple-touch-icon" href="/assets/favicon-180.png">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#005E89">
-<link rel="canonical" href="https://www.onecavitepickleball.club/privacy-policy/">
+<link rel="canonical" href="https://www.onecavitepickleball.club/social-media-policy/">
 <link rel="stylesheet" href="/styles.css">
 <style>
   .legal-hero{ padding:56px 0 12px; }
@@ -93,12 +93,35 @@
     border: 1.5px solid var(--line);
     border-radius:6px;
     padding:20px 22px;
-    margin-top:28px;
+    margin-top:12px;
+    margin-bottom:14px;
     font-size:14px;
     line-height:1.7;
     color: var(--ink-soft);
   }
   .legal-note b{ color: var(--ink); }
+  .channel-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin:8px 0 14px;
+  }
+  .channel-card{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:16px 18px;
+  }
+  .channel-card .lbl{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+    display:block;
+    margin-bottom:4px;
+  }
+  .channel-card a{ font-weight:600; }
+  @media (max-width:640px){ .channel-grid{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -182,50 +205,63 @@
 
   <div class="legal-hero">
     <div class="eyebrow">Legal</div>
-    <h1>Privacy Policy.</h1>
-    <p>This explains what personal information OCPC collects through this website, why we collect it, and how it's handled.</p>
+    <h1>Social Media Policy.</h1>
+    <p>How OCPC runs its official social channels, and what we ask of members when posting about or tagging the club.</p>
     <div class="legal-updated">Last updated: July 29, 2026</div>
   </div>
 
   <div class="section reveal">
     <div class="legal-content">
-      <h2>Overview</h2>
-      <p>One Cavite Pickleball Club ("OCPC", "we", "us") runs this website to manage club membership, events, and merchandise orders for our community in Cavite. This policy covers the information we collect when you use onecavitepickleball.club, create a player profile, or place a merch order.</p>
 
-      <h2>Information We Collect</h2>
+      <h2>Our Official Channels</h2>
+      <p>OCPC's only official social channels are listed below. Any other page, group, or account using the OCPC name is not run by us — always check you're on one of these before sending payment info or personal details.</p>
+      <div class="channel-grid">
+        <div class="channel-card">
+          <span class="lbl">Facebook Page</span>
+          <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">facebook.com/onecavitepickleball</a>
+        </div>
+        <div class="channel-card">
+          <span class="lbl">Facebook Group</span>
+          <a href="https://www.facebook.com/groups/2075031119497964/" target="_blank" rel="noopener">OCPC Community Group</a>
+        </div>
+      </div>
+
+      <h2>Purpose of Our Channels</h2>
+      <p>We use our official channels to post the open play schedule, event recaps, merch drops, player shoutouts, and general club announcements. Our Facebook Group is also where members can post about court finds, carpooling, or general pickleball chat with the community.</p>
+
+      <h2>Community Guidelines</h2>
+      <p>When posting, commenting, or messaging on our official channels, please:</p>
       <ul>
-        <li><b>Account &amp; profile data</b> — name, email, and photo when you sign in and set up a player profile, handled through Firebase Authentication and Firestore.</li>
-        <li><b>Profile photos</b> — images you upload are stored via Cloudinary, our image hosting provider.</li>
-        <li><b>Order details</b> — size, color, quantity, and contact info you submit through our Google Form when ordering a uniform or shirt, plus a payment reference number for GCash/bank transfers.</li>
-        <li><b>Usage data</b> — anonymous traffic and interaction data collected through Google Analytics (page views, device type, general location at the city level).</li>
+        <li>Keep it respectful — no harassment, hate speech, or personal attacks on other members or players.</li>
+        <li>Keep discussions relevant to pickleball, OCPC events, and the community.</li>
+        <li>Avoid spam, unrelated promotions, or repeated self-advertising without asking an admin first.</li>
+        <li>Report anything that concerns you to a page/group admin rather than escalating publicly.</li>
       </ul>
+      <p>We reserve the right to hide, delete, or restrict comments and posts that violate these guidelines, and to remove members from our Facebook Group for repeated or serious violations, consistent with the conduct expectations in our <a href="/terms/">Terms &amp; Conditions</a>.</p>
 
-      <h2>How We Use Your Information</h2>
-      <p>We use this information to run the club's day-to-day operations: authenticating your profile, displaying leaderboard and queue standings, processing merch orders, sending you order confirmations, and understanding how people use the site so we can improve it.</p>
+      <h2>Photos, Videos &amp; Tagging</h2>
+      <p>We regularly post photos and videos from open play sessions and events on our official channels — see the media consent section of our <a href="/terms/#media">Terms &amp; Conditions</a> for details on how that works. If you're tagged in a post you'd rather not be in, message the page and we'll untag or take it down where we can.</p>
+      <p>If you post your own photos from OCPC sessions or events, we'd love it if you tag us or use a club hashtag — but please be considerate of other players who may not want to be identifiable in a public post, and avoid posting anything that could embarrass or misrepresent someone without their okay.</p>
 
-      <h2>Who We Share It With</h2>
-      <p>We don't sell your personal information. It's shared only with the service providers that power the site's features, each acting under their own privacy terms:</p>
-      <ul>
-        <li><b>Google / Firebase</b> — authentication, database, forms, and analytics.</li>
-        <li><b>Cloudinary</b> — photo storage and delivery.</li>
-        <li><b>GCash</b> — payment confirmation for merch orders (we only see the reference number and screenshot you submit, not your GCash account details).</li>
-      </ul>
+      <h2>Using the OCPC Name &amp; Logo</h2>
+      <p>Members are welcome to mention or tag OCPC when posting about sessions or events. Please don't create pages, groups, or accounts that use our name or logo in a way that could be mistaken for an official OCPC channel, and don't use our branding to promote unrelated businesses or services without asking us first. See our <a href="/terms/#ip">Intellectual Property</a> terms for more.</p>
 
-      <h2>Data Retention &amp; Security</h2>
-      <p>We keep profile and order data for as long as your account is active or as needed to fulfill an order, and we rely on our providers' industry-standard security practices (encryption in transit, access-controlled databases) to protect it.</p>
+      <h2>Direct Messages &amp; Payments</h2>
+      <p>Official merch payment confirmations go through the process described on our <a href="/merch/">Shop page</a> — we will never DM you first asking for payment or personal information out of the blue. If you receive a suspicious message claiming to be from OCPC, please don't send any money or details, and report it to us directly through our official page.</p>
 
-      <h2>Your Rights</h2>
-      <p>Under the Philippine Data Privacy Act of 2012 (RA 10173), you have the right to access, correct, or request deletion of your personal data. See our <a href="/privacy-notice/">Privacy Notice</a> for a quick summary of these rights, or contact us directly using the details below.</p>
+      <h2>Comment &amp; Content Moderation</h2>
+      <p>Admins may remove comments, posts, or members from our official channels at their discretion when content violates these guidelines or our <a href="/terms/">Terms &amp; Conditions</a>. We aim to be fair and consistent, but moderation decisions on our own channels are ultimately ours to make.</p>
 
-      <h2>Children's Privacy</h2>
-      <p>OCPC welcomes junior players with a parent or guardian's involvement, but this site is not directed at children under 13 and we don't knowingly collect personal data from young children without guardian consent.</p>
+      <h2>Not Affiliated With Other Organizations</h2>
+      <p>OCPC is an independent community club and is not officially affiliated with USA Pickleball, the Philippine national pickleball federation, or any commercial brand mentioned on our channels (paddle brands, venues, etc.) unless explicitly stated as a sponsor or partner.</p>
 
       <h2>Changes to This Policy</h2>
-      <p>We may update this policy as the club's tools and processes evolve. The "Last updated" date at the top of this page reflects the most recent revision.</p>
+      <p>We may update this policy as our channels and community grow. The "Last updated" date above reflects the most recent revision.</p>
 
       <div class="legal-note">
-        <b>Questions?</b> Reach out through our <a href="/contact/">Contact page</a> or message us on <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a> and we'll help however we can.
+        <b>Questions or a report to make?</b> Reach out through our <a href="/contact/">Contact page</a> or message us on <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>.
       </div>
+
     </div>
   </div>
 
