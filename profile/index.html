@@ -353,6 +353,8 @@
         <a class="admin-panel-pill" href="/admin.html" id="adminPanelLink" style="display:none;">Go to Admin Panel →</a>
       </div>
 
+      <div class="profile-msg" id="dashboardMsg" style="margin-bottom:16px;"></div>
+
       <!-- ============ DASHBOARD (default view) ============ -->
       <div id="dashboardView">
         <div class="profile-summary">
@@ -607,12 +609,14 @@
   });
 
   async function loadProfile(uid){
+    const dashboardMsg = document.getElementById('dashboardMsg');
+    dashboardMsg.textContent = '';
     profileMsg.textContent = '';
     try {
       const snap = await getDoc(doc(db, 'players', uid));
       if (!snap.exists()){
-        profileMsg.style.color = 'var(--pop)';
-        profileMsg.textContent = "Couldn't find your profile — contact an OCPC officer.";
+        dashboardMsg.style.color = 'var(--pop)';
+        dashboardMsg.textContent = "Couldn't find your profile — contact an OCPC officer.";
         return;
       }
       const p = snap.data();
@@ -646,8 +650,9 @@
       await loadStats(p.firstName, p.lastName);
       await loadOrders(p.email || currentUserEmail);
     } catch (err) {
-      profileMsg.style.color = 'var(--pop)';
-      profileMsg.textContent = "Couldn't load your profile — try refreshing.";
+      console.error('loadProfile failed:', err);
+      dashboardMsg.style.color = 'var(--pop)';
+      dashboardMsg.textContent = `Couldn't load your profile — try refreshing. (${err.code || err.message || 'unknown error'})`;
     }
   }
 
@@ -694,7 +699,7 @@
 
       renderProjection(rank, recentCount, ranked, counts);
       renderAttendanceChart(allRecords, key);
-    } catch (err) { /* stats unavailable — profile still usable without them */ }
+    } catch (err) { console.error('loadStats failed:', err); }
   }
 
   function renderProjection(rank, recentCount, ranked, counts){

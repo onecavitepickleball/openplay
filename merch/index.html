@@ -49,12 +49,19 @@
     max-width:480px; line-height:1.6;
   }
 
-  .catalog-grid{
-    display:grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap:28px;
+  .catalog-scroll{
+    display:flex;
+    gap:16px;
+    overflow-x:auto;
+    padding:4px 4px 16px;
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
   }
+  .catalog-scroll::-webkit-scrollbar{ height:6px; }
+  .catalog-scroll::-webkit-scrollbar-thumb{ background: var(--line); border-radius:3px; }
   .catalog-card{
+    flex:0 0 168px;
+    scroll-snap-align:start;
     display:flex;
     flex-direction:column;
     border: 1.5px solid var(--line);
@@ -71,36 +78,23 @@
     overflow:hidden;
   }
   .catalog-card-media img{ width:100%; height:100%; object-fit:cover; }
-  .catalog-card-body{ padding:22px 24px 26px; display:flex; flex-direction:column; gap:10px; flex:1; }
+  .catalog-card-body{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:4px; }
   .catalog-card .tag{
-    display:inline-flex;
-    align-self:flex-start;
-    font-family: var(--font-mono); font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase;
-    background: rgba(0,94,137,0.08); color: var(--navy);
-    border: 1.5px solid rgba(0,94,137,0.22);
-    padding:4px 10px; border-radius:3px;
+    font-family: var(--font-mono); font-size:9px; letter-spacing:0.06em; text-transform:uppercase;
+    color: var(--ink-faint);
   }
   .catalog-card h3{
     font-family: var(--font-display);
-    font-size:22px;
+    font-size:14px;
     text-transform:uppercase;
-    line-height:1.1;
+    line-height:1.15;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
-  .catalog-card p{ font-size:13.5px; line-height:1.6; color: var(--ink-soft); flex:1; }
-  .catalog-card-footer{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-top:auto;
-    padding-top:10px;
-  }
-  .catalog-card .price{ font-family: var(--font-display); font-size:22px; color: var(--pop); }
-  .catalog-card .cta{
-    font-family: var(--font-mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
-    color: var(--sky-deep);
-  }
+  .catalog-card .price{ font-family: var(--font-display); font-size:15px; color: var(--pop); margin-top:2px; }
   @media (max-width: 700px){
-    .catalog-grid{ grid-template-columns:1fr; }
+    .catalog-card{ flex-basis:140px; }
   }
 
   .more-soon{
@@ -242,13 +236,13 @@
         </div>
       </a>
 
-      <a class="catalog-card" href="/merch/team-tee/">
+      <a class="catalog-card" href="/merch/tshirt-v2/">
         <div class="catalog-card-media">
-          <img src="/assets/team-tee-front.webp" alt="OCPC Team Tee" loading="lazy">
+          <img src="/assets/tshirt-v2-front.webp" alt="OCPC T-Shirt V2" loading="lazy">
         </div>
         <div class="catalog-card-body">
           <span class="tag">Everyday Tee</span>
-          <h3>Team Tee</h3>
+          <h3>OCPC T-Shirt V2</h3>
           <p>Clean front lockup with a stacked color icon strip on the back. Soft everyday cotton.</p>
           <div class="catalog-card-footer">
             <span class="price">₱350</span>

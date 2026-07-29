@@ -290,18 +290,7 @@
       </p>
 
       <div class="batch-note">
-        <b>How batch ordering works:</b> we place one bulk order once we hit the minimum headcount, so pricing
-        stays at ₱300/piece. Minimum <b>10 pieces</b> to trigger a batch, and turnaround is roughly
-        <b>3–4 weeks</b> from when the batch closes.
-      </div>
-
-      <div class="batch-status">
-        <div class="batch-status-head">
-          <span class="batch-status-label">Batch Status</span>
-          <span class="batch-status-count" id="batchCount"></span>
-        </div>
-        <div class="batch-progress"><div class="batch-progress-fill" id="batchProgressFill"></div></div>
-        <div class="batch-status-note" id="batchStatusNote"></div>
+        <b>Fast turnaround:</b> unlike our batch-ordered apparel, this ships in <b>2–3 days</b> — no minimum headcount needed.
       </div>
 
       <div class="field-block">
@@ -629,8 +618,6 @@
   // ================= EDIT THESE AS NEEDED =================
   const PRICE = 300;
 
-  const BATCH_MINIMUM = 10;
-  const CURRENT_ORDERS = 0;
   // ==========================================================
 
   let qty = 1;
@@ -644,15 +631,6 @@
     orderTotal.textContent = `₱${(PRICE * qty).toLocaleString()}`;
   }
 
-  function renderBatchStatus(){
-    const remaining = Math.max(BATCH_MINIMUM - CURRENT_ORDERS, 0);
-    const pct = Math.min(100, Math.round((CURRENT_ORDERS / BATCH_MINIMUM) * 100));
-    document.getElementById('batchCount').textContent = `${CURRENT_ORDERS} / ${BATCH_MINIMUM}`;
-    document.getElementById('batchProgressFill').style.width = `${pct}%`;
-    document.getElementById('batchStatusNote').textContent = remaining === 0
-      ? 'Minimum reached — this batch is confirmed to print!'
-      : `${remaining} more order${remaining === 1 ? '' : 's'} needed to trigger this batch.`;
-  }
 
   document.getElementById('qtyMinus').addEventListener('click', () => {
     if (qty > 1) { qty--; updateTotal(); }
@@ -673,7 +651,6 @@
   updateMethodPanel();
 
   updateTotal();
-  renderBatchStatus();
 
   // ================= ORDER MODAL =================
   const overlay = document.getElementById('orderModalOverlay');

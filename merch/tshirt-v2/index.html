@@ -11,29 +11,29 @@
   gtag('config', 'G-H86SSQPCJ6');
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OCPC Team Tee — One Cavite Pickleball Club</title>
-<meta name="description" content="OCPC Team Tee — ₱350. Everyday club tee with the full front lockup and back icon strip.">
+<title>OCPC T-Shirt V2 — One Cavite Pickleball Club</title>
+<meta name="description" content="OCPC T-Shirt V2 — ₱350. Everyday club tee with the full front lockup and back icon strip.">
 
-<meta property="og:title" content="OCPC Team Tee — ₱350">
+<meta property="og:title" content="OCPC T-Shirt V2 — ₱350">
 <meta property="og:description" content="Everyday club tee with the full front lockup and back icon strip.">
-<meta property="og:image" content="https://www.onecavitepickleball.club/assets/team-tee-front.webp">
+<meta property="og:image" content="https://www.onecavitepickleball.club/assets/tshirt-v2-front.webp">
 <meta property="og:image:width" content="700">
 <meta property="og:image:height" content="875">
-<meta property="og:url" content="https://www.onecavitepickleball.club/merch/team-tee/">
+<meta property="og:url" content="https://www.onecavitepickleball.club/merch/tshirt-v2/">
 <meta property="og:site_name" content="One Cavite Pickleball Club">
 <meta property="og:type" content="website">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="OCPC Team Tee — ₱350">
+<meta name="twitter:title" content="OCPC T-Shirt V2 — ₱350">
 <meta name="twitter:description" content="Everyday club tee with the full front lockup and back icon strip.">
-<meta name="twitter:image" content="https://www.onecavitepickleball.club/assets/team-tee-front.webp">
+<meta name="twitter:image" content="https://www.onecavitepickleball.club/assets/tshirt-v2-front.webp">
 
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
 <link rel="apple-touch-icon" href="/assets/favicon-180.png">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#005E89">
-<link rel="canonical" href="https://www.onecavitepickleball.club/merch/team-tee/">
+<link rel="canonical" href="https://www.onecavitepickleball.club/merch/tshirt-v2/">
 <link rel="stylesheet" href="/styles.css">
 <style>
   .breadcrumb{
@@ -287,28 +287,28 @@
 
 <div class="wrap">
 
-  <div class="breadcrumb"><a href="/">Home</a> / <a href="/merch/">Shop</a> / OCPC Team Tee</div>
+  <div class="breadcrumb"><a href="/">Home</a> / <a href="/merch/">Shop</a> / OCPC T-Shirt V2</div>
 
   <div class="shop-hero">
     <div class="eyebrow">OCPC Shop</div>
-    <h1>OCPC Team Tee.</h1>
+    <h1>OCPC T-Shirt V2.</h1>
   </div>
 
   <!-- PRODUCT -->
   <div class="section product">
     <div class="product-media">
       <div class="product-image-frame">
-        <img id="productImg" src="/assets/team-tee-front.webp" alt="OCPC Team Tee — front">
+        <img id="productImg" src="/assets/tshirt-v2-front.webp" alt="OCPC T-Shirt V2 — front">
       </div>
       <div class="media-tabs" id="mediaTabs">
-        <button class="media-tab active" data-img="/assets/team-tee-front.webp">Front</button>
-        <button class="media-tab" data-img="/assets/team-tee-back.webp">Back</button>
+        <button class="media-tab active" data-img="/assets/tshirt-v2-front.webp">Front</button>
+        <button class="media-tab" data-img="/assets/tshirt-v2-back.webp">Back</button>
       </div>
     </div>
 
     <div class="product-info">
       <span class="tag">Everyday Tee</span>
-      <h2>OCPC Team Tee</h2>
+      <h2>OCPC T-Shirt V2</h2>
       <div class="price-row">
         <span class="price">₱350</span>
         <span class="price-note">per piece</span>
@@ -320,18 +320,7 @@
       </p>
 
       <div class="batch-note">
-        <b>How batch ordering works:</b> we place one bulk print run once we hit the minimum headcount, so pricing
-        stays at ₱350/piece. Minimum <b>10 pieces</b> to trigger a batch, and turnaround is roughly
-        <b>3–4 weeks</b> from when the batch closes.
-      </div>
-
-      <div class="batch-status">
-        <div class="batch-status-head">
-          <span class="batch-status-label">Batch Status</span>
-          <span class="batch-status-count" id="batchCount"></span>
-        </div>
-        <div class="batch-progress"><div class="batch-progress-fill" id="batchProgressFill"></div></div>
-        <div class="batch-status-note" id="batchStatusNote"></div>
+        <b>Fast turnaround:</b> unlike our batch-ordered apparel, this ships in <b>2–3 days</b> — no minimum headcount needed.
       </div>
 
       <div class="field-block">
@@ -684,14 +673,12 @@
     orderProofPreview.innerHTML = file ? `<img src="${URL.createObjectURL(file)}" alt="Payment proof preview">` : '';
   });
 
-  const PRODUCT_NAME = "OCPC Team Tee";
+  const PRODUCT_NAME = "OCPC T-Shirt V2";
 
   // ================= EDIT THESE AS NEEDED =================
   const PRICE = 350;
   const SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
 
-  const BATCH_MINIMUM = 10;
-  const CURRENT_ORDERS = 0;
   // ==========================================================
 
   let selectedSize = SIZES[2]; // default M
@@ -719,15 +706,6 @@
     orderTotal.textContent = `₱${(PRICE * qty).toLocaleString()}`;
   }
 
-  function renderBatchStatus(){
-    const remaining = Math.max(BATCH_MINIMUM - CURRENT_ORDERS, 0);
-    const pct = Math.min(100, Math.round((CURRENT_ORDERS / BATCH_MINIMUM) * 100));
-    document.getElementById('batchCount').textContent = `${CURRENT_ORDERS} / ${BATCH_MINIMUM}`;
-    document.getElementById('batchProgressFill').style.width = `${pct}%`;
-    document.getElementById('batchStatusNote').textContent = remaining === 0
-      ? 'Minimum reached — this batch is confirmed to print!'
-      : `${remaining} more order${remaining === 1 ? '' : 's'} needed to trigger this batch.`;
-  }
 
   document.getElementById('qtyMinus').addEventListener('click', () => {
     if (qty > 1) { qty--; updateTotal(); }
@@ -757,7 +735,6 @@
 
   renderSizes();
   updateTotal();
-  renderBatchStatus();
 
   // ================= ORDER MODAL =================
   const overlay = document.getElementById('orderModalOverlay');
