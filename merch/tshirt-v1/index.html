@@ -466,10 +466,10 @@
       </div>
 
       <div class="order-actions">
-        <a class="btn btn-primary" id="orderBtn" href="#" target="_blank" rel="noopener">Order Now</a>
+        <button class="btn btn-primary" type="button" id="orderBtn">Order Now</button>
         <a class="btn btn-ghost" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Ask a question</a>
       </div>
-      <div class="copy-note" id="copyNote">Your size is pre-filled in the order form — please also write "OCPC T-Shirt v1" and your chosen color when you submit.</div>
+      <div class="copy-note">We'll message you on Facebook to confirm payment once your order is placed.</div>
     </div>
   </div>
 
@@ -564,6 +564,53 @@
     </table>
   </div>
 
+  <div class="order-modal-overlay" id="orderModalOverlay">
+    <div class="order-modal" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
+      <button class="order-modal-close" id="orderModalClose" aria-label="Close">&times;</button>
+
+      <div id="orderModalFormView">
+        <h3 id="orderModalTitle">Complete Your Order</h3>
+        <div class="order-modal-summary" id="orderModalSummary"></div>
+
+        <form id="orderForm">
+          <div class="form-row">
+            <label for="orderFullName">Full Name</label>
+            <input type="text" id="orderFullName" required>
+          </div>
+          <div class="form-row">
+            <label for="orderContact">Contact Number</label>
+            <input type="tel" id="orderContact" required>
+          </div>
+          <div class="form-row">
+            <label for="orderFb">Facebook Name / Messenger</label>
+            <input type="text" id="orderFb" required>
+          </div>
+          <div class="form-row">
+            <label for="orderEmail">Email</label>
+            <input type="email" id="orderEmail" required>
+          </div>
+          <div class="form-row">
+            <label for="orderRef">GCash / Bank Reference No. <span class="optional-tag">(optional — you can send it later)</span></label>
+            <input type="text" id="orderRef">
+          </div>
+          <div class="form-row">
+            <label for="orderNotes">Notes <span class="optional-tag">(optional)</span></label>
+            <textarea id="orderNotes"></textarea>
+          </div>
+          <button class="btn btn-primary" type="submit" id="orderSubmitBtn" style="width:100%; justify-content:center;">Place Order</button>
+          <div class="order-modal-msg" id="orderFormMsg"></div>
+        </form>
+      </div>
+
+      <div id="orderModalSuccessView" style="display:none;">
+        <div class="order-success-icon">&#10003;</div>
+        <h3>Order Placed!</h3>
+        <p id="orderSuccessText"></p>
+        <button class="btn btn-primary" type="button" id="orderModalDoneBtn" style="width:100%; justify-content:center;">Done</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <footer>
@@ -588,20 +635,30 @@
 
 <script src="/script.js"></script>
 <script type="module" src="/nav-auth.js"></script>
-<script>
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const ordersCol = collection(db, "orders");
+
+  const PRODUCT_NAME = "OCPC T-Shirt v1";
+
   // ================= EDIT THESE AS NEEDED =================
   const PRICE = 400;
   const SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
 
   const BATCH_MINIMUM = 10;
   const CURRENT_ORDERS = 0;
-
-  // Google Form order link — same form/sheet as the Sublimation Uniform.
-  // It only has a Size field pre-filled today; the copy note above asks
-  // buyers to note the product name and color manually until a Product
-  // and Color question are added to the form (see chat for details).
-  const GOOGLE_FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSedmpi-wNFFX58PbiBcRxfegOSGQWel-CLdH1u69PF1VfgMnw/viewform?usp=pp_url";
-  const SIZE_ENTRY_ID = "entry.65803675";
 
   const COLORS = [
     { name: 'Red',      hex: '#C81E2A', front: '/assets/tshirt-v1-red-front.webp',      back: '/assets/tshirt-v1-red-back.webp' },
@@ -628,10 +685,6 @@
   const qtyVal = document.getElementById('qtyVal');
   const orderTotal = document.getElementById('orderTotal');
   const orderBtn = document.getElementById('orderBtn');
-
-  function updateOrderLink(){
-    orderBtn.href = `${GOOGLE_FORM_BASE}&${SIZE_ENTRY_ID}=${encodeURIComponent(selectedSize)}`;
-  }
 
   function renderImage(){
     const c = COLORS[selectedColorIdx];
@@ -662,7 +715,6 @@
       btn.addEventListener('click', () => {
         selectedSize = btn.dataset.size;
         renderSizes();
-        updateOrderLink();
       });
     });
   }
@@ -713,8 +765,77 @@
   renderImage();
   renderSizes();
   updateTotal();
-  updateOrderLink();
   renderBatchStatus();
+
+  // ================= ORDER MODAL =================
+  const overlay = document.getElementById('orderModalOverlay');
+  const closeBtn = document.getElementById('orderModalClose');
+  const doneBtn = document.getElementById('orderModalDoneBtn');
+  const formView = document.getElementById('orderModalFormView');
+  const successView = document.getElementById('orderModalSuccessView');
+  const summaryEl = document.getElementById('orderModalSummary');
+  const orderForm = document.getElementById('orderForm');
+  const orderFormMsg = document.getElementById('orderFormMsg');
+  const orderSubmitBtn = document.getElementById('orderSubmitBtn');
+
+  function openOrderModal(){
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    summaryEl.innerHTML = `
+      <div><b>${PRODUCT_NAME}</b> — ${COLORS[selectedColorIdx].name} · Size ${selectedSize} × ${qty}</div>
+      <div style="margin-top:6px;">Payment: <b>${method}</b></div>
+      <div style="margin-top:6px;">Total: <b>₱${(PRICE * qty).toLocaleString()}</b></div>
+    `;
+    overlay.classList.add('open');
+  }
+  function closeOrderModal(){ overlay.classList.remove('open'); }
+
+  orderBtn.addEventListener('click', openOrderModal);
+  closeBtn.addEventListener('click', closeOrderModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOrderModal(); });
+  doneBtn.addEventListener('click', () => {
+    closeOrderModal();
+    orderForm.reset();
+    formView.style.display = 'block';
+    successView.style.display = 'none';
+  });
+
+  orderForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    orderSubmitBtn.disabled = true;
+    orderSubmitBtn.textContent = 'Placing Order…';
+    orderFormMsg.textContent = '';
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const fullName = document.getElementById('orderFullName').value.trim();
+    try {
+      await addDoc(ordersCol, {
+        product: PRODUCT_NAME,
+        color: COLORS[selectedColorIdx].name,
+        size: selectedSize,
+        qty,
+        unitPrice: PRICE,
+        total: PRICE * qty,
+        paymentMethod: method,
+        paymentRef: document.getElementById('orderRef').value.trim(),
+        fullName,
+        contactNumber: document.getElementById('orderContact').value.trim(),
+        fbName: document.getElementById('orderFb').value.trim(),
+        email: document.getElementById('orderEmail').value.trim(),
+        notes: document.getElementById('orderNotes').value.trim(),
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      document.getElementById('orderSuccessText').textContent =
+        `Thanks, ${fullName.split(' ')[0] || 'there'}! We've recorded your order for ${PRODUCT_NAME}. We'll message you on Facebook to confirm payment.`;
+      formView.style.display = 'none';
+      successView.style.display = 'block';
+    } catch (err) {
+      orderFormMsg.style.color = 'var(--pop)';
+      orderFormMsg.textContent = 'Something went wrong placing your order — please try again or message us on Facebook.';
+    } finally {
+      orderSubmitBtn.disabled = false;
+      orderSubmitBtn.textContent = 'Place Order';
+    }
+  });
 </script>
 
 </body>

@@ -20,135 +20,194 @@
 <meta name="theme-color" content="#005E89">
 <link rel="stylesheet" href="/styles.css">
 <style>
-  .admin-hero{ padding:56px 0 12px; }
-  .admin-hero h1{
-    font-family: var(--font-display);
-    font-size:clamp(38px, 6vw, 58px);
-    line-height:0.95;
-    text-transform:uppercase;
-    max-width:640px;
+  /* ---- LOGIN ---- */
+  .admin-login-wrap{
+    max-width:400px; margin:64px auto 40px;
+    background: var(--white); border: 1.5px solid var(--line); border-radius:10px;
+    padding:36px;
   }
-  .admin-hero p{
-    margin-top:14px; font-size:15px; color: var(--ink-soft);
-    max-width:520px; line-height:1.6;
-  }
-
-  .admin-login-wrap{ max-width:420px; margin:0 auto; }
+  .admin-login-wrap h1{ font-family: var(--font-display); font-size:26px; text-transform:uppercase; margin-bottom:6px; }
+  .admin-login-wrap .sub{ font-size:13px; color: var(--ink-soft); margin-bottom:24px; }
   .form-row{ margin-bottom:16px; }
   .form-row label{
-    display:block;
-    font-family: var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color: var(--ink-faint);
-    margin-bottom:6px;
+    display:block; font-family: var(--font-mono); font-size:11px; letter-spacing:0.08em;
+    text-transform:uppercase; color: var(--ink-faint); margin-bottom:6px;
   }
-  .form-row input,
-  .form-row textarea{
-    width:100%;
-    border: 1.5px solid var(--line);
-    border-radius:4px;
-    padding:11px 13px;
-    font-family: var(--font-body);
-    font-size:14px;
-    color: var(--ink);
-    background: var(--white);
+  .form-row input, .form-row textarea{
+    width:100%; border: 1.5px solid var(--line); border-radius:4px; padding:11px 13px;
+    font-family: var(--font-body); font-size:14px; color: var(--ink); background: var(--white);
   }
-  .form-row input:focus,
-  .form-row textarea:focus{ outline:none; border-color: var(--sky-deep); }
+  .form-row input:focus, .form-row textarea:focus{ outline:none; border-color: var(--sky-deep); }
   .form-row textarea{ min-height:110px; resize:vertical; }
   .admin-msg{ font-size:12.5px; margin-top:8px; min-height:16px; }
 
-  /* ---- TABS ---- */
-  .admin-tabs{
-    display:flex;
-    gap:10px;
-    border-bottom: 1.5px solid var(--line);
-    margin-bottom:32px;
+  /* ---- DASHBOARD SHELL ---- */
+  .dash-shell{ display:flex; align-items:flex-start; gap:0; }
+  .dash-sidebar{
+    width:230px; flex-shrink:0;
+    background: var(--navy-deep); color: var(--paper);
+    border-radius:14px;
+    position:sticky; top:16px;
+    display:flex; flex-direction:column;
+    padding:22px 16px;
+    margin:16px 0;
   }
-  .admin-tab{
-    font-family: var(--font-mono);
-    font-size:12.5px;
-    letter-spacing:0.06em;
-    text-transform:uppercase;
-    padding:12px 4px;
-    background:none;
-    border:none;
-    border-bottom: 3px solid transparent;
-    margin-bottom:-1.5px;
-    cursor:pointer;
-    color: var(--ink-soft);
+  .dash-brand{ display:flex; align-items:center; gap:11px; padding:0 4px 20px; border-bottom:1px solid rgba(245,243,238,0.14); margin-bottom:18px; }
+  .dash-brand .logo-chip{
+    width:34px; height:34px; border-radius:8px; overflow:hidden; flex-shrink:0;
+    background: var(--paper); display:flex; align-items:center; justify-content:center;
   }
-  .admin-tab.active{ border-bottom-color: var(--pop); color: var(--ink); }
-  .admin-panel{ display:none; max-width:640px; }
-  .admin-panel.active{ display:block; }
+  .dash-brand .logo-chip img{ width:100%; height:100%; object-fit:contain; }
+  .dash-brand-title{ font-family: var(--font-display); font-size:13px; text-transform:uppercase; letter-spacing:0.02em; }
+  .dash-brand-sub{ font-size:11px; color: rgba(245,243,238,0.55); margin-top:2px; line-height:1.4; }
+  .dash-nav{ display:flex; flex-direction:column; gap:3px; flex:1; }
+  .dash-nav-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-family: var(--font-mono); font-size:12px; letter-spacing:0.04em; text-transform:uppercase;
+    color: rgba(245,243,238,0.68);
+    background:none; border:none; border-radius:7px;
+    padding:12px 13px; cursor:pointer; text-align:left;
+    transition: background .15s ease, color .15s ease;
+  }
+  .dash-nav-item:hover{ background: rgba(245,243,238,0.07); color: var(--paper); }
+  .dash-nav-item.active{ background: var(--sky-deep); color: var(--paper); }
+  .dash-nav-badge{
+    background: var(--pop); color: var(--paper); font-family: var(--font-mono);
+    font-size:10px; border-radius:10px; padding:2px 7px; flex-shrink:0;
+  }
+  .dash-signout{
+    margin-top:18px; padding:11px; border-radius:7px;
+    background:none; border: 1.5px solid rgba(245,243,238,0.22);
+    color: rgba(245,243,238,0.75); cursor:pointer;
+    font-family: var(--font-mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
+  }
+  .dash-signout:hover{ border-color: var(--paper); color: var(--paper); }
 
-  .admin-list{ margin-top:26px; border-top: 1.5px solid var(--line); padding-top:18px; }
+  .dash-main{ flex:1; min-width:0; padding:28px 0 80px 28px; }
+  .dash-panel{ display:none; }
+  .dash-panel.active{ display:block; }
+  .dash-panel-head{ margin-bottom:26px; }
+  .dash-panel-head h1{ font-family: var(--font-display); font-size:clamp(26px,4vw,36px); text-transform:uppercase; line-height:1; }
+  .dash-panel-head p{ margin-top:8px; font-size:14px; color: var(--ink-soft); }
+
+  .stat-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-bottom:20px; }
+  .stat-card{ background: var(--white); border: 1.5px solid var(--line); border-radius:8px; padding:19px 20px; }
+  .stat-label{ font-family: var(--font-mono); font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color: var(--ink-faint); }
+  .stat-value{ font-family: var(--font-display); font-size:28px; color: var(--ink); margin-top:8px; font-variant-numeric: tabular-nums; }
+  .stat-sub{ font-size:11.5px; color: var(--ink-soft); margin-top:6px; min-height:15px; }
+
+  .dash-grid-2{ display:grid; grid-template-columns: 1.4fr 1fr; gap:14px; }
+  .dash-card{ background: var(--white); border: 1.5px solid var(--line); border-radius:8px; padding:20px 22px; margin-bottom:14px; }
+  .dash-card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .dash-card-head h3{ font-size:14.5px; font-weight:700; }
+  .dash-link-btn{ background:none; border:none; cursor:pointer; font-family: var(--font-mono); font-size:11px; color: var(--sky-deep); text-transform:uppercase; letter-spacing:0.04em; }
+  .dash-link-btn:hover{ text-decoration:underline; }
+
+  .mini-chart{ display:flex; align-items:flex-end; gap:6px; height:110px; margin-bottom:20px; position:relative; }
+  .mini-chart-bar{ flex:1; background: var(--paper-dim); border-radius:3px 3px 0 0; position:relative; min-height:3px; align-self:flex-end; }
+  .mini-chart-bar-label{
+    position:absolute; top:calc(100% + 6px); left:0; right:0; text-align:center;
+    font-family: var(--font-mono); font-size:9px; color: var(--ink-faint);
+  }
+  .mini-chart-empty{ font-size:12.5px; color: var(--ink-faint); }
+
+  .top-product-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:13px; gap:10px; }
+  .top-product-row:last-child{ border-bottom:none; }
+  .top-product-row b{ font-family: var(--font-mono); color: var(--sky-deep); flex-shrink:0; }
+
+  .status-badge{
+    display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+    font-family: var(--font-mono); font-size:10px; letter-spacing:0.05em; text-transform:uppercase;
+    padding:4px 10px; border-radius:20px; font-weight:700;
+  }
+  .status-badge.pending{ background: rgba(184,134,11,0.14); color:#8a6206; }
+  .status-badge.paid{ background: rgba(44,147,222,0.14); color: var(--sky-deep); }
+  .status-badge.fulfilled{ background: rgba(46,125,50,0.14); color:#2E7D32; }
+  .status-badge.cancelled{ background: rgba(0,94,137,0.1); color: var(--pop); }
+
+  .mini-order-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .mini-order-row:last-child{ border-bottom:none; }
+  .mini-order-buyer{ font-weight:700; }
+  .mini-order-meta{ font-size:11.5px; color: var(--ink-soft); margin-top:2px; }
+  .mini-order-total{ font-family: var(--font-display); font-size:15px; color: var(--pop); flex-shrink:0; }
+
+  .orders-toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+  .orders-toolbar input, .orders-toolbar select{
+    border: 1.5px solid var(--line); border-radius:4px; padding:9px 12px;
+    font-family: var(--font-body); font-size:13.5px; background: var(--white); color: var(--ink);
+  }
+  .orders-toolbar input{ flex:1; min-width:180px; }
+
+  .orders-table-wrap{ background: var(--white); border: 1.5px solid var(--line); border-radius:8px; overflow-x:auto; }
+  .orders-table{ width:100%; border-collapse:collapse; font-size:13px; min-width:840px; }
+  .orders-table th{
+    font-family: var(--font-mono); font-size:10px; letter-spacing:0.06em; text-transform:uppercase;
+    color: var(--ink-faint); text-align:left; padding:14px 16px; border-bottom:1.5px solid var(--line);
+    white-space:nowrap;
+  }
+  .orders-table td{ padding:12px 16px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .orders-table tr:last-child td{ border-bottom:none; }
+  .orders-table tr:hover{ background: var(--paper-dim); }
+  .status-select{
+    font-family: var(--font-mono); font-size:10.5px; text-transform:uppercase;
+    border: 1.5px solid var(--line); border-radius:4px; padding:5px 6px; background: var(--white); color: var(--ink);
+  }
+  .order-row-name{ font-weight:700; }
+  .order-row-sub{ font-size:11px; color: var(--ink-faint); margin-top:2px; }
+  .order-view-btn{
+    background:none; border: 1.5px solid var(--line); border-radius:4px;
+    padding:5px 10px; font-family: var(--font-mono); font-size:10px; text-transform:uppercase;
+    color: var(--ink-soft); cursor:pointer; white-space:nowrap;
+  }
+  .order-view-btn:hover{ border-color: var(--sky-deep); color: var(--sky-deep); }
+
+  .order-detail-row{ display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .order-detail-row:last-child{ border-bottom:none; }
+  .order-detail-row .k{ font-family: var(--font-mono); font-size:11px; text-transform:uppercase; color: var(--ink-faint); flex-shrink:0; }
+  .order-detail-row .v{ text-align:right; }
+  .order-detail-actions{ display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; }
+
+  .panel-toolbar{ display:flex; justify-content:flex-end; margin-bottom:14px; }
+
+  @media (max-width: 900px){
+    .dash-shell{ flex-direction:column; }
+    .dash-sidebar{
+      width:100%; position:static; flex-direction:row; align-items:center;
+      overflow-x:auto; padding:14px 16px; gap:14px; margin:16px 0 0;
+    }
+    .dash-brand{ border-bottom:none; margin-bottom:0; padding-bottom:0; flex-shrink:0; }
+    .dash-nav{ flex-direction:row; flex:none; }
+    .dash-nav-item{ white-space:nowrap; }
+    .dash-signout{ margin-top:0; flex-shrink:0; }
+    .dash-main{ padding:22px 0 60px; }
+    .stat-grid{ grid-template-columns: repeat(2, 1fr); }
+    .dash-grid-2{ grid-template-columns:1fr; }
+  }
+
+  /* ---- Attendance / Members (existing components, restyled to fit) ---- */
+  .admin-list{ margin-top:22px; }
   .admin-list-label{
-    font-family: var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color: var(--ink-faint);
-    margin-bottom:12px;
+    font-family: var(--font-mono); font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase;
+    color: var(--ink-faint); margin-bottom:12px;
   }
   .admin-row{
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:10px;
-    padding:10px 0;
-    border-bottom: 1px solid var(--line);
-    font-size:13px;
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    padding:12px 16px; border-bottom: 1px solid var(--line); font-size:13px;
   }
+  .admin-row:last-child{ border-bottom:none; }
   .admin-row-date{ font-weight:700; }
   .admin-row-names{ color: var(--ink-soft); font-size:12.5px; margin-top:2px; }
   .admin-delete{
-    background:none;
-    border: 1.5px solid var(--line);
-    border-radius:50%;
-    width:26px; height:26px;
-    flex-shrink:0;
-    cursor:pointer;
-    color: var(--ink-faint);
-    font-size:15px;
-    line-height:1;
+    background:none; border: 1.5px solid var(--line); border-radius:50%;
+    width:26px; height:26px; flex-shrink:0; cursor:pointer;
+    color: var(--ink-faint); font-size:15px; line-height:1;
   }
   .admin-delete:hover{ border-color: var(--pop); color: var(--pop); }
 
-  .admin-signout{
-    margin-top:26px;
-    width:100%;
-    text-align:center;
-    padding:11px;
-    border: 1.5px solid var(--line);
-    border-radius:4px;
-    background:none;
-    cursor:pointer;
-    font-family: var(--font-mono);
-    font-size:11.5px;
-    letter-spacing:0.06em;
-    text-transform:uppercase;
-    color: var(--ink-soft);
-  }
-  .admin-signout:hover{ border-color: var(--pop); color: var(--pop); }
-
-  .signup-empty{ font-size:12.5px; color: var(--ink-faint); padding:6px 0; }
-  .signup-row{
-    display:flex;
-    align-items:flex-start;
-    gap:12px;
-    padding:14px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .signup-photo{
-    width:48px; height:48px;
-    border-radius:50%;
-    object-fit:cover;
-    background: var(--paper-dim);
-    flex-shrink:0;
-  }
+  .signup-empty{ font-size:12.5px; color: var(--ink-faint); padding:14px 16px; }
+  .signup-row{ display:flex; align-items:flex-start; gap:12px; padding:16px; border-bottom: 1px solid var(--line); }
+  .signup-row:last-child{ border-bottom:none; }
+  .signup-photo{ width:48px; height:48px; border-radius:50%; object-fit:cover; background: var(--paper-dim); flex-shrink:0; }
   .signup-body{ flex:1; min-width:0; }
   .signup-name{ font-weight:700; font-size:14.5px; }
   .signup-meta{ font-size:12.5px; color: var(--ink-soft); margin-top:2px; line-height:1.6; }
@@ -157,16 +216,9 @@
   .signup-count.not-eligible{ color: var(--ink-faint); }
   .signup-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
   .signup-btn{
-    font-family: var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.04em;
-    text-transform:uppercase;
-    border: 1.5px solid var(--line);
-    border-radius:20px;
-    padding:6px 14px;
-    background:none;
-    cursor:pointer;
-    color: var(--ink-soft);
+    font-family: var(--font-mono); font-size:11px; letter-spacing:0.04em; text-transform:uppercase;
+    border: 1.5px solid var(--line); border-radius:20px; padding:6px 14px;
+    background:none; cursor:pointer; color: var(--ink-soft);
   }
   .signup-btn.approve{ border-color: var(--sky-deep); color: var(--sky-deep); }
   .signup-btn.approve:hover{ background: var(--sky-deep); color: var(--white); }
@@ -174,25 +226,11 @@
 
   .att-chip-list{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
   .att-chip{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    background: var(--paper-dim);
-    border: 1.5px solid var(--line);
-    border-radius:20px;
-    padding:5px 8px 5px 12px;
-    font-size:12.5px;
-    font-weight:600;
+    display:inline-flex; align-items:center; gap:6px;
+    background: var(--paper-dim); border: 1.5px solid var(--line); border-radius:20px;
+    padding:5px 8px 5px 12px; font-size:12.5px; font-weight:600;
   }
-  .att-chip button{
-    background:none;
-    border:none;
-    cursor:pointer;
-    color: var(--ink-faint);
-    font-size:14px;
-    line-height:1;
-    padding:2px;
-  }
+  .att-chip button{ background:none; border:none; cursor:pointer; color: var(--ink-faint); font-size:14px; line-height:1; padding:2px; }
   .att-chip button:hover{ color: var(--pop); }
 </style>
 </head>
@@ -262,27 +300,16 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <div class="nav-account-panel" id="navAccountPanel">
-
           <div class="nav-account-promo">
-
             <span class="nav-account-promo-tag">Free</span>
-
             <h4>Join OCPC Free</h4>
-
             <p>Get on Meet the Club, birthday shoutouts, and your own player profile — sign up in a couple minutes.</p>
-
             <a class="btn-promo" href="/join/">Join For Free</a>
-
           </div>
-
           <div class="nav-account-links">
-
             <a class="nav-account-link" href="/profile/">Sign In</a>
-
             <a class="nav-account-link" href="/join/">Join For Free</a>
-
             <a class="nav-account-link" href="/meet-the-club/">About OCPC</a>
-
           </div>
         </div>
       </div>
@@ -290,88 +317,196 @@
   </div>
 </nav>
 
-<div class="wrap">
-
-  <div class="admin-hero">
-    <div class="eyebrow">OCPC Officers Only</div>
-    <h1>Admin.</h1>
-    <p>Record session attendance and manage player membership signups.</p>
-  </div>
-
-  <div class="section reveal">
-
-    <div id="adminLoginView" class="admin-login-wrap">
-      <form id="adminLoginForm">
-        <div class="form-row">
-          <label for="adminEmail">Email</label>
-          <input type="email" id="adminEmail" required autocomplete="username">
-        </div>
-        <div class="form-row">
-          <label for="adminPassword">Password</label>
-          <input type="password" id="adminPassword" required autocomplete="current-password">
-        </div>
-        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Sign In</button>
-        <div class="admin-msg" id="adminLoginError" style="color: var(--pop);"></div>
-      </form>
-    </div>
-
-    <div id="adminPanelView" style="display:none;">
-      <div class="admin-tabs">
-        <button class="admin-tab active" data-tab="attendance">Attendance</button>
-        <button class="admin-tab" data-tab="signups">Player Signups</button>
+<div id="adminLoginView" class="wrap">
+  <div class="admin-login-wrap">
+    <h1>Admin</h1>
+    <div class="sub">OCPC officers only.</div>
+    <form id="adminLoginForm">
+      <div class="form-row">
+        <label for="adminEmail">Email</label>
+        <input type="email" id="adminEmail" required autocomplete="username">
       </div>
+      <div class="form-row">
+        <label for="adminPassword">Password</label>
+        <input type="password" id="adminPassword" required autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Sign In</button>
+      <div class="admin-msg" id="adminLoginError" style="color: var(--pop);"></div>
+    </form>
+  </div>
+</div>
 
-      <div class="admin-panel active" id="attendancePanel">
-        <h3 id="attFormTitle" style="font-family:var(--font-display); font-size:22px; text-transform:uppercase; margin-bottom:6px;">Record Attendance</h3>
-        <div class="sub" id="attFormSub" style="font-size:13px; color:var(--ink-soft); margin-bottom:20px;">One entry per open play session. Add attendees below.</div>
-        <form id="attendanceForm">
-          <div class="form-row">
-            <label for="attDate">Session Date</label>
-            <input type="date" id="attDate" required>
-          </div>
-          <div class="form-row">
-            <label for="attNameInput">Attendees</label>
-            <input type="text" id="attNameInput" list="knownNamesList" autocomplete="off" placeholder="Type a name, press Enter to add">
-            <datalist id="knownNamesList"></datalist>
-            <div class="att-chip-list" id="attChipList"></div>
-          </div>
-          <button class="btn btn-primary" type="submit" id="attSubmitBtn" style="width:100%; justify-content:center;">Save Attendance</button>
-          <button class="admin-signout" type="button" id="attCancelBtn" style="display:none; margin-top:10px;">Cancel Edit</button>
-          <div class="admin-msg" id="attendanceMsg"></div>
-        </form>
+<div id="adminPanelView" class="wrap" style="display:none;">
+  <div class="dash-shell">
+    <aside class="dash-sidebar">
+      <div class="dash-brand">
+        <span class="logo-chip"><img src="/assets/logo.png" alt=""></span>
+        <div>
+          <div class="dash-brand-title">OCPC Admin</div>
+          <div class="dash-brand-sub" id="loggedInAs"></div>
+        </div>
+      </div>
+      <nav class="dash-nav">
+        <button class="dash-nav-item active" data-tab="overview">Overview</button>
+        <button class="dash-nav-item" data-tab="orders">Orders <span class="dash-nav-badge" id="pendingOrdersBadge" hidden></span></button>
+        <button class="dash-nav-item" data-tab="attendance">Attendance</button>
+        <button class="dash-nav-item" data-tab="members">Members <span class="dash-nav-badge" id="pendingSignupsBadge" hidden></span></button>
+      </nav>
+      <button class="dash-signout" id="signOutBtn">Sign Out</button>
+    </aside>
 
-        <div class="admin-list">
-          <div class="admin-list-label">Recent Entries</div>
+    <main class="dash-main">
+
+      <!-- ============ OVERVIEW ============ -->
+      <section class="dash-panel active" id="overviewPanel">
+        <div class="dash-panel-head">
+          <h1>Overview</h1>
+          <p>Store and club performance at a glance.</p>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value" id="statRevenue">₱0</div>
+            <div class="stat-sub" id="statRevenueSub">From paid &amp; fulfilled orders</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-value" id="statOrders">0</div>
+            <div class="stat-sub" id="statOrdersSub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pending Orders</div>
+            <div class="stat-value" id="statPending">0</div>
+            <div class="stat-sub">Awaiting confirmation</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Members</div>
+            <div class="stat-value" id="statMembers">0</div>
+            <div class="stat-sub" id="statMembersSub"></div>
+          </div>
+        </div>
+
+        <div class="dash-grid-2">
+          <div class="dash-card">
+            <div class="dash-card-head"><h3>Orders — Last 14 Days</h3></div>
+            <div class="mini-chart" id="ordersChart"></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-head"><h3>Top Products</h3></div>
+            <div id="topProducts"></div>
+          </div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <h3>Recent Orders</h3>
+            <button class="dash-link-btn" id="viewAllOrdersBtn" type="button">View all →</button>
+          </div>
+          <div id="recentOrdersList"></div>
+        </div>
+      </section>
+
+      <!-- ============ ORDERS ============ -->
+      <section class="dash-panel" id="ordersPanel">
+        <div class="dash-panel-head">
+          <h1>Orders</h1>
+          <p>Every order placed through the shop.</p>
+        </div>
+
+        <div class="orders-toolbar">
+          <input type="text" id="orderSearch" placeholder="Search name, contact, email…">
+          <select id="orderProductFilter">
+            <option value="">All Products</option>
+          </select>
+          <select id="orderStatusFilter">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="paid">Paid</option>
+            <option value="fulfilled">Fulfilled</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button class="signup-btn" id="exportOrdersBtn" type="button">Export CSV</button>
+        </div>
+
+        <div class="orders-table-wrap">
+          <table class="orders-table">
+            <thead>
+              <tr><th>Date</th><th>Product</th><th>Buyer</th><th>Qty</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="ordersTableBody"></tbody>
+          </table>
+          <div class="signup-empty" id="ordersEmpty" style="display:none;">No orders match your filters.</div>
+        </div>
+      </section>
+
+      <!-- ============ ATTENDANCE ============ -->
+      <section class="dash-panel" id="attendancePanel">
+        <div class="dash-panel-head">
+          <h1 id="attFormTitle">Attendance</h1>
+          <p id="attFormSub">One entry per open play session. Add attendees below.</p>
+        </div>
+
+        <div class="dash-card" style="max-width:560px;">
+          <form id="attendanceForm">
+            <div class="form-row">
+              <label for="attDate">Session Date</label>
+              <input type="date" id="attDate" required>
+            </div>
+            <div class="form-row">
+              <label for="attNameInput">Attendees</label>
+              <input type="text" id="attNameInput" list="knownNamesList" autocomplete="off" placeholder="Type a name, press Enter to add">
+              <datalist id="knownNamesList"></datalist>
+              <div class="att-chip-list" id="attChipList"></div>
+            </div>
+            <button class="btn btn-primary" type="submit" id="attSubmitBtn" style="width:100%; justify-content:center;">Save Attendance</button>
+            <button class="dash-signout" type="button" id="attCancelBtn" style="display:none; margin-top:10px; color:var(--ink-soft); border-color:var(--line);">Cancel Edit</button>
+            <div class="admin-msg" id="attendanceMsg"></div>
+          </form>
+        </div>
+
+        <div class="panel-toolbar">
+          <button class="signup-btn" id="exportAttendanceBtn" type="button">Export CSV</button>
+        </div>
+        <div class="orders-table-wrap">
+          <div class="admin-list-label" style="padding:14px 16px 0;">Recent Entries</div>
           <div id="adminList"></div>
         </div>
-      </div>
+      </section>
 
-      <div class="admin-panel" id="signupsPanel">
-        <div class="admin-list" style="margin-top:0; border-top:none; padding-top:0;">
-          <div class="admin-list-label">Pending Signups</div>
+      <!-- ============ MEMBERS ============ -->
+      <section class="dash-panel" id="membersPanel">
+        <div class="dash-panel-head">
+          <h1>Members</h1>
+          <p>Approve signups and manage active membership.</p>
+        </div>
+
+        <div class="panel-toolbar">
+          <button class="signup-btn" id="exportPlayersBtn" type="button">Export CSV</button>
+        </div>
+
+        <div class="dash-card-head"><h3>Pending Signups</h3></div>
+        <div class="orders-table-wrap" style="margin-bottom:24px;">
           <div id="pendingPlayersList"><div class="signup-empty">No pending signups.</div></div>
         </div>
 
-        <div class="admin-list">
-          <div class="admin-list-label">Active Members</div>
+        <div class="dash-card-head"><h3>Active Members</h3></div>
+        <div class="orders-table-wrap">
           <div id="activePlayersList"><div class="signup-empty">No active members yet.</div></div>
         </div>
-      </div>
+      </section>
 
-      <div class="admin-list">
-        <div class="admin-list-label">Backup / Export</div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="signup-btn" id="exportAttendanceBtn" type="button">Export Attendance (CSV)</button>
-          <button class="signup-btn" id="exportPlayersBtn" type="button">Export Players (CSV)</button>
-        </div>
-      </div>
-
-      <div class="admin-msg" id="loggedInAs" style="color: var(--ink-faint); text-align:center; margin-top:20px;"></div>
-      <button class="admin-signout" id="signOutBtn">Sign Out</button>
-    </div>
-
+    </main>
   </div>
+</div>
 
+<!-- Order detail modal (shares .order-modal styling defined in styles.css) -->
+<div class="order-modal-overlay" id="orderDetailOverlay">
+  <div class="order-modal">
+    <button class="order-modal-close" id="orderDetailClose" aria-label="Close">&times;</button>
+    <h3>Order Details</h3>
+    <div id="orderDetailBody"></div>
+  </div>
 </div>
 
 <footer>
@@ -397,7 +532,7 @@
 <script src="/script.js"></script>
 <script type="module" src="/nav-auth.js"></script>
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import {
     getFirestore, collection, addDoc, updateDoc, getDocs, getDoc, deleteDoc, doc, setDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
@@ -416,13 +551,15 @@
 
   const ADMIN_EMAIL = "ocpc.pickleball@gmail.com";
 
-  const app = initializeApp(firebaseConfig);
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
   const attendanceCol = collection(db, "attendance");
   const playersCol = collection(db, "players");
+  const ordersCol = collection(db, "orders");
 
   let allRecords = [];
+  let allOrders = [];
   let isAdmin = false;
 
   function isoDate(d){ return d.toISOString().slice(0, 10); }
@@ -431,21 +568,26 @@
     return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   }
 
-  // Normalizes a name for display regardless of how it was typed at signup
-  // (e.g. "MARVIN PONIENTE" or "marvin poniente" -> "Marvin Poniente").
   function toTitleCase(str){
     return String(str).replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   }
 
-  // ================= TABS =================
-  document.querySelectorAll('.admin-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.tab === 'attendance' ? 'attendancePanel' : 'signupsPanel').classList.add('active');
-    });
+  function orderDate(o){
+    return o.createdAt && o.createdAt.toDate ? o.createdAt.toDate() : null;
+  }
+
+  function fmtPeso(n){ return `₱${Math.round(n || 0).toLocaleString()}`; }
+
+  // ================= SIDEBAR TAB SWITCHING =================
+  function goToTab(tab){
+    document.querySelectorAll('.dash-nav-item').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`${tab}Panel`).classList.add('active');
+  }
+  document.querySelectorAll('.dash-nav-item').forEach(tab => {
+    tab.addEventListener('click', () => goToTab(tab.dataset.tab));
   });
+  document.getElementById('viewAllOrdersBtn').addEventListener('click', () => goToTab('orders'));
 
   // ================= AUTH =================
   const loginView = document.getElementById('adminLoginView');
@@ -454,8 +596,6 @@
   const loginError = document.getElementById('adminLoginError');
   const signOutBtn = document.getElementById('signOutBtn');
 
-  // Admin = the permanent super-admin account, OR a player promoted to
-  // role:'admin' by an existing admin (see the Active Members list below).
   async function checkIsAdmin(user){
     if (!user) return false;
     if (user.email === ADMIN_EMAIL) return true;
@@ -477,6 +617,7 @@
     if (isAdmin){
       loadAttendance();
       loadPlayers();
+      loadOrders();
       showLoggedInAs(user);
     }
   });
@@ -493,7 +634,7 @@
         }
       } catch (err) { /* fall back to email */ }
     }
-    el.textContent = `Logged in as ${label}`;
+    el.textContent = label;
   }
 
   loginForm.addEventListener('submit', async (e) => {
@@ -510,7 +651,7 @@
 
   signOutBtn.addEventListener('click', () => signOut(auth));
 
-  // ================= CSV EXPORT (backup) =================
+  // ================= CSV EXPORT =================
   function csvEscape(val){
     const str = val === null || val === undefined ? '' : String(val);
     if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
@@ -550,6 +691,242 @@
     downloadCSV(`ocpc-players-${isoDate(new Date())}.csv`, rows);
   });
 
+  document.getElementById('exportOrdersBtn').addEventListener('click', () => {
+    const rows = [['Date', 'Product', 'Color', 'Size', 'Qty', 'Unit Price', 'Total', 'Payment Method', 'Payment Ref', 'Full Name', 'Contact Number', 'FB Name', 'Email', 'Notes', 'Status']];
+    [...allOrders].sort((a, b) => (orderDate(b) || 0) - (orderDate(a) || 0)).forEach(o => {
+      const d = orderDate(o);
+      rows.push([
+        d ? isoDate(d) : '', o.product || '', o.color || '', o.size || '', o.qty || 0, o.unitPrice || 0, o.total || 0,
+        o.paymentMethod || '', o.paymentRef || '', o.fullName || '', o.contactNumber || '', o.fbName || '',
+        o.email || '', o.notes || '', o.status || ''
+      ]);
+    });
+    downloadCSV(`ocpc-orders-${isoDate(new Date())}.csv`, rows);
+  });
+
+  // ================= ORDERS =================
+  const orderSearch = document.getElementById('orderSearch');
+  const orderProductFilter = document.getElementById('orderProductFilter');
+  const orderStatusFilter = document.getElementById('orderStatusFilter');
+  const ordersTableBody = document.getElementById('ordersTableBody');
+  const ordersEmpty = document.getElementById('ordersEmpty');
+  const orderDetailOverlay = document.getElementById('orderDetailOverlay');
+  const orderDetailBody = document.getElementById('orderDetailBody');
+  const orderDetailClose = document.getElementById('orderDetailClose');
+
+  async function loadOrders(){
+    const snap = await getDocs(ordersCol);
+    allOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    populateProductFilter();
+    renderOrdersTable();
+    renderOverview();
+  }
+
+  function populateProductFilter(){
+    const products = Array.from(new Set(allOrders.map(o => o.product).filter(Boolean))).sort();
+    const current = orderProductFilter.value;
+    orderProductFilter.innerHTML = '<option value="">All Products</option>' +
+      products.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+    orderProductFilter.value = current;
+  }
+
+  function filteredOrders(){
+    const q = orderSearch.value.trim().toLowerCase();
+    const product = orderProductFilter.value;
+    const status = orderStatusFilter.value;
+    return allOrders.filter(o => {
+      if (product && o.product !== product) return false;
+      if (status && o.status !== status) return false;
+      if (q){
+        const hay = `${o.fullName || ''} ${o.contactNumber || ''} ${o.email || ''} ${o.fbName || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a, b) => (orderDate(b) || 0) - (orderDate(a) || 0));
+  }
+
+  function statusBadge(status){
+    const s = status || 'pending';
+    return `<span class="status-badge ${s}">${s}</span>`;
+  }
+
+  function renderOrdersTable(){
+    const rows = filteredOrders();
+    ordersEmpty.style.display = rows.length === 0 ? 'block' : 'none';
+    ordersTableBody.innerHTML = rows.map(o => {
+      const d = orderDate(o);
+      return `
+        <tr>
+          <td>${d ? isoDate(d) : '—'}</td>
+          <td>
+            <div class="order-row-name">${escapeHtml(o.product || '')}</div>
+            ${o.color ? `<div class="order-row-sub">${escapeHtml(o.color)}${o.size ? ' · ' + escapeHtml(o.size) : ''}</div>` : (o.size ? `<div class="order-row-sub">${escapeHtml(o.size)}</div>` : '')}
+          </td>
+          <td>
+            <div class="order-row-name">${escapeHtml(o.fullName || '')}</div>
+            <div class="order-row-sub">${escapeHtml(o.contactNumber || '')}</div>
+          </td>
+          <td>${o.qty || 0}</td>
+          <td>${fmtPeso(o.total)}</td>
+          <td>${escapeHtml(o.paymentMethod || '')}</td>
+          <td>
+            <select class="status-select" data-action="status" data-id="${o.id}">
+              <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="paid" ${o.status === 'paid' ? 'selected' : ''}>Paid</option>
+              <option value="fulfilled" ${o.status === 'fulfilled' ? 'selected' : ''}>Fulfilled</option>
+              <option value="cancelled" ${o.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+            </select>
+          </td>
+          <td><button class="order-view-btn" data-action="view" data-id="${o.id}">View</button></td>
+        </tr>
+      `;
+    }).join('');
+
+    ordersTableBody.querySelectorAll('[data-action="status"]').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        await updateDoc(doc(db, 'orders', sel.dataset.id), { status: sel.value });
+        const o = allOrders.find(x => x.id === sel.dataset.id);
+        if (o) o.status = sel.value;
+        renderOverview();
+      });
+    });
+    ordersTableBody.querySelectorAll('[data-action="view"]').forEach(btn => {
+      btn.addEventListener('click', () => openOrderDetail(btn.dataset.id));
+    });
+  }
+
+  function openOrderDetail(id){
+    const o = allOrders.find(x => x.id === id);
+    if (!o) return;
+    const d = orderDate(o);
+    orderDetailBody.innerHTML = `
+      <div class="order-detail-row"><span class="k">Product</span><span class="v">${escapeHtml(o.product || '')}</span></div>
+      ${o.color ? `<div class="order-detail-row"><span class="k">Color</span><span class="v">${escapeHtml(o.color)}</span></div>` : ''}
+      <div class="order-detail-row"><span class="k">Size</span><span class="v">${escapeHtml(o.size || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Qty</span><span class="v">${o.qty || 0}</span></div>
+      <div class="order-detail-row"><span class="k">Total</span><span class="v">${fmtPeso(o.total)}</span></div>
+      <div class="order-detail-row"><span class="k">Payment</span><span class="v">${escapeHtml(o.paymentMethod || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Ref No.</span><span class="v">${escapeHtml(o.paymentRef || '—')}</span></div>
+      <div class="order-detail-row"><span class="k">Name</span><span class="v">${escapeHtml(o.fullName || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Contact</span><span class="v">${escapeHtml(o.contactNumber || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Facebook</span><span class="v">${escapeHtml(o.fbName || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Email</span><span class="v">${escapeHtml(o.email || '')}</span></div>
+      ${o.notes ? `<div class="order-detail-row"><span class="k">Notes</span><span class="v">${escapeHtml(o.notes)}</span></div>` : ''}
+      <div class="order-detail-row"><span class="k">Placed</span><span class="v">${d ? d.toLocaleString() : '—'}</span></div>
+      <div class="order-detail-row"><span class="k">Status</span><span class="v">${statusBadge(o.status)}</span></div>
+      <div class="order-detail-actions">
+        <button class="signup-btn reject" id="orderDetailDeleteBtn">Delete Order</button>
+      </div>
+    `;
+    document.getElementById('orderDetailDeleteBtn').addEventListener('click', async () => {
+      if (!confirm('Delete this order permanently?')) return;
+      await deleteDoc(doc(db, 'orders', id));
+      allOrders = allOrders.filter(x => x.id !== id);
+      renderOrdersTable();
+      renderOverview();
+      closeOrderDetail();
+    });
+    orderDetailOverlay.classList.add('open');
+  }
+  function closeOrderDetail(){ orderDetailOverlay.classList.remove('open'); }
+  orderDetailClose.addEventListener('click', closeOrderDetail);
+  orderDetailOverlay.addEventListener('click', (e) => { if (e.target === orderDetailOverlay) closeOrderDetail(); });
+
+  orderSearch.addEventListener('input', renderOrdersTable);
+  orderProductFilter.addEventListener('change', renderOrdersTable);
+  orderStatusFilter.addEventListener('change', renderOrdersTable);
+
+  // ================= OVERVIEW =================
+  function renderOverview(){
+    const revenue = allOrders.filter(o => o.status === 'paid' || o.status === 'fulfilled').reduce((sum, o) => sum + (o.total || 0), 0);
+    const pending = allOrders.filter(o => o.status === 'pending' || !o.status).length;
+    const now = new Date();
+    const thisMonthCount = allOrders.filter(o => {
+      const d = orderDate(o);
+      return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+
+    document.getElementById('statRevenue').textContent = fmtPeso(revenue);
+    document.getElementById('statOrders').textContent = allOrders.length;
+    document.getElementById('statOrdersSub').textContent = `${thisMonthCount} this month`;
+    document.getElementById('statPending').textContent = pending;
+    const membersActive = (typeof allPlayers !== 'undefined' ? allPlayers.filter(p => p.status === 'active').length : 0);
+    document.getElementById('statMembers').textContent = membersActive;
+    document.getElementById('statMembersSub').textContent = (typeof allPlayers !== 'undefined' && allPlayers.some(p => p.status !== 'active'))
+      ? `${allPlayers.filter(p => p.status !== 'active').length} pending signup(s)` : '';
+
+    const pendingBadge = document.getElementById('pendingOrdersBadge');
+    pendingBadge.textContent = pending;
+    pendingBadge.hidden = pending === 0;
+
+    renderOrdersChart();
+    renderTopProducts();
+    renderRecentOrders();
+  }
+
+  function renderOrdersChart(){
+    const chart = document.getElementById('ordersChart');
+    const days = [];
+    for (let i = 13; i >= 0; i--){
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push({ key: isoDate(d), label: d.toLocaleDateString(undefined, { day: 'numeric' }), count: 0 });
+    }
+    const byKey = Object.fromEntries(days.map(d => [d.key, d]));
+    allOrders.forEach(o => {
+      const d = orderDate(o);
+      if (!d) return;
+      const key = isoDate(d);
+      if (byKey[key]) byKey[key].count++;
+    });
+    const max = Math.max(1, ...days.map(d => d.count));
+    if (allOrders.length === 0){
+      chart.innerHTML = '<div class="mini-chart-empty">No orders yet.</div>';
+      return;
+    }
+    chart.innerHTML = days.map(d => `
+      <div class="mini-chart-bar" style="height:${Math.max(3, Math.round((d.count / max) * 100))}%;" title="${d.key}: ${d.count} order(s)">
+        <div class="mini-chart-bar-label">${d.label}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderTopProducts(){
+    const el = document.getElementById('topProducts');
+    const byProduct = {};
+    allOrders.forEach(o => {
+      if (!o.product) return;
+      byProduct[o.product] = byProduct[o.product] || { count: 0, revenue: 0 };
+      byProduct[o.product].count += (o.qty || 1);
+      byProduct[o.product].revenue += (o.total || 0);
+    });
+    const rows = Object.entries(byProduct).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 5);
+    el.innerHTML = rows.length === 0
+      ? '<div class="signup-empty" style="padding:0;">No orders yet.</div>'
+      : rows.map(([name, s]) => `
+          <div class="top-product-row">
+            <span>${escapeHtml(name)}</span>
+            <b>${fmtPeso(s.revenue)}</b>
+          </div>
+        `).join('');
+  }
+
+  function renderRecentOrders(){
+    const el = document.getElementById('recentOrdersList');
+    const rows = [...allOrders].sort((a, b) => (orderDate(b) || 0) - (orderDate(a) || 0)).slice(0, 5);
+    el.innerHTML = rows.length === 0
+      ? '<div class="signup-empty" style="padding:0;">No orders yet — once someone checks out from the shop, they will show up here.</div>'
+      : rows.map(o => `
+          <div class="mini-order-row">
+            <div>
+              <div class="mini-order-buyer">${escapeHtml(o.fullName || '')}</div>
+              <div class="mini-order-meta">${escapeHtml(o.product || '')}${o.color ? ' · ' + escapeHtml(o.color) : ''}${o.size ? ' · ' + escapeHtml(o.size) : ''} ${statusBadge(o.status)}</div>
+            </div>
+            <div class="mini-order-total">${fmtPeso(o.total)}</div>
+          </div>
+        `).join('');
+  }
+
   // ================= ATTENDANCE =================
   const attendanceForm = document.getElementById('attendanceForm');
   const attendanceMsg = document.getElementById('attendanceMsg');
@@ -567,10 +944,6 @@
   let attNames = [];
   attDateEl.value = isoDate(new Date());
 
-  // Populates the name-input autocomplete with every name seen so far —
-  // full "First Last" names from approved roster signups (to help tell
-  // apart two players who share a first name) plus every distinct name
-  // string ever typed into attendance historically.
   async function loadKnownNames(){
     const names = new Set();
     allRecords.forEach(r => (r.names || []).forEach(n => { if (n && n.trim()) names.add(n.trim()); }));
@@ -621,7 +994,7 @@
     renderChips();
     attSubmitBtn.textContent = 'Save Attendance';
     attCancelBtn.style.display = 'none';
-    attFormTitle.textContent = 'Record Attendance';
+    attFormTitle.textContent = 'Attendance';
     attFormSub.textContent = 'One entry per open play session. Add attendees below.';
   }
 
@@ -721,9 +1094,6 @@
   const pendingPlayersList = document.getElementById('pendingPlayersList');
   const activePlayersList = document.getElementById('activePlayersList');
 
-  // Lifetime check-in count for a player, matched against the same
-  // case-insensitive name-string key the attendance system already uses —
-  // scans ALL attendance history, not just a rolling window.
   function lifetimeCheckins(firstName, lastName){
     const key = `${firstName} ${lastName}`.trim().toLowerCase();
     let count = 0;
@@ -745,11 +1115,16 @@
       return;
     }
     renderPlayerSignups();
+    renderOverview();
   }
 
   function renderPlayerSignups(){
     const pending = allPlayers.filter(p => p.status !== 'active');
     const active = allPlayers.filter(p => p.status === 'active');
+
+    const pendingBadge = document.getElementById('pendingSignupsBadge');
+    pendingBadge.textContent = pending.length;
+    pendingBadge.hidden = pending.length === 0;
 
     pendingPlayersList.innerHTML = pending.length === 0
       ? '<div class="signup-empty">No pending signups.</div>'

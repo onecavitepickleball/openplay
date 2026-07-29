@@ -59,5 +59,24 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Shop orders, placed straight from a product page's checkout modal —
+    // no login required to buy. Anyone can create an order (validated below),
+    // but only admins can read the list, change status, or delete — this is
+    // the only way order details (name, contact, payment ref) get exposed.
+    match /orders/{orderId} {
+      allow create: if
+        request.resource.data.status == 'pending'
+        && request.resource.data.product is string && request.resource.data.product.size() > 0
+        && request.resource.data.size is string && request.resource.data.size.size() > 0
+        && request.resource.data.qty is int && request.resource.data.qty > 0
+        && request.resource.data.total is number && request.resource.data.total > 0
+        && request.resource.data.fullName is string && request.resource.data.fullName.size() > 0
+        && request.resource.data.contactNumber is string && request.resource.data.contactNumber.size() > 0
+        && request.resource.data.fbName is string && request.resource.data.fbName.size() > 0
+        && request.resource.data.email is string && request.resource.data.email.size() > 0;
+
+      allow read, update, delete: if isAdmin();
+    }
   }
 }
