@@ -507,6 +507,11 @@
     align-items:center;
     width:max-content;
     animation: sponsorScroll 28s linear infinite;
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
   .sponsor-track:hover{ animation-play-state: paused; }
   .sponsor-logo-box{
@@ -528,8 +533,8 @@
   .sponsor-logo-box img:hover{ filter: grayscale(0) opacity(1); }
 
   @keyframes sponsorScroll{
-    from{ transform: translateX(0); }
-    to{ transform: translateX(-50%); }
+    from{ transform: translate3d(0,0,0); }
+    to{ transform: translate3d(-50%,0,0); }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -889,6 +894,11 @@
       <a href="/contact/">Contact</a>
       <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
 
+    </div>
+    <div class="foot-legal">
+      <a href="/privacy-policy/">Privacy Policy</a>
+      <a href="/accessibility/">Accessibility Help</a>
+      <a href="/privacy-notice/">Privacy Notice</a>
     </div>
     <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
   </div>

@@ -12,10 +12,10 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shop — One Cavite Pickleball Club</title>
-<meta name="description" content="Order the official OCPC sublimation uniform — batch orders, ₱600 each.">
+<meta name="description" content="Order official OCPC gear — the sublimation uniform and the new OCPC T-Shirt v1 — batch orders, ₱600 / ₱400 each.">
 
-<meta property="og:title" content="OCPC Shop — Sublimation Uniform">
-<meta property="og:description" content="Order the official OCPC sublimation uniform — batch orders, ₱600 each.">
+<meta property="og:title" content="OCPC Shop — Uniform &amp; T-Shirt v1">
+<meta property="og:description" content="Order official OCPC gear — the sublimation uniform and the new OCPC T-Shirt v1 — batch orders, ₱600 / ₱400 each.">
 <meta property="og:image" content="https://www.onecavitepickleball.club/assets/uniform-front.jpg">
 <meta property="og:image:width" content="564">
 <meta property="og:image:height" content="709">
@@ -24,8 +24,8 @@
 <meta property="og:type" content="website">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="OCPC Shop — Sublimation Uniform">
-<meta name="twitter:description" content="Order the official OCPC sublimation uniform — batch orders, ₱600 each.">
+<meta name="twitter:title" content="OCPC Shop — Uniform &amp; T-Shirt v1">
+<meta name="twitter:description" content="Order official OCPC gear — the sublimation uniform and the new OCPC T-Shirt v1 — batch orders, ₱600 / ₱400 each.">
 <meta name="twitter:image" content="https://www.onecavitepickleball.club/assets/uniform-front.jpg">
 
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
@@ -78,6 +78,25 @@
     transition: all .15s ease;
   }
   .media-tab.active{ background: var(--navy); border-color: var(--navy); color: var(--paper); }
+
+  .product-switcher{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .product-switch-opt{
+    font-family: var(--font-mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase;
+    background: transparent; border: 1.5px solid var(--line); color: var(--ink-soft);
+    padding:9px 16px; border-radius:3px; cursor:pointer; transition: all .15s ease;
+  }
+  .product-switch-opt:hover{ border-color: var(--ink); }
+  .product-switch-opt.active{ background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+  .color-grid{ display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+  .color-opt{
+    width:36px; height:36px; border-radius:50%; cursor:pointer;
+    border: 2px solid var(--line); transition: all .15s ease; padding:0; flex-shrink:0;
+  }
+  .color-opt:hover{ transform: scale(1.08); }
+  .color-opt.active{ border-color: var(--ink); box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
+  .color-name{ font-family: var(--font-mono); font-size:12.5px; color: var(--ink-soft); margin-top:10px; }
+  .color-name b{ color: var(--ink); }
 
   .product-info .tag{
     display:inline-block;
@@ -324,25 +343,30 @@
       <div class="product-image-frame">
         <img id="productImg" src="/assets/uniform-front.webp" alt="OCPC sublimation uniform">
       </div>
-      <div class="media-tabs">
-        <button class="media-tab active" data-img="/assets/uniform-front.webp">Front</button>
-        <button class="media-tab" data-img="/assets/uniform-back.webp">Back</button>
+      <div class="media-tabs" id="mediaTabs">
+        <button class="media-tab active" data-view="front">Front</button>
+        <button class="media-tab" data-view="back">Back</button>
       </div>
     </div>
 
     <div class="product-info">
-      <span class="tag">Batch Order</span>
-      <h2>OCPC Sublimation Uniform</h2>
-      <div class="price-row">
-        <span class="price">₱600</span>
-        <span class="price-note">per piece</span>
+      <div class="product-switcher" id="productSwitcher">
+        <button class="product-switch-opt active" data-product="uniform">Sublimation Uniform</button>
+        <button class="product-switch-opt" data-product="tshirt">OCPC T-Shirt v1</button>
       </div>
-      <p class="product-desc">
+
+      <span class="tag" id="productTag">Batch Order</span>
+      <h2 id="productName">OCPC Sublimation Uniform</h2>
+      <div class="price-row">
+        <span class="price" id="productPrice">₱600</span>
+        <span class="price-note" id="productPriceNote">per piece</span>
+      </div>
+      <p class="product-desc" id="productDesc">
         Full sublimation polo jersey with the official One Cavite Pickleball Club design — front crest,
         back nameplate strip, and player silhouette. Lightweight, breathable fabric built for long sessions on court.
       </p>
 
-      <div class="batch-note">
+      <div class="batch-note" id="batchNote">
         <b>How batch ordering works:</b> we place one bulk print run once we hit the minimum headcount, so pricing
         stays at ₱600/piece. Minimum <b>10 pieces</b> to trigger a batch, and turnaround is roughly
         <b>3–4 weeks</b> from when the batch closes.
@@ -355,6 +379,12 @@
         </div>
         <div class="batch-progress"><div class="batch-progress-fill" id="batchProgressFill"></div></div>
         <div class="batch-status-note" id="batchStatusNote"></div>
+      </div>
+
+      <div class="field-block" id="colorField" style="display:none;">
+        <div class="field-label">Color</div>
+        <div class="color-grid" id="colorGrid"></div>
+        <div class="color-name" id="colorName"></div>
       </div>
 
       <div class="field-block">
@@ -449,6 +479,7 @@
     <div class="more-soon">
       <span class="eyebrow">Coming Soon</span>
       More club gear — shorts, caps, and tote bags — is in the works. Watch our Facebook page for the next drop.
+      <br>New drop: the <b>OCPC T-Shirt v1</b> just landed — switch products above to check it out.
     </div>
   </div>
 
@@ -464,6 +495,11 @@
       <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
 
     </div>
+    <div class="foot-legal">
+      <a href="/privacy-policy/">Privacy Policy</a>
+      <a href="/accessibility/">Accessibility Help</a>
+      <a href="/privacy-notice/">Privacy Notice</a>
+    </div>
     <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
   </div>
 </footer>
@@ -472,36 +508,95 @@
 <script type="module" src="/nav-auth.js"></script>
 <script>
   // ================= EDIT THESE AS NEEDED =================
-  const PRICE = 600;
-  const SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
-
-  // Batch Status widget — update CURRENT_ORDERS as confirmed orders come in.
-  const BATCH_MINIMUM = 10;
-  const CURRENT_ORDERS = 4;
-
   // Google Form order link. GOOGLE_FORM_BASE is the pre-fill base URL for
   // your form (Form ⋮ menu → Get pre-filled link). SIZE_ENTRY_ID is the
   // field ID for the Size question on that form — this carries the size
-  // someone picks on the site straight into the form.
-  //
-  // Quantity isn't pre-filled yet. If you want that too: on your Google
-  // Form, use "Get pre-filled link" again, this time also filling in a
-  // sample Quantity answer, then send the resulting entry.XXXXXXX id for
-  // Quantity and I'll wire it in the same way.
+  // someone picks on the site straight into the form. Both products share
+  // the same order form for now — Product and Color aren't pre-filled
+  // fields yet, so buyers are asked to note those manually.
   const GOOGLE_FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSedmpi-wNFFX58PbiBcRxfegOSGQWel-CLdH1u69PF1VfgMnw/viewform?usp=pp_url";
   const SIZE_ENTRY_ID = "entry.65803675";
+
+  const SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
+
+  const PRODUCTS = {
+    uniform: {
+      tag: 'Batch Order',
+      name: 'OCPC Sublimation Uniform',
+      price: 600,
+      priceNote: 'per piece',
+      desc: `Full sublimation polo jersey with the official One Cavite Pickleball Club design — front crest,
+        back nameplate strip, and player silhouette. Lightweight, breathable fabric built for long sessions on court.`,
+      batchNote: `<b>How batch ordering works:</b> we place one bulk print run once we hit the minimum headcount, so pricing
+        stays at ₱600/piece. Minimum <b>10 pieces</b> to trigger a batch, and turnaround is roughly
+        <b>3–4 weeks</b> from when the batch closes.`,
+      batchMinimum: 10,
+      batchCurrent: 4,
+      hasColors: false,
+      images: { front: '/assets/uniform-front.webp', back: '/assets/uniform-back.webp' },
+      imageAlt: 'OCPC sublimation uniform',
+      copyNote: 'Your size is pre-filled in the order form — just add your details and submit.'
+    },
+    tshirt: {
+      tag: 'Heat Press',
+      name: 'OCPC T-Shirt v1',
+      price: 400,
+      priceNote: 'per piece',
+      desc: `Heat-pressed cotton tee — not sublimation — with the official One Cavite Pickleball Club front logo
+        and the vertical OCPC icon strip on the back. Everyday wear for on-court or off-court, in 8 colors.`,
+      batchNote: `<b>How batch ordering works:</b> we place one bulk print run once we hit the minimum headcount, so pricing
+        stays at ₱400/piece. Minimum <b>10 pieces</b> to trigger a batch, and turnaround is roughly
+        <b>3–4 weeks</b> from when the batch closes.`,
+      batchMinimum: 10,
+      batchCurrent: 0,
+      hasColors: true,
+      colors: [
+        { name: 'Red',     hex: '#C81E2A', front: '/assets/tshirt-v1-red-front.webp',      back: '/assets/tshirt-v1-red-back.webp' },
+        { name: 'Navy',    hex: '#1B2350', front: '/assets/tshirt-v1-navy-front.webp',     back: '/assets/tshirt-v1-navy-back.webp' },
+        { name: 'Mint',    hex: '#8FCBAE', front: '/assets/tshirt-v1-mint-front.webp',     back: '/assets/tshirt-v1-mint-back.webp' },
+        { name: 'Purple',  hex: '#8756D6', front: '/assets/tshirt-v1-purple-front.webp',   back: '/assets/tshirt-v1-purple-back.webp' },
+        { name: 'White',   hex: '#F5F5F0', front: '/assets/tshirt-v1-white-front.webp',    back: '/assets/tshirt-v1-white-back.webp' },
+        { name: 'Charcoal',hex: '#54555A', front: '/assets/tshirt-v1-charcoal-front.webp', back: '/assets/tshirt-v1-charcoal-back.webp' },
+        { name: 'Orchid',  hex: '#DE9FD8', front: '/assets/tshirt-v1-orchid-front.webp',   back: '/assets/tshirt-v1-orchid-back.webp' },
+        { name: 'Black',   hex: '#141414', front: '/assets/tshirt-v1-black-front.webp',    back: '/assets/tshirt-v1-black-back.webp' },
+      ],
+      imageAlt: 'OCPC T-Shirt v1',
+      copyNote: 'Your size is pre-filled in the order form — please also write the product name "OCPC T-Shirt v1" and your chosen color when you submit.'
+    }
+  };
   // ==========================================================
 
+  let currentProductKey = 'uniform';
+  let selectedColorIdx = 0;
+  let currentView = 'front';
   let selectedSize = SIZES[2]; // default to M
   let qty = 1;
 
   const sizeGrid = document.getElementById('sizeGrid');
+  const colorField = document.getElementById('colorField');
+  const colorGrid = document.getElementById('colorGrid');
+  const colorNameEl = document.getElementById('colorName');
   const qtyVal = document.getElementById('qtyVal');
   const orderTotal = document.getElementById('orderTotal');
   const orderBtn = document.getElementById('orderBtn');
+  const productImg = document.getElementById('productImg');
+  const mediaTabs = document.getElementById('mediaTabs');
+  const copyNote = document.getElementById('copyNote');
+
+  function currentProduct(){ return PRODUCTS[currentProductKey]; }
+
+  function currentImages(){
+    const p = currentProduct();
+    return p.hasColors ? p.colors[selectedColorIdx] : p.images;
+  }
 
   function updateOrderLink(){
     orderBtn.href = `${GOOGLE_FORM_BASE}&${SIZE_ENTRY_ID}=${encodeURIComponent(selectedSize)}`;
+  }
+
+  function renderImage(){
+    productImg.src = currentImages()[currentView];
+    productImg.alt = `${currentProduct().imageAlt}${currentProduct().hasColors ? ' — ' + currentProduct().colors[selectedColorIdx].name : ''} (${currentView})`;
   }
 
   function renderSizes(){
@@ -517,19 +612,58 @@
     });
   }
 
+  function renderColors(){
+    const p = currentProduct();
+    if (!p.hasColors){
+      colorField.style.display = 'none';
+      return;
+    }
+    colorField.style.display = '';
+    colorGrid.innerHTML = p.colors.map((c, i) => `
+      <button class="color-opt ${i === selectedColorIdx ? 'active' : ''}" data-idx="${i}"
+        style="background:${c.hex};" title="${c.name}" aria-label="${c.name}"></button>
+    `).join('');
+    colorNameEl.innerHTML = `Color: <b>${p.colors[selectedColorIdx].name}</b>`;
+    colorGrid.querySelectorAll('.color-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedColorIdx = parseInt(btn.dataset.idx, 10);
+        renderColors();
+        renderImage();
+      });
+    });
+  }
+
   function updateTotal(){
     qtyVal.textContent = qty;
-    orderTotal.textContent = `₱${(PRICE * qty).toLocaleString()}`;
+    orderTotal.textContent = `₱${(currentProduct().price * qty).toLocaleString()}`;
   }
 
   function renderBatchStatus(){
-    const remaining = Math.max(BATCH_MINIMUM - CURRENT_ORDERS, 0);
-    const pct = Math.min(100, Math.round((CURRENT_ORDERS / BATCH_MINIMUM) * 100));
-    document.getElementById('batchCount').textContent = `${CURRENT_ORDERS} / ${BATCH_MINIMUM}`;
+    const p = currentProduct();
+    const remaining = Math.max(p.batchMinimum - p.batchCurrent, 0);
+    const pct = Math.min(100, Math.round((p.batchCurrent / p.batchMinimum) * 100));
+    document.getElementById('batchCount').textContent = `${p.batchCurrent} / ${p.batchMinimum}`;
     document.getElementById('batchProgressFill').style.width = `${pct}%`;
     document.getElementById('batchStatusNote').textContent = remaining === 0
       ? 'Minimum reached — this batch is confirmed to print!'
       : `${remaining} more order${remaining === 1 ? '' : 's'} needed to trigger this batch.`;
+  }
+
+  function renderProduct(){
+    const p = currentProduct();
+    document.getElementById('productTag').textContent = p.tag;
+    document.getElementById('productName').textContent = p.name;
+    document.getElementById('productPrice').textContent = `₱${p.price}`;
+    document.getElementById('productPriceNote').textContent = p.priceNote;
+    document.getElementById('productDesc').innerHTML = p.desc;
+    document.getElementById('batchNote').innerHTML = p.batchNote;
+    copyNote.textContent = p.copyNote;
+    currentView = 'front';
+    mediaTabs.querySelectorAll('.media-tab').forEach(t => t.classList.toggle('active', t.dataset.view === 'front'));
+    renderColors();
+    renderImage();
+    updateTotal();
+    renderBatchStatus();
   }
 
   document.getElementById('qtyMinus').addEventListener('click', () => {
@@ -539,12 +673,24 @@
     qty++; updateTotal();
   });
 
+  // product switcher
+  document.querySelectorAll('.product-switch-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentProductKey = btn.dataset.product;
+      selectedColorIdx = 0;
+      document.querySelectorAll('.product-switch-opt').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderProduct();
+    });
+  });
+
   // front/back image toggle
-  document.querySelectorAll('.media-tab').forEach(tab => {
+  mediaTabs.querySelectorAll('.media-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
+      mediaTabs.querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-      document.getElementById('productImg').src = tab.dataset.img;
+      currentView = tab.dataset.view;
+      renderImage();
     });
   });
 
@@ -567,9 +713,8 @@
   updateMethodPanel();
 
   renderSizes();
-  updateTotal();
   updateOrderLink();
-  renderBatchStatus();
+  renderProduct();
 </script>
 
 </body>
