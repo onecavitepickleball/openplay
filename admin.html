@@ -856,9 +856,16 @@
       <div class="order-detail-row"><span class="k">Contact</span><span class="v">${escapeHtml(o.contactNumber || '')}</span></div>
       <div class="order-detail-row"><span class="k">Facebook</span><span class="v">${escapeHtml(o.fbName || '')}</span></div>
       <div class="order-detail-row"><span class="k">Email</span><span class="v">${escapeHtml(o.email || '')}</span></div>
+      ${o.address ? `<div class="order-detail-row"><span class="k">Address</span><span class="v">${escapeHtml([o.address.street, o.address.barangay, o.address.city, o.address.province, o.address.zip].filter(Boolean).join(', '))}</span></div>` : ''}
       ${o.notes ? `<div class="order-detail-row"><span class="k">Notes</span><span class="v">${escapeHtml(o.notes)}</span></div>` : ''}
       <div class="order-detail-row"><span class="k">Placed</span><span class="v">${d ? d.toLocaleString() : '—'}</span></div>
       <div class="order-detail-row"><span class="k">Status</span><span class="v">${statusBadge(o.status)}</span></div>
+      ${o.paymentProofURL ? `
+        <div class="order-detail-row" style="align-items:center;">
+          <span class="k">Proof of Payment</span>
+          <span class="v"><a href="${o.paymentProofURL}" target="_blank" rel="noopener"><img src="${o.paymentProofURL}" alt="Payment proof" style="max-width:120px; border-radius:6px; border:1.5px solid var(--line); display:block;"></a></span>
+        </div>
+      ` : ''}
       <div class="order-detail-actions">
         <button class="signup-btn reject" id="orderDetailDeleteBtn">Delete Order</button>
       </div>
