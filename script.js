@@ -102,41 +102,89 @@ document.addEventListener('DOMContentLoaded', () => {
     searchResults.innerHTML = '';
   }
 
-  const SEARCH_INDEX = [
-    { title: 'Home', desc: 'Open play schedule & club overview', url: '/', kw: 'schedule open play home this week' },
-    { title: 'Meet the Club', desc: 'Player roster', url: '/meet-the-club/', kw: 'players roster members' },
-    { title: 'Events', desc: 'Outings, tournaments & recaps', url: '/events/', kw: 'tournament outing rainbow rally zambales' },
-    { title: 'My Profile', desc: 'Manage your player profile', url: '/profile/', kw: 'login account sign in profile' },
-    { title: 'Join OCPC', desc: 'Sign up as a player', url: '/join/', kw: 'signup register join new player' },
-    { title: 'Gear Picks', desc: 'Recommended paddles & gear', url: '/gear/', kw: 'paddle shoes bag grip gear equipment' },
-    { title: 'Gallery', desc: 'Photos from sessions & events', url: '/gallery/', kw: 'photos pictures gallery' },
-    { title: 'Queue', desc: 'Live open play queue', url: '/queue/', kw: 'queue court rotation' },
-    { title: 'Leaderboard', desc: 'Most active players', url: '/leaderboard/', kw: 'leaderboard rank top players stats' },
-    { title: 'Coaching', desc: 'Coaching sessions & clinics', url: '/coaching/', kw: 'coach lesson clinic training' },
-    { title: 'Rules & Etiquette', desc: 'Pickleball basics for beginners', url: '/rules/', kw: 'rules etiquette kitchen scoring beginner' },
-    { title: 'Featured Courts', desc: 'Court spotlight', url: '/featured-courts/', kw: 'courts venues' },
-    { title: 'Birthdays', desc: 'This month’s celebrants', url: '/birthdays/', kw: 'birthday celebrant' },
-    { title: 'Contact', desc: 'Get in touch with OCPC', url: '/contact/', kw: 'contact email message ask' },
-    { title: 'Personality Quiz', desc: 'What pickleball player are you?', url: '/quiz/', kw: 'quiz fun personality' },
-    { title: 'Shop', desc: 'Uniform & OCPC T-Shirt v1', url: '/merch/', kw: 'shop merch uniform tshirt shirt sublimation heat press order' },
-    { title: 'Zambales Trip', desc: 'OCPC Goes to Zambales recap', url: '/zambales-trip/', kw: 'zambales trip pampanga highgrounds' },
-    { title: 'Privacy Policy', desc: 'How we handle your data', url: '/privacy-policy/', kw: 'privacy data legal' },
-    { title: 'Accessibility Help', desc: 'Accessibility commitment & feedback', url: '/accessibility/', kw: 'accessibility a11y disability' },
-    { title: 'Privacy Notice', desc: 'Quick data collection summary', url: '/privacy-notice/', kw: 'privacy notice data rights' },
-    { title: 'Terms & Conditions', desc: 'Rules for using OCPC & this site', url: '/terms/', kw: 'terms conditions legal waiver liability' },
-    { title: 'Social Media Policy', desc: 'Guidelines for our social channels', url: '/social-media-policy/', kw: 'social media facebook policy' },
+  // Every real page on the site, with a short fallback description used
+  // when a match is on the title only (no body snippet available yet).
+  const SEARCH_PAGES = [
+    { title: 'Home', desc: 'Open play schedule & club overview', url: '/' },
+    { title: 'Meet the Club', desc: 'Player roster', url: '/meet-the-club/' },
+    { title: 'Events', desc: 'Outings, tournaments & recaps', url: '/events/' },
+    { title: 'My Profile', desc: 'Manage your player profile', url: '/profile/' },
+    { title: 'Join OCPC', desc: 'Sign up as a player', url: '/join/' },
+    { title: 'Gear Picks', desc: 'Recommended paddles & gear', url: '/gear/' },
+    { title: 'Gallery', desc: 'Photos from sessions & events', url: '/gallery/' },
+    { title: 'Queue', desc: 'Live open play queue', url: '/queue/' },
+    { title: 'Leaderboard', desc: 'Most active players', url: '/leaderboard/' },
+    { title: 'Coaching', desc: 'Coaching sessions & clinics', url: '/coaching/' },
+    { title: 'Rules & Etiquette', desc: 'Pickleball basics for beginners', url: '/rules/' },
+    { title: 'Featured Courts', desc: 'Court spotlight', url: '/featured-courts/' },
+    { title: 'Birthdays', desc: 'This month’s celebrants', url: '/birthdays/' },
+    { title: 'Contact', desc: 'Get in touch with OCPC', url: '/contact/' },
+    { title: 'Personality Quiz', desc: 'What pickleball player are you?', url: '/quiz/' },
+    { title: 'Shop', desc: 'Uniform & OCPC T-Shirt v1', url: '/merch/' },
+    { title: 'Zambales Trip', desc: 'OCPC Goes to Zambales recap', url: '/zambales-trip/' },
+    { title: 'Privacy Policy', desc: 'How we handle your data', url: '/privacy-policy/' },
+    { title: 'Accessibility Help', desc: 'Accessibility commitment & feedback', url: '/accessibility/' },
+    { title: 'Privacy Notice', desc: 'Quick data collection summary', url: '/privacy-notice/' },
+    { title: 'Terms & Conditions', desc: 'Rules for using OCPC & this site', url: '/terms/' },
+    { title: 'Social Media Policy', desc: 'Guidelines for our social channels', url: '/social-media-policy/' },
   ];
 
-  function renderSearchResults(query){
-    const q = query.trim().toLowerCase();
-    if (!q) {
-      searchResults.innerHTML = '';
-      searchWrap.classList.remove('results-open');
-      return;
+  // Full-text index is built by actually fetching every page once and
+  // reading its visible text — so a search for something that only
+  // appears in a page's body (like a court name) still finds it, not
+  // just titles. Cached in sessionStorage so it only happens once per
+  // browser tab, not on every keystroke or page navigation.
+  const SEARCH_INDEX_CACHE_KEY = 'ocpc_search_text_index_v1';
+  let searchIndexPromise = null;
+
+  function stripAndExtractText(html){
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script, style, nav, footer, noscript').forEach(el => el.remove());
+    const raw = (doc.body ? doc.body.textContent : '') || '';
+    return raw.replace(/\s+/g, ' ').trim();
+  }
+
+  function buildSearchIndex(){
+    if (searchIndexPromise) return searchIndexPromise;
+
+    let cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem(SEARCH_INDEX_CACHE_KEY) || 'null'); } catch (err) {}
+    if (cached && Array.isArray(cached) && cached.length === SEARCH_PAGES.length) {
+      searchIndexPromise = Promise.resolve(cached);
+      return searchIndexPromise;
     }
-    const matches = SEARCH_INDEX.filter(item =>
-      item.title.toLowerCase().includes(q) || item.kw.includes(q)
-    ).slice(0, 8);
+
+    searchIndexPromise = Promise.all(SEARCH_PAGES.map(p =>
+      fetch(p.url).then(r => r.text()).then(html => ({
+        title: p.title, url: p.url, desc: p.desc, text: stripAndExtractText(html)
+      })).catch(() => ({ title: p.title, url: p.url, desc: p.desc, text: '' }))
+    )).then(results => {
+      try { sessionStorage.setItem(SEARCH_INDEX_CACHE_KEY, JSON.stringify(results)); } catch (err) {}
+      return results;
+    });
+    return searchIndexPromise;
+  }
+
+  // Kick the crawl off in the background as soon as the page is idle, so
+  // the index is usually already warm by the time someone opens search.
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => buildSearchIndex());
+  } else {
+    setTimeout(() => buildSearchIndex(), 1500);
+  }
+
+  function snippetAround(text, q){
+    const lower = text.toLowerCase();
+    const pos = lower.indexOf(q);
+    if (pos === -1) return '';
+    const start = Math.max(0, pos - 36);
+    const end = Math.min(text.length, pos + q.length + 60);
+    return (start > 0 ? '…' : '') + text.slice(start, end).trim() + (end < text.length ? '…' : '');
+  }
+
+  let searchRequestToken = 0;
+
+  function paintSearchMatches(matches, query){
     searchWrap.classList.add('results-open');
     searchResults.innerHTML = matches.length
       ? matches.map(m => `
@@ -146,6 +194,37 @@ document.addEventListener('DOMContentLoaded', () => {
           </a>
         `).join('')
       : `<div class="nav-search-empty">No matches for “${query}”</div>`;
+  }
+
+  function renderSearchResults(query){
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      searchResults.innerHTML = '';
+      searchWrap.classList.remove('results-open');
+      return;
+    }
+
+    const token = ++searchRequestToken;
+
+    // Instant pass off page titles, so results never feel laggy.
+    const titleMatches = SEARCH_PAGES
+      .filter(p => p.title.toLowerCase().includes(q))
+      .map(p => ({ title: p.title, url: p.url, desc: p.desc }));
+    paintSearchMatches(titleMatches, query);
+
+    buildSearchIndex().then(index => {
+      if (token !== searchRequestToken) return; // input changed since this search started
+      const seen = new Set(titleMatches.map(m => m.url));
+      const bodyMatches = [];
+      index.forEach(p => {
+        if (seen.has(p.url)) return;
+        const titleHit = p.title.toLowerCase().includes(q);
+        const snippet = p.text ? snippetAround(p.text, q) : '';
+        if (!titleHit && !snippet) return;
+        bodyMatches.push({ title: p.title, url: p.url, desc: snippet || p.desc });
+      });
+      paintSearchMatches(titleMatches.concat(bodyMatches).slice(0, 10), query);
+    });
   }
 
   if (searchWrap && searchBtn && searchInput) {
