@@ -580,6 +580,14 @@
             <input type="text" id="orderRef">
           </div>
           <div class="form-row">
+            <label for="orderDiscountCode">Discount Code <span class="optional-tag">(optional)</span></label>
+            <div class="discount-row">
+              <input type="text" id="orderDiscountCode" placeholder="e.g. OCPC10">
+              <button type="button" class="discount-apply-btn" id="applyDiscountBtn">Apply</button>
+            </div>
+            <div class="discount-msg" id="discountMsg"></div>
+          </div>
+          <div class="form-row">
             <label for="orderNotes">Notes <span class="optional-tag">(optional)</span></label>
             <textarea id="orderNotes"></textarea>
           </div>
@@ -624,7 +632,7 @@
 <script type="module" src="/nav-auth.js"></script>
 <script type="module">
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -732,14 +740,34 @@
   const orderForm = document.getElementById('orderForm');
   const orderFormMsg = document.getElementById('orderFormMsg');
   const orderSubmitBtn = document.getElementById('orderSubmitBtn');
+  const discountCodeInput = document.getElementById('orderDiscountCode');
+  const discountMsg = document.getElementById('discountMsg');
+  const applyDiscountBtn = document.getElementById('applyDiscountBtn');
 
-  function openOrderModal(){
+  let appliedDiscount = null; // { code, type, value, amount }
+
+  function renderSummary(){
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const subtotal = PRICE * qty;
+    const discountAmount = appliedDiscount ? appliedDiscount.amount : 0;
+    const total = Math.max(0, subtotal - discountAmount);
     summaryEl.innerHTML = `
       <div><b>${PRODUCT_NAME}</b> — Size ${selectedSize} × ${qty}</div>
       <div style="margin-top:6px;">Payment: <b>${method}</b></div>
-      <div style="margin-top:6px;">Total: <b>₱${(PRICE * qty).toLocaleString()}</b></div>
+      ${appliedDiscount ? `
+        <div style="margin-top:6px;">Subtotal: ₱${subtotal.toLocaleString()}</div>
+        <div style="margin-top:2px; color:#2E7D32;">Discount (${appliedDiscount.code}): −₱${discountAmount.toLocaleString()}</div>
+      ` : ''}
+      <div style="margin-top:6px;">Total: <b>₱${total.toLocaleString()}</b></div>
     `;
+  }
+
+  function openOrderModal(){
+    appliedDiscount = null;
+    discountCodeInput.value = '';
+    discountMsg.textContent = '';
+    discountMsg.className = 'discount-msg';
+    renderSummary();
     overlay.classList.add('open');
   }
   function closeOrderModal(){ overlay.classList.remove('open'); }
@@ -750,8 +778,46 @@
   doneBtn.addEventListener('click', () => {
     closeOrderModal();
     orderForm.reset();
+    appliedDiscount = null;
     formView.style.display = 'block';
     successView.style.display = 'none';
+  });
+
+  applyDiscountBtn.addEventListener('click', async () => {
+    const code = discountCodeInput.value.trim().toUpperCase();
+    discountMsg.className = 'discount-msg';
+    if (!code){
+      discountMsg.classList.add('error');
+      discountMsg.textContent = 'Enter a code first.';
+      return;
+    }
+    applyDiscountBtn.disabled = true;
+    applyDiscountBtn.textContent = 'Checking…';
+    try {
+      const snap = await getDoc(doc(db, 'discountCodes', code));
+      if (!snap.exists() || snap.data().active === false){
+        appliedDiscount = null;
+        discountMsg.classList.add('error');
+        discountMsg.textContent = "That code isn't valid.";
+      } else {
+        const d = snap.data();
+        const subtotal = PRICE * qty;
+        const amount = d.type === 'percent'
+          ? Math.round(subtotal * (d.value / 100))
+          : Math.min(subtotal, d.value);
+        appliedDiscount = { code, type: d.type, value: d.value, amount };
+        discountMsg.classList.add('success');
+        discountMsg.textContent = `Applied — −₱${amount.toLocaleString()}`;
+      }
+    } catch (err) {
+      appliedDiscount = null;
+      discountMsg.classList.add('error');
+      discountMsg.textContent = 'Could not check that code — try again.';
+    } finally {
+      applyDiscountBtn.disabled = false;
+      applyDiscountBtn.textContent = 'Apply';
+      renderSummary();
+    }
   });
 
   orderForm.addEventListener('submit', async (e) => {
@@ -761,6 +827,8 @@
     orderFormMsg.textContent = '';
     const method = document.querySelector('input[name="paymentMethod"]:checked').value;
     const fullName = document.getElementById('orderFullName').value.trim();
+    const subtotal = PRICE * qty;
+    const discountAmount = appliedDiscount ? appliedDiscount.amount : 0;
     try {
       await addDoc(ordersCol, {
         product: PRODUCT_NAME,
@@ -768,7 +836,10 @@
         size: selectedSize,
         qty,
         unitPrice: PRICE,
-        total: PRICE * qty,
+        subtotal,
+        discountCode: appliedDiscount ? appliedDiscount.code : null,
+        discountAmount,
+        total: Math.max(0, subtotal - discountAmount),
         paymentMethod: method,
         paymentRef: document.getElementById('orderRef').value.trim(),
         fullName,

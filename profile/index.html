@@ -75,6 +75,7 @@
   }
 
   .profile-form{ max-width:560px; }
+  .profile-status-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:28px; }
   .profile-status{
     display:inline-flex;
     align-items:center;
@@ -85,10 +86,25 @@
     text-transform:uppercase;
     padding:8px 16px;
     border-radius:20px;
-    margin-bottom:28px;
   }
   .profile-status.status-active{ background: var(--navy); color: var(--paper); }
   .profile-status.status-pending{ background: var(--paper-dim); color: var(--ink-soft); border:1.5px solid var(--line); }
+  .admin-panel-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:8px 16px;
+    border-radius:20px;
+    background: var(--sky-deep);
+    color: var(--white);
+    text-decoration:none;
+    transition: background .15s ease;
+  }
+  .admin-panel-pill:hover{ background: var(--navy-deep); }
 
   .stats-row{
     display:grid;
@@ -276,7 +292,10 @@
     </div>
 
     <div id="profileView" style="display:none;">
-      <div class="profile-status" id="profileStatus"></div>
+      <div class="profile-status-row">
+        <div class="profile-status" id="profileStatus"></div>
+        <a class="admin-panel-pill" href="/admin.html" id="adminPanelLink" style="display:none;">Go to Admin Panel →</a>
+      </div>
 
       <div class="stats-row" id="statsRow" style="display:none;">
         <div class="stats-box"><div class="num" id="statLifetime">0</div><div class="lbl">Lifetime Check-Ins</div></div>
@@ -340,7 +359,6 @@
         <div class="profile-msg" id="profileMsg"></div>
       </form>
 
-      <a class="btn btn-ghost" href="/admin.html" id="adminPanelLink" style="display:none; margin-top:24px; width:100%; justify-content:center;">Go to Admin Panel</a>
       <button class="profile-signout" id="signOutBtn" style="margin-top:12px;">Log Out</button>
     </div>
 
@@ -405,6 +423,8 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+
+  const SUPER_ADMIN_EMAILS = ["ocpc.pickleball@gmail.com", "jamescastillo37@gmail.com"];
 
   const loginView = document.getElementById('loginView');
   const profileView = document.getElementById('profileView');
@@ -499,13 +519,14 @@
       document.getElementById('editEmail').value = p.email || '';
       document.getElementById('editSkill').value = p.skillRating || 'Beginner';
 
-      const isActive = p.status === 'active';
+      const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(p.email);
+      const isActive = p.status === 'active' || isSuperAdmin;
       profileStatus.className = `profile-status ${isActive ? 'status-active' : 'status-pending'}`;
       profileStatus.textContent = isActive
         ? 'Active Member'
         : 'Pending — play a few sessions to unlock Meet the Club';
 
-      document.getElementById('adminPanelLink').style.display = p.role === 'admin' ? 'flex' : 'none';
+      document.getElementById('adminPanelLink').style.display = (p.role === 'admin' || isSuperAdmin) ? 'flex' : 'none';
 
       await loadStats(p.firstName, p.lastName);
     } catch (err) {

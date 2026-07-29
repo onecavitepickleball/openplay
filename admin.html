@@ -349,6 +349,7 @@
       <nav class="dash-nav">
         <button class="dash-nav-item active" data-tab="overview">Overview</button>
         <button class="dash-nav-item" data-tab="orders">Orders <span class="dash-nav-badge" id="pendingOrdersBadge" hidden></span></button>
+        <button class="dash-nav-item" data-tab="discounts">Discounts</button>
         <button class="dash-nav-item" data-tab="attendance">Attendance</button>
         <button class="dash-nav-item" data-tab="members">Members <span class="dash-nav-badge" id="pendingSignupsBadge" hidden></span></button>
       </nav>
@@ -437,6 +438,44 @@
             <tbody id="ordersTableBody"></tbody>
           </table>
           <div class="signup-empty" id="ordersEmpty" style="display:none;">No orders match your filters.</div>
+        </div>
+      </section>
+
+      <!-- ============ DISCOUNTS ============ -->
+      <section class="dash-panel" id="discountsPanel">
+        <div class="dash-panel-head">
+          <h1>Discount Codes</h1>
+          <p>Create codes buyers can enter at checkout.</p>
+        </div>
+
+        <div class="dash-card" style="max-width:480px;">
+          <form id="discountForm">
+            <div class="form-row">
+              <label for="discountCodeInput">Code</label>
+              <input type="text" id="discountCodeInput" style="text-transform:uppercase;" placeholder="e.g. OCPC10" required>
+            </div>
+            <div class="form-row">
+              <label for="discountType">Type</label>
+              <select id="discountType" style="width:100%; border: 1.5px solid var(--line); border-radius:4px; padding:11px 13px; font-family: var(--font-body); font-size:14px; background: var(--white); color: var(--ink);">
+                <option value="percent">Percent Off (%)</option>
+                <option value="fixed">Fixed Amount (₱)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="discountValue">Value</label>
+              <input type="number" id="discountValue" min="1" step="1" required>
+            </div>
+            <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Add Code</button>
+            <div class="admin-msg" id="discountFormMsg"></div>
+          </form>
+        </div>
+
+        <div class="orders-table-wrap" style="margin-top:20px; max-width:640px;">
+          <table class="orders-table" style="min-width:0;">
+            <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Status</th><th></th></tr></thead>
+            <tbody id="discountsTableBody"></tbody>
+          </table>
+          <div class="signup-empty" id="discountsEmpty" style="display:none;">No discount codes yet.</div>
         </div>
       </section>
 
@@ -549,7 +588,7 @@
     appId: "1:15833259684:web:0f2f4400f9995517ae5031"
   };
 
-  const ADMIN_EMAIL = "ocpc.pickleball@gmail.com";
+  const SUPER_ADMIN_EMAILS = ["ocpc.pickleball@gmail.com", "jamescastillo37@gmail.com"];
 
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db = getFirestore(app);
@@ -557,9 +596,11 @@
   const attendanceCol = collection(db, "attendance");
   const playersCol = collection(db, "players");
   const ordersCol = collection(db, "orders");
+  const discountsCol = collection(db, "discountCodes");
 
   let allRecords = [];
   let allOrders = [];
+  let allDiscounts = [];
   let isAdmin = false;
 
   function isoDate(d){ return d.toISOString().slice(0, 10); }
@@ -598,7 +639,7 @@
 
   async function checkIsAdmin(user){
     if (!user) return false;
-    if (user.email === ADMIN_EMAIL) return true;
+    if (SUPER_ADMIN_EMAILS.includes(user.email)) return true;
     try {
       const snap = await getDoc(doc(db, 'players', user.uid));
       return snap.exists() && snap.data().role === 'admin';
@@ -618,6 +659,7 @@
       loadAttendance();
       loadPlayers();
       loadOrders();
+      loadDiscounts();
       showLoggedInAs(user);
     }
   });
@@ -625,7 +667,7 @@
   async function showLoggedInAs(user){
     const el = document.getElementById('loggedInAs');
     let label = user.email;
-    if (user.email !== ADMIN_EMAIL){
+    if (!SUPER_ADMIN_EMAILS.includes(user.email)){
       try {
         const snap = await getDoc(doc(db, 'players', user.uid));
         if (snap.exists()){
@@ -692,11 +734,12 @@
   });
 
   document.getElementById('exportOrdersBtn').addEventListener('click', () => {
-    const rows = [['Date', 'Product', 'Color', 'Size', 'Qty', 'Unit Price', 'Total', 'Payment Method', 'Payment Ref', 'Full Name', 'Contact Number', 'FB Name', 'Email', 'Notes', 'Status']];
+    const rows = [['Date', 'Product', 'Color', 'Size', 'Qty', 'Unit Price', 'Subtotal', 'Discount Code', 'Discount Amount', 'Total', 'Payment Method', 'Payment Ref', 'Full Name', 'Contact Number', 'FB Name', 'Email', 'Notes', 'Status']];
     [...allOrders].sort((a, b) => (orderDate(b) || 0) - (orderDate(a) || 0)).forEach(o => {
       const d = orderDate(o);
       rows.push([
-        d ? isoDate(d) : '', o.product || '', o.color || '', o.size || '', o.qty || 0, o.unitPrice || 0, o.total || 0,
+        d ? isoDate(d) : '', o.product || '', o.color || '', o.size || '', o.qty || 0, o.unitPrice || 0,
+        o.subtotal != null ? o.subtotal : o.total || 0, o.discountCode || '', o.discountAmount || 0, o.total || 0,
         o.paymentMethod || '', o.paymentRef || '', o.fullName || '', o.contactNumber || '', o.fbName || '',
         o.email || '', o.notes || '', o.status || ''
       ]);
@@ -804,6 +847,8 @@
       ${o.color ? `<div class="order-detail-row"><span class="k">Color</span><span class="v">${escapeHtml(o.color)}</span></div>` : ''}
       <div class="order-detail-row"><span class="k">Size</span><span class="v">${escapeHtml(o.size || '')}</span></div>
       <div class="order-detail-row"><span class="k">Qty</span><span class="v">${o.qty || 0}</span></div>
+      ${o.discountCode ? `<div class="order-detail-row"><span class="k">Subtotal</span><span class="v">${fmtPeso(o.subtotal != null ? o.subtotal : o.total)}</span></div>
+      <div class="order-detail-row"><span class="k">Discount</span><span class="v">${escapeHtml(o.discountCode)} (−${fmtPeso(o.discountAmount)})</span></div>` : ''}
       <div class="order-detail-row"><span class="k">Total</span><span class="v">${fmtPeso(o.total)}</span></div>
       <div class="order-detail-row"><span class="k">Payment</span><span class="v">${escapeHtml(o.paymentMethod || '')}</span></div>
       <div class="order-detail-row"><span class="k">Ref No.</span><span class="v">${escapeHtml(o.paymentRef || '—')}</span></div>
@@ -835,6 +880,73 @@
   orderSearch.addEventListener('input', renderOrdersTable);
   orderProductFilter.addEventListener('change', renderOrdersTable);
   orderStatusFilter.addEventListener('change', renderOrdersTable);
+
+  // ================= DISCOUNT CODES =================
+  const discountForm = document.getElementById('discountForm');
+  const discountFormMsg = document.getElementById('discountFormMsg');
+  const discountsTableBody = document.getElementById('discountsTableBody');
+  const discountsEmpty = document.getElementById('discountsEmpty');
+
+  async function loadDiscounts(){
+    const snap = await getDocs(discountsCol);
+    allDiscounts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderDiscountsTable();
+  }
+
+  function renderDiscountsTable(){
+    discountsEmpty.style.display = allDiscounts.length === 0 ? 'block' : 'none';
+    discountsTableBody.innerHTML = allDiscounts.map(d => `
+      <tr>
+        <td><b>${escapeHtml(d.id)}</b></td>
+        <td>${d.type === 'percent' ? 'Percent' : 'Fixed'}</td>
+        <td>${d.type === 'percent' ? d.value + '%' : fmtPeso(d.value)}</td>
+        <td><span class="status-badge ${d.active === false ? 'cancelled' : 'fulfilled'}">${d.active === false ? 'inactive' : 'active'}</span></td>
+        <td style="white-space:nowrap;">
+          <button class="order-view-btn" data-action="toggle" data-id="${d.id}">${d.active === false ? 'Activate' : 'Deactivate'}</button>
+          <button class="order-view-btn" data-action="delete" data-id="${d.id}">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+
+    discountsTableBody.querySelectorAll('[data-action="toggle"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const d = allDiscounts.find(x => x.id === btn.dataset.id);
+        if (!d) return;
+        await updateDoc(doc(db, 'discountCodes', btn.dataset.id), { active: d.active === false ? true : false });
+        await loadDiscounts();
+      });
+    });
+    discountsTableBody.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm(`Delete discount code ${btn.dataset.id}?`)) return;
+        await deleteDoc(doc(db, 'discountCodes', btn.dataset.id));
+        await loadDiscounts();
+      });
+    });
+  }
+
+  discountForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = document.getElementById('discountCodeInput').value.trim().toUpperCase();
+    const type = document.getElementById('discountType').value;
+    const value = parseFloat(document.getElementById('discountValue').value);
+    discountFormMsg.textContent = '';
+    if (!code || !value || value <= 0){
+      discountFormMsg.style.color = 'var(--pop)';
+      discountFormMsg.textContent = 'Enter a code and a positive value.';
+      return;
+    }
+    try {
+      await setDoc(doc(db, 'discountCodes', code), { type, value, active: true, createdAt: serverTimestamp() });
+      discountFormMsg.style.color = 'var(--sky-deep)';
+      discountFormMsg.textContent = `Saved code ${code}.`;
+      discountForm.reset();
+      await loadDiscounts();
+    } catch (err) {
+      discountFormMsg.style.color = 'var(--pop)';
+      discountFormMsg.textContent = 'Something went wrong saving this code.';
+    }
+  });
 
   // ================= OVERVIEW =================
   function renderOverview(){
@@ -1150,16 +1262,19 @@
     activePlayersList.innerHTML = active.length === 0
       ? '<div class="signup-empty">No active members yet.</div>'
       : active.map(p => {
-          const isPlayerAdmin = p.role === 'admin';
+          const isProtected = SUPER_ADMIN_EMAILS.includes(p.email);
+          const isPlayerAdmin = p.role === 'admin' || isProtected;
           return `
           <div class="signup-row">
             <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
             <div class="signup-body">
-              <div class="signup-name">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))} ${isPlayerAdmin ? '<span class="signup-count eligible" style="margin-left:6px;">Admin</span>' : ''}</div>
+              <div class="signup-name">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))} ${isPlayerAdmin ? '<span class="signup-count eligible" style="margin-left:6px;">Admin</span>' : ''} ${isProtected ? '<span class="signup-count eligible" style="margin-left:6px;">Protected</span>' : ''}</div>
               <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${p.sessionsAttended || 0} check-ins recorded at approval</div>
               <div class="signup-actions">
-                <button class="signup-btn ${isPlayerAdmin ? 'reject' : 'approve'}" data-action="toggle-role" data-id="${p.id}" data-role="${isPlayerAdmin ? 'member' : 'admin'}">${isPlayerAdmin ? 'Remove Admin' : 'Make Admin'}</button>
-                <button class="signup-btn reject" data-action="revoke" data-id="${p.id}">Revoke Membership</button>
+                ${isProtected ? '' : `
+                  <button class="signup-btn ${isPlayerAdmin ? 'reject' : 'approve'}" data-action="toggle-role" data-id="${p.id}" data-role="${isPlayerAdmin ? 'member' : 'admin'}">${isPlayerAdmin ? 'Remove Admin' : 'Make Admin'}</button>
+                  <button class="signup-btn reject" data-action="revoke" data-id="${p.id}">Revoke Membership</button>
+                `}
               </div>
             </div>
           </div>

@@ -999,3 +999,25 @@ footer p{
   margin-bottom:16px;
 }
 #orderModalSuccessView p{ font-size:14px; line-height:1.6; color: var(--ink-soft); margin-bottom:22px; }
+
+.order-modal .discount-row{ display:flex; gap:8px; }
+.order-modal .discount-row input{ flex:1; text-transform:uppercase; }
+.order-modal .discount-row input::placeholder{ text-transform:none; }
+.order-modal .discount-apply-btn{
+  font-family: var(--font-mono);
+  font-size:11.5px;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  border: 1.5px solid var(--navy);
+  border-radius:4px;
+  padding:0 18px;
+  background:none;
+  color: var(--navy);
+  cursor:pointer;
+  white-space:nowrap;
+}
+.order-modal .discount-apply-btn:hover{ background: var(--navy); color: var(--white); }
+.order-modal .discount-apply-btn:disabled{ opacity:0.6; cursor:default; }
+.order-modal .discount-msg{ font-size:12px; margin-top:8px; min-height:15px; }
+.order-modal .discount-msg.success{ color:#2E7D32; }
+.order-modal .discount-msg.error{ color: var(--pop); }

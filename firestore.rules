@@ -7,13 +7,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Admin = the permanent super-admin account, OR any player doc with
-    // role == 'admin' (promoted by an existing admin from admin.html).
-    // The super-admin email can never be locked out, since it doesn't
+    // Admin = one of the permanent super-admin accounts, OR any player doc
+    // with role == 'admin' (promoted by an existing admin from admin.html).
+    // The super-admin emails can never be locked out, since they don't
     // depend on any Firestore data existing.
+    function isSuperAdminEmail(email) {
+      return email == "ocpc.pickleball@gmail.com" || email == "jamescastillo37@gmail.com";
+    }
+
     function isAdmin() {
       return request.auth != null && (
-        request.auth.token.email == "ocpc.pickleball@gmail.com"
+        isSuperAdminEmail(request.auth.token.email)
         || get(/databases/$(database)/documents/players/$(request.auth.uid)).data.role == 'admin'
       );
     }
@@ -42,22 +46,34 @@ service cloud.firestore {
       allow read: if request.auth != null
         && (request.auth.uid == playerId || isAdmin());
 
-      allow update: if isAdmin() || (
+      // A protected (super-admin) player's status can't be changed by
+      // anyone, including other admins — this is what keeps their
+      // membership from ever being revoked.
+      allow update: if (
+        isAdmin()
+        && !(resource.data.email is string && isSuperAdminEmail(resource.data.email)
+             && request.resource.data.status != resource.data.status)
+      ) || (
         request.auth != null && request.auth.uid == playerId
         && request.resource.data.status == resource.data.status
         && request.resource.data.sessionsAttended == resource.data.sessionsAttended
         && request.resource.data.role == resource.data.role
       );
 
-      allow delete: if isAdmin();
+      allow delete: if isAdmin()
+        && !(resource.data.email is string && isSuperAdminEmail(resource.data.email));
     }
 
     // Public-safe copy of an APPROVED player: name, photo, skill rating,
     // birth month/day only (no birth year, address, phone, or email).
     // Written only by an admin when they approve a signup from admin.html.
+    // A protected (super-admin) player's roster entry can't be deleted —
+    // that's the "membership" revocation this account is immune to.
     match /roster/{playerId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin()
+        && !isSuperAdminEmail(get(/databases/$(database)/documents/players/$(playerId)).data.email);
     }
 
     // Shop orders, placed straight from a product page's checkout modal —
@@ -77,6 +93,14 @@ service cloud.firestore {
         && request.resource.data.email is string && request.resource.data.email.size() > 0;
 
       allow read, update, delete: if isAdmin();
+    }
+
+    // Discount codes, checked client-side at checkout when a buyer types one
+    // in. Public read so the checkout modal can look one up without being
+    // signed in; only admins can create, edit, or remove codes.
+    match /discountCodes/{code} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
