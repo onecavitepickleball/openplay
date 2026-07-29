@@ -61,24 +61,46 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  wireDropdown('.nav-notif', '.nav-notif-btn', () => {
-    const dot = document.getElementById('navNotifDot');
-    if (dot) {
-      setTimeout(() => {
-        dot.hidden = true;
-        try { localStorage.setItem('ocpc_notif_seen', new Date().toISOString().slice(0, 10)); } catch (err) {}
-      }, 1200);
-    }
-  });
-
+  wireDropdown('.nav-notif', '.nav-notif-btn');
   wireDropdown('.nav-account', '.nav-account-btn');
 
-  // ---- Expandable search ----
+  // ---- Expandable search (full takeover, like WTA's) ----
+  const siteNav = document.querySelector('.site-nav');
   const searchWrap = document.querySelector('.nav-search');
   const searchBtn = document.querySelector('.nav-search-btn');
   const searchInput = document.getElementById('navSearchInput');
   const searchResults = document.getElementById('navSearchResults');
   const searchForm = document.getElementById('navSearchForm');
+
+  // Inject the close (X) button and the blurred backdrop once per page —
+  // keeps every page's static markup untouched.
+  let searchCloseBtn = null;
+  if (searchForm && !document.getElementById('navSearchClose')) {
+    searchCloseBtn = document.createElement('button');
+    searchCloseBtn.type = 'button';
+    searchCloseBtn.className = 'nav-search-close';
+    searchCloseBtn.id = 'navSearchClose';
+    searchCloseBtn.setAttribute('aria-label', 'Close search');
+    searchCloseBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="6" y1="6" x2="18" y2="18" stroke-linecap="round"/><line x1="18" y1="6" x2="6" y2="18" stroke-linecap="round"/></svg>';
+    searchForm.appendChild(searchCloseBtn);
+  } else {
+    searchCloseBtn = document.getElementById('navSearchClose');
+  }
+
+  let searchBackdrop = document.querySelector('.search-backdrop');
+  if (!searchBackdrop) {
+    searchBackdrop = document.createElement('div');
+    searchBackdrop.className = 'search-backdrop';
+    document.body.appendChild(searchBackdrop);
+  }
+
+  function closeSearch(){
+    if (siteNav) siteNav.classList.remove('search-active');
+    searchBackdrop.classList.remove('active');
+    searchWrap.classList.remove('open', 'results-open');
+    searchInput.value = '';
+    searchResults.innerHTML = '';
+  }
 
   const SEARCH_INDEX = [
     { title: 'Home', desc: 'Open play schedule & club overview', url: '/', kw: 'schedule open play home this week' },
@@ -130,12 +152,13 @@ document.addEventListener('DOMContentLoaded', () => {
     searchBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const opening = !searchWrap.classList.contains('open');
-      searchWrap.classList.toggle('open', opening);
       if (opening) {
-        setTimeout(() => searchInput.focus(), 50);
+        if (siteNav) siteNav.classList.add('search-active');
+        searchBackdrop.classList.add('active');
+        searchWrap.classList.add('open');
+        setTimeout(() => searchInput.focus(), 60);
       } else {
-        searchWrap.classList.remove('results-open');
-        searchInput.value = '';
+        closeSearch();
       }
     });
     searchInput.addEventListener('input', () => renderSearchResults(searchInput.value));
@@ -146,17 +169,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (first) window.location.href = first.getAttribute('href');
       });
     }
-    document.addEventListener('click', (e) => {
-      if (!searchWrap.contains(e.target)) {
-        searchWrap.classList.remove('open', 'results-open');
-        searchInput.value = '';
-      }
-    });
+    if (searchCloseBtn) {
+      searchCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeSearch();
+      });
+    }
+    searchBackdrop.addEventListener('click', closeSearch);
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        searchWrap.classList.remove('open', 'results-open');
-        searchInput.value = '';
-      }
+      if (e.key === 'Escape') closeSearch();
     });
   }
 

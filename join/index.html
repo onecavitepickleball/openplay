@@ -173,7 +173,10 @@
           <span class="nav-notif-dot" id="navNotifDot" hidden></span>
         </button>
         <div class="nav-notif-panel">
-          <div class="nav-notif-head">Notifications</div>
+          <div class="nav-notif-head">
+            <span>Notifications</span>
+            <button class="nav-notif-clear" id="navNotifClear" hidden>Clear all</button>
+          </div>
           <div class="nav-notif-list" id="navNotifList">
             <div class="nav-notif-empty">Loading…</div>
           </div>
@@ -190,14 +193,28 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <div class="nav-account-panel" id="navAccountPanel">
-          <a class="nav-account-opt" href="/profile/">
-            <div class="o-title">Sign In</div>
-            <div class="o-desc">Log in to manage your profile</div>
-          </a>
-          <a class="nav-account-opt" href="/join/">
-            <div class="o-title">Sign Up</div>
-            <div class="o-desc">New here? Create your player profile</div>
-          </a>
+
+          <div class="nav-account-promo">
+
+            <span class="nav-account-promo-tag">Free</span>
+
+            <h4>Join OCPC Free</h4>
+
+            <p>Get on Meet the Club, birthday shoutouts, and your own player profile — sign up in a couple minutes.</p>
+
+            <a class="btn-promo" href="/join/">Join For Free</a>
+
+          </div>
+
+          <div class="nav-account-links">
+
+            <a class="nav-account-link" href="/profile/">Sign In</a>
+
+            <a class="nav-account-link" href="/join/">Join For Free</a>
+
+            <a class="nav-account-link" href="/rules/">About OCPC</a>
+
+          </div>
         </div>
       </div>
     </div>

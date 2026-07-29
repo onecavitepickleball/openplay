@@ -36,14 +36,17 @@ function renderAccountPill(user){
     btn.classList.add('is-loggedin');
     label.textContent = 'My Profile';
     panel.innerHTML = `
-      <a class="nav-account-opt" href="/profile/">
-        <div class="o-title">My Profile</div>
-        <div class="o-desc">View and update your player info</div>
-      </a>
-      <a class="nav-account-opt is-signout" href="#" id="navSignOutBtn">
-        <div class="o-title">Sign Out</div>
-        <div class="o-desc">Log out of your OCPC account</div>
-      </a>
+      <div class="nav-account-promo">
+        <span class="nav-account-promo-tag">Member</span>
+        <h4>Welcome Back</h4>
+        <p>Manage your player profile, check your stats, and see what's new with the club.</p>
+        <a class="btn-promo" href="/profile/">View Profile</a>
+      </div>
+      <div class="nav-account-links">
+        <a class="nav-account-link" href="/profile/">My Profile</a>
+        <a class="nav-account-link" href="/leaderboard/">Leaderboard</a>
+        <a class="nav-account-link is-signout" href="#" id="navSignOutBtn">Sign Out</a>
+      </div>
     `;
     const signOutBtn = document.getElementById('navSignOutBtn');
     if (signOutBtn) {
@@ -56,14 +59,17 @@ function renderAccountPill(user){
     btn.classList.remove('is-loggedin');
     label.textContent = 'Join OCPC';
     panel.innerHTML = `
-      <a class="nav-account-opt" href="/profile/">
-        <div class="o-title">Sign In</div>
-        <div class="o-desc">Log in to manage your profile</div>
-      </a>
-      <a class="nav-account-opt" href="/join/">
-        <div class="o-title">Sign Up</div>
-        <div class="o-desc">New here? Create your player profile</div>
-      </a>
+      <div class="nav-account-promo">
+        <span class="nav-account-promo-tag">Free</span>
+        <h4>Join OCPC Free</h4>
+        <p>Get on Meet the Club, birthday shoutouts, and your own player profile — sign up in a couple minutes.</p>
+        <a class="btn-promo" href="/join/">Join For Free</a>
+      </div>
+      <div class="nav-account-links">
+        <a class="nav-account-link" href="/profile/">Sign In</a>
+        <a class="nav-account-link" href="/join/">Join For Free</a>
+        <a class="nav-account-link" href="/rules/">About OCPC</a>
+      </div>
     `;
   }
 }
@@ -91,9 +97,56 @@ function nextBirthdayDate(birthMonth, birthDay){
   return d;
 }
 
-async function loadNotifications(){
+// Dismissals are kept in memory only (not localStorage) — clearing a
+// notification hides it for this page session on this device, but it
+// comes back for everyone (including the same person) on their next
+// visit or refresh. Nothing is shared across users.
+let allNotifItems = [];
+const dismissedNotifIds = new Set();
+
+function renderNotifList(){
   const list = document.getElementById('navNotifList');
   const dot = document.getElementById('navNotifDot');
+  const clearBtn = document.getElementById('navNotifClear');
+  if (!list) return;
+
+  const visible = allNotifItems.filter(n => !dismissedNotifIds.has(n.id));
+
+  list.innerHTML = visible.length
+    ? visible.map(n => `
+        <div class="nav-notif-item">
+          <a class="nav-notif-item-link" href="${n.url}">
+            <span class="nav-notif-icon">${n.icon}</span>
+            <span class="nav-notif-body">
+              <span class="n-title">${n.title}</span>
+              <span class="n-desc">${n.desc}</span>
+            </span>
+          </a>
+          <button class="nav-notif-dismiss" data-id="${n.id}" aria-label="Dismiss notification">&times;</button>
+        </div>
+      `).join('')
+    : `<div class="nav-notif-empty">You're all caught up.</div>`;
+
+  list.querySelectorAll('.nav-notif-dismiss').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dismissedNotifIds.add(btn.dataset.id);
+      renderNotifList();
+    });
+  });
+
+  if (dot) {
+    dot.textContent = String(visible.length);
+    dot.hidden = visible.length === 0;
+  }
+  if (clearBtn) {
+    clearBtn.hidden = visible.length === 0;
+  }
+}
+
+async function loadNotifications(){
+  const list = document.getElementById('navNotifList');
   if (!list) return;
 
   let items = ANNOUNCEMENTS.map(a => ({ ...a, sortDate: a.date }));
@@ -122,24 +175,16 @@ async function loadNotifications(){
   } catch (err) { /* roster not reachable — announcements still show */ }
 
   items.sort((a, b) => b.sortDate.localeCompare(a.sortDate));
+  allNotifItems = items;
+  renderNotifList();
 
-  list.innerHTML = items.length
-    ? items.map(n => `
-        <a class="nav-notif-item" href="${n.url}">
-          <span class="nav-notif-icon">${n.icon}</span>
-          <span class="nav-notif-body">
-            <span class="n-title">${n.title}</span>
-            <span class="n-desc">${n.desc}</span>
-          </span>
-        </a>
-      `).join('')
-    : `<div class="nav-notif-empty">You're all caught up.</div>`;
-
-  if (dot) {
-    let seen = '';
-    try { seen = localStorage.getItem('ocpc_notif_seen') || ''; } catch (err) {}
-    const hasNew = items.some(n => n.sortDate > seen);
-    dot.hidden = !hasNew;
+  const clearBtn = document.getElementById('navNotifClear');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      allNotifItems.forEach(n => dismissedNotifIds.add(n.id));
+      renderNotifList();
+    });
   }
 }
 
