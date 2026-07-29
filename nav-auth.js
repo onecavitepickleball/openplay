@@ -68,7 +68,7 @@ function renderAccountPill(user){
       <div class="nav-account-links">
         <a class="nav-account-link" href="/profile/">Sign In</a>
         <a class="nav-account-link" href="/join/">Join For Free</a>
-        <a class="nav-account-link" href="/rules/">About OCPC</a>
+        <a class="nav-account-link" href="/meet-the-club/">About OCPC</a>
       </div>
     `;
   }
