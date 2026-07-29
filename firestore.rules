@@ -92,7 +92,13 @@ service cloud.firestore {
         && request.resource.data.fbName is string && request.resource.data.fbName.size() > 0
         && request.resource.data.email is string && request.resource.data.email.size() > 0;
 
-      allow read, update, delete: if isAdmin();
+      // A signed-in player can also read their own orders (matched by the
+      // email on the order, not a stored uid, since checkout doesn't
+      // require login) — this is what powers "My Orders" on the profile
+      // page. Everything else — status changes, deletes — stays admin-only.
+      allow read: if isAdmin()
+        || (request.auth != null && request.auth.token.email == resource.data.email);
+      allow update, delete: if isAdmin();
     }
 
     // Discount codes, checked client-side at checkout when a buyer types one

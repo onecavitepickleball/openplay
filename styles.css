@@ -859,6 +859,46 @@ footer p{
 .lift{ transition: transform .2s ease, box-shadow .2s ease; }
 .lift:hover{ transform: translateY(-3px); }
 
+/* ---- ANNOUNCEMENT BAR (running banner, top of every page) ---- */
+.announce-bar{
+  background: var(--navy-deep);
+  color: var(--paper);
+  overflow:hidden;
+  position:relative;
+}
+.announce-track{
+  display:flex;
+  width:max-content;
+  white-space:nowrap;
+  animation: announceScroll 26s linear infinite;
+  -webkit-transform: translate3d(0,0,0);
+  transform: translate3d(0,0,0);
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.announce-track:hover{ animation-play-state: paused; }
+.announce-item{
+  flex-shrink:0;
+  padding:9px 40px;
+  font-family: var(--font-mono);
+  font-size:12px;
+  letter-spacing:0.03em;
+}
+.announce-item a{ color: var(--sky); text-decoration:underline; }
+.announce-item a:hover{ color: var(--paper); }
+
+@keyframes announceScroll{
+  from{ transform: translate3d(0,0,0); }
+  to{ transform: translate3d(-50%,0,0); }
+}
+@media (prefers-reduced-motion: reduce){
+  .announce-track{ animation:none; }
+}
+@media (max-width: 560px){
+  .announce-item{ font-size:11px; padding:8px 24px; }
+}
+
 /* ---- FLOATING MESSENGER WIDGET ---- */
 .fb-msg-widget{
   position:fixed;

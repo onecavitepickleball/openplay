@@ -165,9 +165,65 @@
     color: var(--ink-soft);
   }
   .profile-signout:hover{ border-color: var(--pop); color: var(--pop); }
+
+  /* ---- Dashboard (default) view ---- */
+  .profile-summary{ display:flex; align-items:center; gap:16px; margin-bottom:24px; }
+  .profile-avatar{
+    width:64px; height:64px; border-radius:50%; background: var(--paper-dim);
+    border: 1.5px solid var(--line); overflow:hidden; flex-shrink:0;
+  }
+  .profile-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .profile-name{ font-family: var(--font-display); font-size:22px; text-transform:uppercase; line-height:1.1; }
+  .profile-skill{ font-family: var(--font-mono); font-size:11.5px; color: var(--ink-soft); margin-top:4px; }
+
+  .dash-card{ background: var(--white); border: 1.5px solid var(--line); border-radius:8px; padding:20px 22px; margin-bottom:16px; max-width:640px; }
+  .dash-card-head{ margin-bottom:14px; }
+  .dash-card-head h3{ font-size:14.5px; font-weight:700; }
+
+  .projection-card{
+    background: linear-gradient(135deg, var(--navy-deep), var(--navy));
+    color: var(--paper); border-radius:8px; padding:22px 24px; margin-bottom:16px; max-width:640px;
+  }
+  .projection-card h3{
+    font-size:11px; font-family: var(--font-mono); text-transform:uppercase;
+    letter-spacing:0.06em; color: rgba(245,243,238,0.7); margin-bottom:8px;
+  }
+  .projection-card p{ font-size:15px; line-height:1.5; }
+
+  .mini-chart{ display:flex; align-items:flex-end; gap:6px; height:100px; margin-bottom:20px; position:relative; }
+  .mini-chart-bar{ flex:1; background: var(--paper-dim); border-radius:3px 3px 0 0; position:relative; min-height:3px; align-self:flex-end; }
+  .mini-chart-bar-label{
+    position:absolute; top:calc(100% + 6px); left:0; right:0; text-align:center;
+    font-family: var(--font-mono); font-size:9px; color: var(--ink-faint);
+  }
+  .mini-chart-empty{ font-size:12.5px; color: var(--ink-faint); }
+
+  .mini-order-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .mini-order-row:last-child{ border-bottom:none; }
+  .mini-order-buyer{ font-weight:700; }
+  .mini-order-meta{ font-size:11.5px; color: var(--ink-soft); margin-top:2px; }
+  .mini-order-total{ font-family: var(--font-display); font-size:15px; color: var(--pop); flex-shrink:0; }
+  .signup-empty{ font-size:12.5px; color: var(--ink-faint); }
+  .signup-empty a{ color: var(--sky-deep); }
+
+  .status-badge{
+    display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+    font-family: var(--font-mono); font-size:10px; letter-spacing:0.05em; text-transform:uppercase;
+    padding:4px 10px; border-radius:20px; font-weight:700; margin-left:6px;
+  }
+  .status-badge.pending{ background: rgba(184,134,11,0.14); color:#8a6206; }
+  .status-badge.paid{ background: rgba(44,147,222,0.14); color: var(--sky-deep); }
+  .status-badge.fulfilled{ background: rgba(46,125,50,0.14); color:#2E7D32; }
+  .status-badge.cancelled{ background: rgba(0,94,137,0.1); color: var(--pop); }
 </style>
 </head>
 <body>
+<div class="announce-bar">
+  <div class="announce-track">
+    <span class="announce-item">🏓 Routine Court Visit — Join us at <b>The Pickleground</b> open play, <b>July 30, 2026</b> (1–4 PM &amp; 4–7 PM). Not OCPC-hosted — just an in-house open play we're joining since there's no session at SM City Rosario. <a href="/events/">See details →</a></span>
+    <span class="announce-item">🏓 Routine Court Visit — Join us at <b>The Pickleground</b> open play, <b>July 30, 2026</b> (1–4 PM &amp; 4–7 PM). Not OCPC-hosted — just an in-house open play we're joining since there's no session at SM City Rosario. <a href="/events/">See details →</a></span>
+  </div>
+</div>
 
 <nav class="site-nav">
   <div class="wrap">
@@ -297,67 +353,100 @@
         <a class="admin-panel-pill" href="/admin.html" id="adminPanelLink" style="display:none;">Go to Admin Panel →</a>
       </div>
 
-      <div class="stats-row" id="statsRow" style="display:none;">
-        <div class="stats-box"><div class="num" id="statLifetime">0</div><div class="lbl">Lifetime Check-Ins</div></div>
-        <div class="stats-box"><div class="num" id="statRecent">0</div><div class="lbl">Last 4 Weeks</div></div>
-        <div class="stats-box"><div class="num" id="statRank">—</div><div class="lbl">Leaderboard Rank</div></div>
+      <!-- ============ DASHBOARD (default view) ============ -->
+      <div id="dashboardView">
+        <div class="profile-summary">
+          <div class="profile-avatar" id="profileAvatar"></div>
+          <div>
+            <div class="profile-name" id="profileNameDisplay"></div>
+            <div class="profile-skill" id="profileSkillDisplay"></div>
+          </div>
+        </div>
+
+        <div class="stats-row" id="statsRow" style="display:none;">
+          <div class="stats-box"><div class="num" id="statLifetime">0</div><div class="lbl">Lifetime Check-Ins</div></div>
+          <div class="stats-box"><div class="num" id="statRecent">0</div><div class="lbl">Last 4 Weeks</div></div>
+          <div class="stats-box"><div class="num" id="statRank">—</div><div class="lbl">Leaderboard Rank</div></div>
+        </div>
+
+        <div class="projection-card" id="projectionCard" style="display:none;">
+          <h3>Leaderboard Projection</h3>
+          <p id="projectionText"></p>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-head"><h3>Attendance — Last 8 Weeks</h3></div>
+          <div class="mini-chart" id="attendanceChart"></div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-head"><h3>My Orders</h3></div>
+          <div id="myOrdersList"><div class="signup-empty">No orders yet — check out the <a href="/merch/">shop</a>.</div></div>
+        </div>
+
+        <button class="btn btn-primary" type="button" id="editProfileBtn">Edit Profile</button>
       </div>
 
-      <form class="profile-form" id="profileForm">
-        <div class="form-row">
-          <label for="editPhoto">Photo</label>
-          <div class="photo-picker">
-            <div class="photo-preview" id="photoPreview"></div>
-            <input type="file" id="editPhoto" accept="image/*" style="width:auto;">
-          </div>
-          <div class="form-hint">Leave blank to keep your current photo.</div>
-        </div>
+      <!-- ============ EDIT PROFILE (hidden until clicked) ============ -->
+      <div id="editFormView" style="display:none;">
+        <button type="button" class="profile-link-btn" id="backToDashboardBtn" style="margin-bottom:18px;">← Back to Dashboard</button>
 
-        <div class="form-row-pair">
+        <form class="profile-form" id="profileForm">
           <div class="form-row">
-            <label for="editFirstName">First Name</label>
-            <input type="text" id="editFirstName" required>
+            <label for="editPhoto">Photo</label>
+            <div class="photo-picker">
+              <div class="photo-preview" id="photoPreview"></div>
+              <input type="file" id="editPhoto" accept="image/*" style="width:auto;">
+            </div>
+            <div class="form-hint">Leave blank to keep your current photo.</div>
           </div>
+
+          <div class="form-row-pair">
+            <div class="form-row">
+              <label for="editFirstName">First Name</label>
+              <input type="text" id="editFirstName" required>
+            </div>
+            <div class="form-row">
+              <label for="editLastName">Last Name</label>
+              <input type="text" id="editLastName" required>
+            </div>
+          </div>
+
           <div class="form-row">
-            <label for="editLastName">Last Name</label>
-            <input type="text" id="editLastName" required>
+            <label for="editBirthday">Birthday</label>
+            <input type="date" id="editBirthday" required>
           </div>
-        </div>
 
-        <div class="form-row">
-          <label for="editBirthday">Birthday</label>
-          <input type="date" id="editBirthday" required>
-        </div>
-
-        <div class="form-row">
-          <label for="editAddress">Address</label>
-          <textarea id="editAddress" required></textarea>
-        </div>
-
-        <div class="form-row-pair">
           <div class="form-row">
-            <label for="editPhone">Phone Number</label>
-            <input type="tel" id="editPhone" required>
+            <label for="editAddress">Address</label>
+            <textarea id="editAddress" required></textarea>
           </div>
+
+          <div class="form-row-pair">
+            <div class="form-row">
+              <label for="editPhone">Phone Number</label>
+              <input type="tel" id="editPhone" required>
+            </div>
+            <div class="form-row">
+              <label for="editEmail">Email</label>
+              <input type="email" id="editEmail" required>
+            </div>
+          </div>
+
           <div class="form-row">
-            <label for="editEmail">Email</label>
-            <input type="email" id="editEmail" required>
+            <label for="editSkill">Skill Rating</label>
+            <select id="editSkill" required>
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+              <option value="Competitive">Competitive / Tournament</option>
+            </select>
           </div>
-        </div>
 
-        <div class="form-row">
-          <label for="editSkill">Skill Rating</label>
-          <select id="editSkill" required>
-            <option value="Beginner">Beginner</option>
-            <option value="Intermediate">Intermediate</option>
-            <option value="Advanced">Advanced</option>
-            <option value="Competitive">Competitive / Tournament</option>
-          </select>
-        </div>
-
-        <button class="btn btn-primary" type="submit" id="saveBtn" style="width:100%; justify-content:center;">Save Changes</button>
-        <div class="profile-msg" id="profileMsg"></div>
-      </form>
+          <button class="btn btn-primary" type="submit" id="saveBtn" style="width:100%; justify-content:center;">Save Changes</button>
+          <div class="profile-msg" id="profileMsg"></div>
+        </form>
+      </div>
 
       <button class="profile-signout" id="signOutBtn" style="margin-top:12px;">Log Out</button>
     </div>
@@ -390,7 +479,7 @@
 <script type="module" src="/nav-auth.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
@@ -403,8 +492,6 @@
     messagingSenderId: "15833259684",
     appId: "1:15833259684:web:0f2f4400f9995517ae5031"
   };
-
-  const ADMIN_EMAIL = "ocpc.pickleball@gmail.com";
 
   const CLOUDINARY_CLOUD_NAME = "spakpfuj";
   const CLOUDINARY_UPLOAD_PRESET = "ocpc_player_photos";
@@ -439,12 +526,33 @@
   const photoInput = document.getElementById('editPhoto');
   const photoPreview = document.getElementById('photoPreview');
   const saveBtn = document.getElementById('saveBtn');
+  const dashboardView = document.getElementById('dashboardView');
+  const editFormView = document.getElementById('editFormView');
+  const editProfileBtn = document.getElementById('editProfileBtn');
+  const backToDashboardBtn = document.getElementById('backToDashboardBtn');
 
   let currentPhotoURL = '';
   let currentUid = null;
+  let currentUserEmail = null;
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+  function toTitleCase(str){
+    return String(str || '').replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
+  editProfileBtn.addEventListener('click', () => {
+    dashboardView.style.display = 'none';
+    editFormView.style.display = 'block';
+  });
+  backToDashboardBtn.addEventListener('click', () => {
+    editFormView.style.display = 'none';
+    dashboardView.style.display = 'block';
+  });
 
   onAuthStateChanged(auth, async (user) => {
-    if (!user || user.email === ADMIN_EMAIL){
+    if (!user || SUPER_ADMIN_EMAILS.includes(user.email)){
       loginView.style.display = 'block';
       profileView.style.display = 'none';
       heroSub.textContent = 'Log in with the email and password you used to sign up.';
@@ -452,9 +560,12 @@
     }
 
     currentUid = user.uid;
+    currentUserEmail = user.email;
     loginView.style.display = 'none';
     profileView.style.display = 'block';
-    heroSub.textContent = 'Update your info below anytime.';
+    dashboardView.style.display = 'block';
+    editFormView.style.display = 'none';
+    heroSub.textContent = 'Here\'s what\'s new since your last visit.';
     await loadProfile(user.uid);
   });
 
@@ -528,7 +639,12 @@
 
       document.getElementById('adminPanelLink').style.display = (p.role === 'admin' || isSuperAdmin) ? 'flex' : 'none';
 
+      document.getElementById('profileNameDisplay').textContent = `${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}`.trim();
+      document.getElementById('profileSkillDisplay').textContent = p.skillRating || '';
+      document.getElementById('profileAvatar').innerHTML = currentPhotoURL ? `<img src="${currentPhotoURL}" alt="">` : '';
+
       await loadStats(p.firstName, p.lastName);
+      await loadOrders(p.email || currentUserEmail);
     } catch (err) {
       profileMsg.style.color = 'var(--pop)';
       profileMsg.textContent = "Couldn't load your profile — try refreshing.";
@@ -537,7 +653,9 @@
 
   // Pulls attendance stats for this player by matching their name against
   // the public "attendance" collection — the same case-insensitive name-key
-  // approach the Leaderboard/admin panel already use.
+  // approach the Leaderboard/admin panel already use. Also drives the
+  // leaderboard projection and the 8-week attendance chart from the same
+  // fetched records, so it's a single read.
   async function loadStats(firstName, lastName){
     const statsRow = document.getElementById('statsRow');
     const key = `${firstName || ''} ${lastName || ''}`.trim().toLowerCase();
@@ -573,7 +691,85 @@
       document.getElementById('statRecent').textContent = recentCount;
       document.getElementById('statRank').textContent = rank ? `#${rank}` : '—';
       statsRow.style.display = 'grid';
+
+      renderProjection(rank, recentCount, ranked, counts);
+      renderAttendanceChart(allRecords, key);
     } catch (err) { /* stats unavailable — profile still usable without them */ }
+  }
+
+  function renderProjection(rank, recentCount, ranked, counts){
+    const card = document.getElementById('projectionCard');
+    const text = document.getElementById('projectionText');
+    if (rank === 1){
+      text.textContent = "You're #1 on the leaderboard this cycle — nice work keeping it up!";
+    } else if (rank && rank > 1){
+      const aboveKey = ranked[rank - 2];
+      const aboveCount = counts[aboveKey];
+      const needed = aboveCount - recentCount + 1;
+      text.textContent = needed > 0
+        ? `Attend ${needed} more session${needed === 1 ? '' : 's'} in this 4-week window to move up to rank #${rank - 1}.`
+        : `You're tied for rank #${rank - 1} — one more session this cycle puts you ahead.`;
+    } else {
+      text.textContent = "You haven't checked in during the last 4 weeks — play a session to land on the leaderboard.";
+    }
+    card.style.display = 'block';
+  }
+
+  function renderAttendanceChart(allRecords, key){
+    const chart = document.getElementById('attendanceChart');
+    const weeks = [];
+    const now = new Date();
+    for (let i = 7; i >= 0; i--){
+      const end = new Date(now); end.setDate(end.getDate() - i * 7);
+      const start = new Date(end); start.setDate(start.getDate() - 6);
+      weeks.push({ start, end, count: 0, label: `${start.getMonth() + 1}/${start.getDate()}` });
+    }
+    allRecords.forEach(r => {
+      if (typeof r.date !== 'string') return;
+      const d = new Date(r.date);
+      if (!(r.names || []).some(n => String(n).trim().toLowerCase() === key)) return;
+      const w = weeks.find(w => d >= w.start && d <= w.end);
+      if (w) w.count++;
+    });
+    const total = weeks.reduce((s, w) => s + w.count, 0);
+    if (total === 0){
+      chart.innerHTML = '<div class="mini-chart-empty">No sessions logged yet in the last 8 weeks.</div>';
+      return;
+    }
+    const max = Math.max(1, ...weeks.map(w => w.count));
+    chart.innerHTML = weeks.map(w => `
+      <div class="mini-chart-bar" style="height:${Math.max(4, Math.round((w.count / max) * 100))}%;" title="${w.count} session(s)">
+        <div class="mini-chart-bar-label">${w.label}</div>
+      </div>
+    `).join('');
+  }
+
+  // Orders are matched to the buyer's login email — if someone checks out
+  // using a different email than they log in with, it won't show up here.
+  async function loadOrders(email){
+    const list = document.getElementById('myOrdersList');
+    if (!email) return;
+    try {
+      const q = query(collection(db, 'orders'), where('email', '==', email));
+      const snap = await getDocs(q);
+      const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (orders.length === 0){
+        list.innerHTML = '<div class="signup-empty">No orders yet — check out the <a href="/merch/">shop</a>.</div>';
+        return;
+      }
+      orders.sort((a, b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0));
+      list.innerHTML = orders.map(o => `
+        <div class="mini-order-row">
+          <div>
+            <div class="mini-order-buyer">${escapeHtml(o.product || '')}</div>
+            <div class="mini-order-meta">${escapeHtml([o.color, o.size].filter(Boolean).join(' · '))} × ${o.qty || 1} <span class="status-badge ${escapeHtml(o.status || 'pending')}">${escapeHtml(o.status || 'pending')}</span></div>
+          </div>
+          <div class="mini-order-total">₱${(o.total || 0).toLocaleString()}</div>
+        </div>
+      `).join('');
+    } catch (err) {
+      list.innerHTML = "<div class=\"signup-empty\">Couldn't load your orders right now.</div>";
+    }
   }
 
   profileForm.addEventListener('submit', async (e) => {
@@ -613,8 +809,16 @@
       });
 
       currentPhotoURL = photoURL;
+      document.getElementById('profileNameDisplay').textContent = `${toTitleCase(firstName)} ${toTitleCase(lastName)}`.trim();
+      document.getElementById('profileSkillDisplay').textContent = skillRating;
+      document.getElementById('profileAvatar').innerHTML = currentPhotoURL ? `<img src="${currentPhotoURL}" alt="">` : '';
       profileMsg.style.color = 'var(--sky-deep)';
-      profileMsg.textContent = 'Saved!';
+      profileMsg.textContent = 'Saved! Taking you back to your dashboard…';
+      setTimeout(() => {
+        editFormView.style.display = 'none';
+        dashboardView.style.display = 'block';
+        profileMsg.textContent = '';
+      }, 900);
     } catch (err) {
       profileMsg.style.color = 'var(--pop)';
       profileMsg.textContent = 'Something went wrong saving this — try again.';
