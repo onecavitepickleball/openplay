@@ -7,7 +7,79 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// ---- Shared shopping cart (localStorage-backed) ----
+// Used by every product page's "Add to Cart" button plus /cart/ and
+// /checkout/. Deliberately not tied to login — buyers can add to cart
+// without an account, same as before.
+window.OcpcCart = {
+  KEY: 'ocpc_cart_v1',
+
+  get(){
+    try {
+      const items = JSON.parse(localStorage.getItem(this.KEY));
+      return Array.isArray(items) ? items : [];
+    } catch (err) {
+      return [];
+    }
+  },
+
+  set(items){
+    localStorage.setItem(this.KEY, JSON.stringify(items));
+    this.updateBadge();
+  },
+
+  // item: { slug, product, color, size, qty, unitPrice, image }
+  // Merges into an existing line if the same product/color/size is
+  // already in the cart, rather than creating a duplicate row.
+  add(item){
+    const items = this.get();
+    const existing = items.find(i => i.slug === item.slug && i.color === item.color && i.size === item.size);
+    if (existing) {
+      existing.qty += item.qty;
+    } else {
+      const id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      items.push({ id, ...item });
+    }
+    this.set(items);
+  },
+
+  updateQty(id, qty){
+    const items = this.get();
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    if (qty <= 0) return this.remove(id);
+    item.qty = qty;
+    this.set(items);
+  },
+
+  remove(id){
+    this.set(this.get().filter(i => i.id !== id));
+  },
+
+  clear(){
+    this.set([]);
+  },
+
+  count(){
+    return this.get().reduce((sum, i) => sum + i.qty, 0);
+  },
+
+  subtotal(){
+    return this.get().reduce((sum, i) => sum + i.unitPrice * i.qty, 0);
+  },
+
+  updateBadge(){
+    const badge = document.getElementById('navCartBadge');
+    if (!badge) return;
+    const n = this.count();
+    badge.textContent = String(n);
+    badge.hidden = n === 0;
+  }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+  window.OcpcCart.updateBadge();
+
 
   // ---- Mobile hamburger toggle ----
   const toggle = document.querySelector('.nav-toggle');

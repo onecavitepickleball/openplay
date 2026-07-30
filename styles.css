@@ -634,6 +634,7 @@ a.nav-account-link.is-signout:hover{ color: var(--pop); }
 
 /* ---- Shop icon ---- */
 a.nav-shop{
+  position:relative;
   width:38px;
   height:38px;
   border-radius:50%;
@@ -648,6 +649,23 @@ a.nav-shop{
 a.nav-shop:hover{ background: var(--line-soft); }
 a.nav-shop.active{ background: var(--navy); color: var(--paper); }
 a.nav-shop svg{ width:17px; height:17px; display:block; }
+.nav-cart-badge{
+  position:absolute;
+  top:1px;
+  right:1px;
+  min-width:16px;
+  height:16px;
+  padding:0 4px;
+  border-radius:100px;
+  background: var(--pop);
+  color: var(--white);
+  border:1.5px solid var(--white);
+  font-family: var(--font-mono);
+  font-weight:700;
+  font-size:10px;
+  line-height:15px;
+  text-align:center;
+}
 
 @media (max-width: 900px){
   .nav-search-results, .nav-notif-panel, .nav-account-panel{
