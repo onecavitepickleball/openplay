@@ -18,6 +18,31 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// ---- Scrolling announce bar (hand-edited from admin.html) ----
+// Hidden by default (both here and via inline style on the markup itself)
+// so there's no flash of stale content — only shown if an admin has
+// explicitly enabled it in Firestore.
+async function loadAnnounceBar(){
+  const bar = document.querySelector('.announce-bar');
+  const track = document.querySelector('.announce-track');
+  if (!bar || !track) return;
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'announceBar'));
+    if (!snap.exists() || !snap.data().enabled || !snap.data().message){
+      bar.style.display = 'none';
+      return;
+    }
+    const s = snap.data();
+    const linkHtml = s.linkUrl ? ` <a href="${s.linkUrl}">${s.linkText || 'Learn more →'}</a>` : '';
+    const itemHtml = `<span class="announce-item">${s.message}${linkHtml}</span>`;
+    track.innerHTML = itemHtml + itemHtml;
+    bar.style.display = '';
+  } catch (err) {
+    bar.style.display = 'none';
+  }
+}
+loadAnnounceBar();
+
 onAuthStateChanged(auth, async (user) => {
   document.querySelectorAll('a[href="queue.html"]').forEach(el => {
     el.style.display = user ? '' : 'none';

@@ -151,5 +151,15 @@ service cloud.firestore {
         && request.resource.data.total is number && request.resource.data.total > 0;
       allow update, delete: if isAdmin();
     }
+
+    // Site-wide settings, hand-edited from admin.html (currently just the
+    // scrolling announce bar shown at the top of every page). Public read
+    // so every page can render it without logging in; admin-only write.
+    // If a doc is missing, pages treat it as disabled — so this feature
+    // is "off" by default until an admin explicitly turns it on.
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

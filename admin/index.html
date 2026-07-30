@@ -40,6 +40,12 @@
   .form-row input:focus, .form-row textarea:focus{ outline:none; border-color: var(--sky-deep); }
   .form-row textarea{ min-height:110px; resize:vertical; }
   .admin-msg{ font-size:12.5px; margin-top:8px; min-height:16px; }
+  .form-row-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .settings-check{
+    display:flex; align-items:center; gap:10px; cursor:pointer;
+    font-size:14px; font-weight:600; color: var(--ink);
+  }
+  .settings-check input{ width:18px; height:18px; accent-color: var(--navy); flex-shrink:0; }
 
   /* ---- DASHBOARD SHELL ---- */
   .dash-shell{ display:flex; align-items:flex-start; gap:0; }
@@ -152,7 +158,16 @@
   .orders-table tr:last-child td{ border-bottom:none; }
   .orders-table tr:hover{ background: var(--paper-dim); }
   .orders-table-roomy th, .orders-table-roomy td{ padding-top:16px; padding-bottom:16px; }
-  .orders-table-roomy{ min-width:1180px; }
+  .orders-table-roomy{ min-width:960px; }
+  .order-group-header td{
+    background: var(--paper-dim);
+    border-top: 2px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding:10px 16px;
+  }
+  .order-group-header:first-child td{ border-top:none; }
+  .order-group-header .order-row-name{ font-size:12.5px; letter-spacing:0.02em; }
+  .order-group-header .order-row-sub{ font-size:11.5px; }
   .proof-thumb{
     display:block; width:44px; height:44px; border-radius:5px; object-fit:cover;
     border: 1.5px solid var(--line); cursor:zoom-in; transition: border-color .15s ease;
@@ -255,11 +270,8 @@
 </style>
 </head>
 <body>
-<div class="announce-bar">
-  <div class="announce-track">
-    <span class="announce-item">🏓 Routine Court Visit — Join us at <b>The Pickleground</b> open play, <b>July 30, 2026</b> (1–4 PM &amp; 4–7 PM). Not OCPC-hosted — just an in-house open play we're joining since there's no session at SM City Rosario. <a href="/events/">See details →</a></span>
-    <span class="announce-item">🏓 Routine Court Visit — Join us at <b>The Pickleground</b> open play, <b>July 30, 2026</b> (1–4 PM &amp; 4–7 PM). Not OCPC-hosted — just an in-house open play we're joining since there's no session at SM City Rosario. <a href="/events/">See details →</a></span>
-  </div>
+<div class="announce-bar" style="display:none;">
+  <div class="announce-track"></div>
 </div>
 
 <nav class="site-nav">
@@ -279,6 +291,7 @@
         <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="nav-more-menu">
           <a href="/merch/">Shop</a>
+          <a href="/track/">Track Order</a>
           <a href="/gear/">Gear Picks</a>
           <a href="/gallery/">Gallery</a>
           <a href="/queue/">Queue</a>
@@ -381,6 +394,7 @@
         <button class="dash-nav-item" data-tab="discounts">Discounts</button>
         <button class="dash-nav-item" data-tab="attendance">Attendance</button>
         <button class="dash-nav-item" data-tab="members">Members <span class="dash-nav-badge" id="pendingSignupsBadge" hidden></span></button>
+        <button class="dash-nav-item" data-tab="settings">Settings</button>
       </nav>
       <button class="dash-signout" id="signOutBtn">Sign Out</button>
     </aside>
@@ -462,7 +476,7 @@
         <div class="orders-table-wrap">
           <table class="orders-table orders-table-roomy">
             <thead>
-              <tr><th>Order #</th><th>Date</th><th>Product</th><th>Buyer</th><th>Qty</th><th>Total</th><th>Payment</th><th>Proof</th><th>Status</th><th>Fulfillment</th><th></th></tr>
+              <tr><th>Product</th><th>Qty</th><th>Total</th><th>Payment</th><th>Proof</th><th>Status</th><th>Fulfillment</th><th></th></tr>
             </thead>
             <tbody id="ordersTableBody"></tbody>
           </table>
@@ -590,6 +604,43 @@
         <div class="dash-card-head"><h3>Active Members</h3></div>
         <div class="orders-table-wrap">
           <div id="activePlayersList"><div class="signup-empty">No active members yet.</div></div>
+        </div>
+      </section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section class="dash-panel" id="settingsPanel">
+        <div class="dash-panel-head">
+          <h1>Settings</h1>
+          <p>Site-wide settings, applied instantly across every page.</p>
+        </div>
+
+        <div class="dash-card" style="max-width:560px;">
+          <div class="dash-card-head"><h3>Scrolling Announce Bar</h3></div>
+          <p style="font-size:13px; color:var(--ink-soft); margin:-8px 0 18px; line-height:1.6;">
+            The scrolling strip at the top of every page. Turn it off between announcements — no code changes needed.
+          </p>
+          <form id="announceForm">
+            <label class="settings-check" style="margin-bottom:18px;">
+              <input type="checkbox" id="announceEnabled">
+              <span>Show the announce bar on the site</span>
+            </label>
+            <div class="form-row">
+              <label for="announceMessage">Message <span class="optional-tag">(basic HTML like &lt;b&gt; is fine)</span></label>
+              <textarea id="announceMessage" rows="2" placeholder="e.g. 🏓 Open play this Friday at SM City Rosario!"></textarea>
+            </div>
+            <div class="form-row-2">
+              <div class="form-row">
+                <label for="announceLinkText">Link Text <span class="optional-tag">(optional)</span></label>
+                <input type="text" id="announceLinkText" placeholder="See details →">
+              </div>
+              <div class="form-row">
+                <label for="announceLinkUrl">Link URL <span class="optional-tag">(optional)</span></label>
+                <input type="text" id="announceLinkUrl" placeholder="/events/">
+              </div>
+            </div>
+            <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Save</button>
+            <div class="admin-msg" id="announceMsg"></div>
+          </form>
         </div>
       </section>
 
@@ -734,7 +785,13 @@
   async function syncOrderStatusDoc(orderNumber){
     if (!orderNumber) return;
     const lines = allOrders.filter(o => o.orderNumber === orderNumber);
-    if (lines.length === 0) return;
+    if (lines.length === 0){
+      // No line items left under this order number (all deleted) — remove
+      // the public mirror too, or /track/ would keep showing a "ghost"
+      // order that no longer exists in the real orders collection.
+      try { await deleteDoc(doc(db, 'orderStatus', orderNumber)); } catch (err) { /* best-effort */ }
+      return;
+    }
     const subtotal = lines.reduce((s, o) => s + (o.subtotal != null ? o.subtotal : o.total || 0), 0);
     const discountAmount = lines.reduce((s, o) => s + (o.discountAmount || 0), 0);
     const shippingFee = lines.reduce((s, o) => s + (o.shippingFee || 0), 0);
@@ -795,6 +852,7 @@
       loadOrders();
       loadDiscounts();
       loadCoachingRequests();
+      loadAnnounceSettings();
       showLoggedInAs(user);
     }
   });
@@ -931,19 +989,40 @@
   function renderOrdersTable(){
     const rows = filteredOrders();
     ordersEmpty.style.display = rows.length === 0 ? 'block' : 'none';
-    ordersTableBody.innerHTML = rows.map(o => {
-      const d = orderDate(o);
-      return `
+
+    // Group line items that came from the same checkout (shared orderNumber,
+    // falling back to checkoutId for older orders, or the doc id itself for
+    // singletons) so admins can see at a glance which products belong to
+    // one order instead of them being scattered across the table.
+    const groups = new Map();
+    rows.forEach(o => {
+      const key = o.orderNumber || o.checkoutId || o.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(o);
+    });
+    const sortedGroups = [...groups.values()].sort((a, b) => {
+      const da = Math.max(...a.map(o => (orderDate(o) || 0)));
+      const db = Math.max(...b.map(o => (orderDate(o) || 0)));
+      return db - da;
+    });
+
+    ordersTableBody.innerHTML = sortedGroups.map(items => {
+      const first = items[0];
+      const d = orderDate(first);
+      const groupTotal = items.reduce((s, o) => s + (o.total || 0), 0);
+      const headerRow = `
+        <tr class="order-group-header">
+          <td colspan="8">
+            ${first.orderNumber ? `<span class="order-row-name">Order #${escapeHtml(first.orderNumber)}</span>` : '<span class="order-row-name">Order</span>'}
+            <span class="order-row-sub"> · ${escapeHtml(first.fullName || '')} (${escapeHtml(first.contactNumber || '')}) · ${items.length} item${items.length > 1 ? 's' : ''} · ${fmtPeso(groupTotal)} total · ${d ? isoDate(d) : '—'}</span>
+          </td>
+        </tr>
+      `;
+      const itemRows = items.map(o => `
         <tr>
-          <td>${o.orderNumber ? `<span class="order-row-name">#${escapeHtml(o.orderNumber)}</span>` : '<span class="order-row-sub">—</span>'}</td>
-          <td>${d ? isoDate(d) : '—'}</td>
           <td>
             <div class="order-row-name">${escapeHtml(o.product || '')}</div>
             ${o.color ? `<div class="order-row-sub">${escapeHtml(o.color)}${o.size ? ' · ' + escapeHtml(o.size) : ''}</div>` : (o.size ? `<div class="order-row-sub">${escapeHtml(o.size)}</div>` : '')}
-          </td>
-          <td>
-            <div class="order-row-name">${escapeHtml(o.fullName || '')}</div>
-            <div class="order-row-sub">${escapeHtml(o.contactNumber || '')}</div>
           </td>
           <td>${o.qty || 0}</td>
           <td>${fmtPeso(o.total)}</td>
@@ -967,7 +1046,8 @@
           </td>
           <td><button class="order-view-btn" data-action="view" data-id="${o.id}">View</button></td>
         </tr>
-      `;
+      `).join('');
+      return headerRow + itemRows;
     }).join('');
 
     ordersTableBody.querySelectorAll('[data-action="status"]').forEach(sel => {
@@ -981,8 +1061,8 @@
           sendEmail(
             o.email, o.fullName || 'there',
             `Payment for your Order #${o.orderNumber || ''} is now Confirmed! ✅`,
-            `Great news, ${(o.fullName || '').split(' ')[0] || 'there'}! We've verified your payment for ${o.product}${o.qty > 1 ? ` × ${o.qty}` : ''}. Your order is now being processed.` +
-            `<p style="margin:18px 0 0; font-family:Arial, sans-serif; font-size:13.5px; color:rgba(11,36,54,0.7);">Track your order status anytime here: <a href="${trackingUrl}" style="color:#2C93DE;">${trackingUrl}</a></p>`
+            `Great news, ${(o.fullName || '').split(' ')[0] || 'there'}! We've verified your payment for ${o.product}${o.qty > 1 ? ` × ${o.qty}` : ''}. Your order is now being processed.\n\n` +
+            `Track your order status anytime here: ${trackingUrl}`
           );
         }
         if (o) await syncOrderStatusDoc(o.orderNumber);
@@ -1041,6 +1121,7 @@
       if (!confirm('Delete this order permanently?')) return;
       await deleteDoc(doc(db, 'orders', id));
       allOrders = allOrders.filter(x => x.id !== id);
+      await syncOrderStatusDoc(o.orderNumber);
       renderOrdersTable();
       renderOverview();
       closeOrderDetail();
@@ -1181,6 +1262,45 @@
 
   coachingSearch.addEventListener('input', renderCoachingTable);
   coachingStatusFilter.addEventListener('change', renderCoachingTable);
+
+  // ================= SETTINGS: ANNOUNCE BAR =================
+  const announceForm = document.getElementById('announceForm');
+  const announceEnabled = document.getElementById('announceEnabled');
+  const announceMessage = document.getElementById('announceMessage');
+  const announceLinkText = document.getElementById('announceLinkText');
+  const announceLinkUrl = document.getElementById('announceLinkUrl');
+  const announceMsg = document.getElementById('announceMsg');
+
+  async function loadAnnounceSettings(){
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'announceBar'));
+      if (snap.exists()){
+        const s = snap.data();
+        announceEnabled.checked = !!s.enabled;
+        announceMessage.value = s.message || '';
+        announceLinkText.value = s.linkText || '';
+        announceLinkUrl.value = s.linkUrl || '';
+      }
+    } catch (err) { /* leave defaults blank */ }
+  }
+
+  announceForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    announceMsg.textContent = 'Saving…';
+    try {
+      await setDoc(doc(db, 'settings', 'announceBar'), {
+        enabled: announceEnabled.checked,
+        message: announceMessage.value.trim(),
+        linkText: announceLinkText.value.trim(),
+        linkUrl: announceLinkUrl.value.trim()
+      });
+      announceMsg.style.color = '#2E7D32';
+      announceMsg.textContent = 'Saved — live on the site now.';
+    } catch (err) {
+      announceMsg.style.color = 'var(--pop)';
+      announceMsg.textContent = 'Something went wrong saving — try again.';
+    }
+  });
 
   // ================= DISCOUNT CODES =================
   const discountForm = document.getElementById('discountForm');
