@@ -278,6 +278,17 @@
     color: var(--ink-soft);
   }
   .ack-list li b{ color: var(--ink); }
+
+  .proof-preview{ margin-top:10px; }
+  .proof-preview img{ max-width:150px; border-radius:6px; border:1.5px solid var(--line); display:block; }
+
+  .coaching-success{ text-align:center; max-width:480px; margin:60px auto; }
+  .coaching-success-icon{
+    width:60px; height:60px; border-radius:50%; background: var(--sky-deep); color: var(--white);
+    display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 20px;
+  }
+  .coaching-success h2{ font-family: var(--font-display); font-size:28px; text-transform:uppercase; margin-bottom:12px; }
+  .coaching-success p{ font-size:15px; color: var(--ink-soft); line-height:1.6; margin-bottom:24px; }
 </style>
 </head>
 <body>
@@ -509,9 +520,10 @@
           <span id="cPaidLabel">I've sent the payment shown above and the reference number is correct.</span>
         </label>
 
-        <div class="receipt-note">
-          <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M9 12l2 2 4-4" stroke="#005E89" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#005E89" stroke-width="2"/></svg>
-          <span>You'll be asked to attach a screenshot of your payment receipt on the next page, after you submit this form.</span>
+        <div class="form-row" style="margin-top:16px;">
+          <label for="cProof">Proof of Payment <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(optional — screenshot of your receipt)</span></label>
+          <input type="file" id="cProof" accept="image/*">
+          <div class="proof-preview" id="cProofPreview"></div>
         </div>
       </div>
 
@@ -529,9 +541,16 @@
         </label>
       </div>
 
-      <div class="form-note">This opens our request form in a new tab with everything filled in — just review and hit submit there.</div>
-      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Request Coaching Session</button>
+      <button type="submit" class="btn btn-primary" id="coachingSubmitBtn" style="width:100%; justify-content:center;">Request Coaching Session</button>
+      <div class="checkout-msg" id="coachingMsg" style="font-size:13.5px; margin-top:16px; min-height:18px;"></div>
     </form>
+
+    <div class="coaching-success" id="coachingSuccessView" style="display:none;">
+      <div class="coaching-success-icon">&#10003;</div>
+      <h2>Request Sent!</h2>
+      <p id="coachingSuccessText"></p>
+      <a class="btn btn-primary" href="/">Back to Home</a>
+    </div>
   </div>
 
 </div>
@@ -559,28 +578,87 @@
 
 <script src="/script.js"></script>
 <script type="module" src="/nav-auth.js"></script>
-<script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const coachingCol = collection(db, "coachingRequests");
+
+  const ADMIN_EMAIL = "ocpc.pickleball@gmail.com";
+
+  // Same EmailJS setup as /checkout/ — paste real keys once the account
+  // is created; until then, requests still save fine, email is skipped.
+  const EMAILJS_PUBLIC_KEY = "YOUR_EMAILJS_PUBLIC_KEY";
+  const EMAILJS_SERVICE_ID = "YOUR_EMAILJS_SERVICE_ID";
+  const EMAILJS_TEMPLATE_ID = "YOUR_EMAILJS_TEMPLATE_ID";
+  const EMAILJS_READY = EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY" && window.emailjs;
+  if (EMAILJS_READY) window.emailjs.init(EMAILJS_PUBLIC_KEY);
+
+  async function sendEmail(to_email, to_name, subject, message){
+    if (!EMAILJS_READY) return;
+    try {
+      await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email, to_name, subject, message });
+    } catch (err) { /* email is a nicety — the request is already saved */ }
+  }
+
+  // Cloudinary — same unsigned preset as /checkout/'s proof-of-payment upload.
+  const CLOUDINARY_CLOUD_NAME = "spakpfuj";
+  const CLOUDINARY_UPLOAD_PRESET_PAYMENTS = "ocpc_payment_proofs";
+
+  function compressImage(file, maxDim = 1280, quality = 0.72){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height && width > maxDim){ height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else if (height > maxDim){ width = Math.round(width * (maxDim / height)); height = maxDim; }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Compression failed')), 'image/jpeg', quality);
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadPaymentProof(file){
+    const compressed = await compressImage(file);
+    const formData = new FormData();
+    formData.append('file', compressed, 'proof.jpg');
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET_PAYMENTS);
+    formData.append('folder', 'payment-proofs');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    return data.secure_url;
+  }
+
+  const cProofInput = document.getElementById('cProof');
+  const cProofPreview = document.getElementById('cProofPreview');
+  cProofInput.addEventListener('change', () => {
+    const file = cProofInput.files[0];
+    cProofPreview.innerHTML = file ? `<img src="${URL.createObjectURL(file)}" alt="Payment proof preview">` : '';
+  });
+
   const RATE = 250;
   const COURT_FEE = 200; // per player, flat — also covers their open play entry for the day
-
-  // ================= GOOGLE FORM WIRING =================
-  // Base pre-fill URL for your form, plus the entry ID for each field.
-  // If you ever edit the form and the field IDs change, get a fresh
-  // "pre-filled link" from Google Forms and send it over to update these.
-  const GOOGLE_FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSfQLg61RqSXiBkewUYIlqxFsfFczpP8Z46Zh2LWzNIfGyTbKg/viewform?usp=pp_url";
-  const FIELD = {
-    name: "entry.570678170",
-    contact: "entry.2004802013",
-    email: "entry.1267467210",
-    date: "entry.540446024",
-    slots: "entry.1845722086",   // checkbox field — can repeat for multiple values
-    players: "entry.276723884",
-    notes: "entry.1621558241",
-    method: "entry.210196744",  // Payment Method: "GCash" or "Bank Transfer"
-    ref: "entry.1759336780",
-    ack: "entry.374320984"
-  };
-  // ========================================================
 
   const slotBoxes = document.querySelectorAll('.slotBox');
   const playersInput = document.getElementById('cPlayers');
@@ -624,7 +702,12 @@
   playersInput.addEventListener('input', updateTotal);
   updateTotal();
 
-  document.getElementById('coachingForm').addEventListener('submit', (e) => {
+  const coachingSubmitBtn = document.getElementById('coachingSubmitBtn');
+  const coachingMsg = document.getElementById('coachingMsg');
+  const coachingForm = document.getElementById('coachingForm');
+  const coachingSuccessView = document.getElementById('coachingSuccessView');
+
+  coachingForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const selectedSlots = Array.from(slotBoxes).filter(b => b.checked).map(b => b.value);
@@ -633,33 +716,65 @@
       return;
     }
 
-    const name = document.getElementById('cName').value;
-    const contact = document.getElementById('cContact').value;
-    const email = document.getElementById('cEmail').value;
+    const fullName = document.getElementById('cName').value.trim();
+    const contactNumber = document.getElementById('cContact').value.trim();
+    const email = document.getElementById('cEmail').value.trim();
     const date = document.getElementById('cDate').value;
-    const players = document.getElementById('cPlayers').value;
-    const userNotes = document.getElementById('cNotes').value;
-    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-    const ref = document.getElementById('cRef').value;
+    const players = parseInt(document.getElementById('cPlayers').value) || 1;
+    const notes = document.getElementById('cNotes').value.trim();
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const paymentRef = document.getElementById('cRef').value.trim();
+    const coachingCost = selectedSlots.length * players * RATE;
+    const courtFees = players * COURT_FEE;
+    const total = coachingCost + courtFees;
 
-    const totalLine = `Estimated total: ${totalEl.textContent} (${breakdownEl.textContent})`;
-    const notes = userNotes ? `${userNotes}\n\n${totalLine}` : totalLine;
+    coachingSubmitBtn.disabled = true;
+    coachingSubmitBtn.textContent = 'Sending Request…';
+    coachingMsg.textContent = '';
 
-    const params = [
-      `${FIELD.name}=${encodeURIComponent(name)}`,
-      `${FIELD.contact}=${encodeURIComponent(contact)}`,
-      `${FIELD.email}=${encodeURIComponent(email)}`,
-      `${FIELD.date}=${encodeURIComponent(date)}`,
-      ...selectedSlots.map(s => `${FIELD.slots}=${encodeURIComponent(s)}`),
-      `${FIELD.players}=${encodeURIComponent(players)}`,
-      `${FIELD.notes}=${encodeURIComponent(notes)}`,
-      `${FIELD.method}=${encodeURIComponent(method)}`,
-      `${FIELD.ref}=${encodeURIComponent(ref)}`,
-      `${FIELD.ack}=${encodeURIComponent("I have read and agree to the terms above.")}`
-    ];
+    try {
+      let paymentProofURL = null;
+      const proofFile = cProofInput.files[0];
+      if (proofFile){
+        coachingSubmitBtn.textContent = 'Uploading Proof…';
+        paymentProofURL = await uploadPaymentProof(proofFile);
+        coachingSubmitBtn.textContent = 'Sending Request…';
+      }
 
-    const finalUrl = `${GOOGLE_FORM_BASE}&${params.join('&')}`;
-    window.open(finalUrl, '_blank');
+      await addDoc(coachingCol, {
+        fullName, contactNumber, email,
+        preferredDate: date,
+        timeslots: selectedSlots,
+        players,
+        notes,
+        coachingCost, courtFees, total,
+        paymentMethod, paymentRef, paymentProofURL,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+
+      sendEmail(
+        email, fullName,
+        'Your OCPC coaching request is in!',
+        `Thanks ${fullName.split(' ')[0] || 'there'}! We've recorded your coaching request for ${date} (${selectedSlots.join(', ')}), ${players} player(s), estimated total ₱${total.toLocaleString()}. We'll message you to confirm availability.`
+      );
+      sendEmail(
+        ADMIN_EMAIL, 'OCPC Admin',
+        'New coaching request',
+        `${fullName} (${contactNumber}, ${email}) requested coaching on ${date} (${selectedSlots.join(', ')}) for ${players} player(s). Estimated total ₱${total.toLocaleString()} via ${paymentMethod}. Check the admin dashboard to confirm.`
+      );
+
+      document.getElementById('coachingSuccessText').textContent =
+        `Thanks, ${fullName.split(' ')[0] || 'there'}! We've recorded your request and will reach out to confirm your slot and payment.`;
+      coachingForm.style.display = 'none';
+      coachingSuccessView.style.display = 'block';
+    } catch (err) {
+      coachingMsg.style.color = 'var(--pop)';
+      coachingMsg.textContent = 'Something went wrong sending your request — please try again or message us on Facebook.';
+    } finally {
+      coachingSubmitBtn.disabled = false;
+      coachingSubmitBtn.textContent = 'Request Coaching Session';
+    }
   });
 </script>
 

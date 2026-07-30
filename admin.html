@@ -124,6 +124,9 @@
   .status-badge.paid{ background: rgba(44,147,222,0.14); color: var(--sky-deep); }
   .status-badge.fulfilled{ background: rgba(46,125,50,0.14); color:#2E7D32; }
   .status-badge.cancelled{ background: rgba(0,94,137,0.1); color: var(--pop); }
+  .status-badge.contacted{ background: rgba(44,147,222,0.14); color: var(--sky-deep); }
+  .status-badge.confirmed{ background: rgba(46,125,50,0.14); color:#2E7D32; }
+  .status-badge.declined{ background: rgba(0,94,137,0.1); color: var(--pop); }
 
   .mini-order-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); font-size:13px; }
   .mini-order-row:last-child{ border-bottom:none; }
@@ -357,6 +360,7 @@
       <nav class="dash-nav">
         <button class="dash-nav-item active" data-tab="overview">Overview</button>
         <button class="dash-nav-item" data-tab="orders">Orders <span class="dash-nav-badge" id="pendingOrdersBadge" hidden></span></button>
+        <button class="dash-nav-item" data-tab="coaching">Coaching <span class="dash-nav-badge" id="pendingCoachingBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="discounts">Discounts</button>
         <button class="dash-nav-item" data-tab="attendance">Attendance</button>
         <button class="dash-nav-item" data-tab="members">Members <span class="dash-nav-badge" id="pendingSignupsBadge" hidden></span></button>
@@ -446,6 +450,35 @@
             <tbody id="ordersTableBody"></tbody>
           </table>
           <div class="signup-empty" id="ordersEmpty" style="display:none;">No orders match your filters.</div>
+        </div>
+      </section>
+
+      <!-- ============ COACHING ============ -->
+      <section class="dash-panel" id="coachingPanel">
+        <div class="dash-panel-head">
+          <h1>Coaching Requests</h1>
+          <p>Requests submitted from the coaching page.</p>
+        </div>
+
+        <div class="orders-toolbar">
+          <input type="text" id="coachingSearch" placeholder="Search name, contact, email…">
+          <select id="coachingStatusFilter">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="contacted">Contacted</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="declined">Declined</option>
+          </select>
+        </div>
+
+        <div class="orders-table-wrap">
+          <table class="orders-table">
+            <thead>
+              <tr><th>Requested</th><th>Player</th><th>Preferred Session</th><th>Players</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="coachingTableBody"></tbody>
+          </table>
+          <div class="signup-empty" id="coachingEmpty" style="display:none;">No coaching requests match your filters.</div>
         </div>
       </section>
 
@@ -556,6 +589,15 @@
   </div>
 </div>
 
+<!-- Coaching request detail modal (shares .order-modal styling) -->
+<div class="order-modal-overlay" id="coachingDetailOverlay">
+  <div class="order-modal">
+    <button class="order-modal-close" id="coachingDetailClose" aria-label="Close">&times;</button>
+    <h3>Coaching Request Details</h3>
+    <div id="coachingDetailBody"></div>
+  </div>
+</div>
+
 <footer>
   <div class="wrap">
     <div class="foot-links">
@@ -578,6 +620,7 @@
 
 <script src="/script.js"></script>
 <script type="module" src="/nav-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script type="module">
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import {
@@ -605,10 +648,28 @@
   const playersCol = collection(db, "players");
   const ordersCol = collection(db, "orders");
   const discountsCol = collection(db, "discountCodes");
+  const coachingCol = collection(db, "coachingRequests");
 
   let allRecords = [];
   let allOrders = [];
   let allDiscounts = [];
+  let allCoachingRequests = [];
+
+  // Same EmailJS setup as /checkout/ and /coaching/ — sends the buyer a
+  // confirmation the moment an admin marks their order "paid". Skipped
+  // silently until real keys replace these placeholders.
+  const EMAILJS_PUBLIC_KEY = "YOUR_EMAILJS_PUBLIC_KEY";
+  const EMAILJS_SERVICE_ID = "YOUR_EMAILJS_SERVICE_ID";
+  const EMAILJS_TEMPLATE_ID = "YOUR_EMAILJS_TEMPLATE_ID";
+  const EMAILJS_READY = EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY" && window.emailjs;
+  if (EMAILJS_READY) window.emailjs.init(EMAILJS_PUBLIC_KEY);
+
+  async function sendEmail(to_email, to_name, subject, message){
+    if (!EMAILJS_READY) return;
+    try {
+      await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email, to_name, subject, message });
+    } catch (err) { /* email is a nicety */ }
+  }
   let isAdmin = false;
 
   function isoDate(d){ return d.toISOString().slice(0, 10); }
@@ -668,6 +729,7 @@
       loadPlayers();
       loadOrders();
       loadDiscounts();
+      loadCoachingRequests();
       showLoggedInAs(user);
     }
   });
@@ -835,9 +897,17 @@
 
     ordersTableBody.querySelectorAll('[data-action="status"]').forEach(sel => {
       sel.addEventListener('change', async () => {
-        await updateDoc(doc(db, 'orders', sel.dataset.id), { status: sel.value });
         const o = allOrders.find(x => x.id === sel.dataset.id);
+        const wasPaid = o && (o.status === 'paid' || o.status === 'fulfilled');
+        await updateDoc(doc(db, 'orders', sel.dataset.id), { status: sel.value });
         if (o) o.status = sel.value;
+        if (o && !wasPaid && (sel.value === 'paid' || sel.value === 'fulfilled') && o.email){
+          sendEmail(
+            o.email, o.fullName || 'there',
+            'Your OCPC order is confirmed!',
+            `Hi ${(o.fullName || '').split(' ')[0] || 'there'}, we've verified your payment for ${o.product}${o.qty > 1 ? ` × ${o.qty}` : ''} — your order is now confirmed. We'll message you on Facebook when it's ready.`
+          );
+        }
         renderOverview();
       });
     });
@@ -895,6 +965,133 @@
   orderSearch.addEventListener('input', renderOrdersTable);
   orderProductFilter.addEventListener('change', renderOrdersTable);
   orderStatusFilter.addEventListener('change', renderOrdersTable);
+
+  // ================= COACHING REQUESTS =================
+  const coachingSearch = document.getElementById('coachingSearch');
+  const coachingStatusFilter = document.getElementById('coachingStatusFilter');
+  const coachingTableBody = document.getElementById('coachingTableBody');
+  const coachingEmpty = document.getElementById('coachingEmpty');
+  const coachingDetailOverlay = document.getElementById('coachingDetailOverlay');
+  const coachingDetailBody = document.getElementById('coachingDetailBody');
+  const coachingDetailClose = document.getElementById('coachingDetailClose');
+
+  function requestDate(r){
+    return r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : null;
+  }
+
+  async function loadCoachingRequests(){
+    const snap = await getDocs(coachingCol);
+    allCoachingRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCoachingTable();
+  }
+
+  function filteredCoachingRequests(){
+    const q = coachingSearch.value.trim().toLowerCase();
+    const status = coachingStatusFilter.value;
+    return allCoachingRequests.filter(r => {
+      if (status && (r.status || 'pending') !== status) return false;
+      if (q){
+        const hay = `${r.fullName || ''} ${r.contactNumber || ''} ${r.email || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a, b) => (requestDate(b) || 0) - (requestDate(a) || 0));
+  }
+
+  function renderCoachingTable(){
+    const rows = filteredCoachingRequests();
+    const pendingCount = allCoachingRequests.filter(r => (r.status || 'pending') === 'pending').length;
+    const badge = document.getElementById('pendingCoachingBadge');
+    badge.textContent = pendingCount;
+    badge.hidden = pendingCount === 0;
+
+    coachingEmpty.style.display = rows.length === 0 ? 'block' : 'none';
+    coachingTableBody.innerHTML = rows.map(r => {
+      const d = requestDate(r);
+      return `
+        <tr>
+          <td>${d ? isoDate(d) : '—'}</td>
+          <td>
+            <div class="order-row-name">${escapeHtml(r.fullName || '')}</div>
+            <div class="order-row-sub">${escapeHtml(r.contactNumber || '')}</div>
+          </td>
+          <td>
+            <div class="order-row-name">${escapeHtml(r.preferredDate || '')}</div>
+            <div class="order-row-sub">${escapeHtml((r.timeslots || []).join(', '))}</div>
+          </td>
+          <td>${r.players || 0}</td>
+          <td>${fmtPeso(r.total)}</td>
+          <td>${escapeHtml(r.paymentMethod || '')}</td>
+          <td>
+            <select class="status-select" data-action="coaching-status" data-id="${r.id}">
+              <option value="pending" ${(r.status || 'pending') === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="contacted" ${r.status === 'contacted' ? 'selected' : ''}>Contacted</option>
+              <option value="confirmed" ${r.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+              <option value="declined" ${r.status === 'declined' ? 'selected' : ''}>Declined</option>
+            </select>
+          </td>
+          <td><button class="order-view-btn" data-action="coaching-view" data-id="${r.id}">View</button></td>
+        </tr>
+      `;
+    }).join('');
+
+    coachingTableBody.querySelectorAll('[data-action="coaching-status"]').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        await updateDoc(doc(db, 'coachingRequests', sel.dataset.id), { status: sel.value });
+        const r = allCoachingRequests.find(x => x.id === sel.dataset.id);
+        if (r) r.status = sel.value;
+        renderCoachingTable();
+      });
+    });
+    coachingTableBody.querySelectorAll('[data-action="coaching-view"]').forEach(btn => {
+      btn.addEventListener('click', () => openCoachingDetail(btn.dataset.id));
+    });
+  }
+
+  function openCoachingDetail(id){
+    const r = allCoachingRequests.find(x => x.id === id);
+    if (!r) return;
+    const d = requestDate(r);
+    coachingDetailBody.innerHTML = `
+      <div class="order-detail-row"><span class="k">Name</span><span class="v">${escapeHtml(r.fullName || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Contact</span><span class="v">${escapeHtml(r.contactNumber || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Email</span><span class="v">${escapeHtml(r.email || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Preferred Date</span><span class="v">${escapeHtml(r.preferredDate || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Timeslot(s)</span><span class="v">${escapeHtml((r.timeslots || []).join(', '))}</span></div>
+      <div class="order-detail-row"><span class="k">Players</span><span class="v">${r.players || 0}</span></div>
+      <div class="order-detail-row"><span class="k">Coaching Cost</span><span class="v">${fmtPeso(r.coachingCost)}</span></div>
+      <div class="order-detail-row"><span class="k">Court Fees</span><span class="v">${fmtPeso(r.courtFees)}</span></div>
+      <div class="order-detail-row"><span class="k">Total</span><span class="v">${fmtPeso(r.total)}</span></div>
+      <div class="order-detail-row"><span class="k">Payment</span><span class="v">${escapeHtml(r.paymentMethod || '')}</span></div>
+      <div class="order-detail-row"><span class="k">Ref No.</span><span class="v">${escapeHtml(r.paymentRef || '—')}</span></div>
+      ${r.notes ? `<div class="order-detail-row"><span class="k">Notes</span><span class="v">${escapeHtml(r.notes)}</span></div>` : ''}
+      <div class="order-detail-row"><span class="k">Requested</span><span class="v">${d ? d.toLocaleString() : '—'}</span></div>
+      <div class="order-detail-row"><span class="k">Status</span><span class="v">${statusBadge(r.status)}</span></div>
+      ${r.paymentProofURL ? `
+        <div class="order-detail-row" style="align-items:center;">
+          <span class="k">Proof of Payment</span>
+          <span class="v"><a href="${r.paymentProofURL}" target="_blank" rel="noopener"><img src="${r.paymentProofURL}" alt="Payment proof" style="max-width:120px; border-radius:6px; border:1.5px solid var(--line); display:block;"></a></span>
+        </div>
+      ` : ''}
+      <div class="order-detail-actions">
+        <button class="signup-btn reject" id="coachingDetailDeleteBtn">Delete Request</button>
+      </div>
+    `;
+    document.getElementById('coachingDetailDeleteBtn').addEventListener('click', async () => {
+      if (!confirm('Delete this coaching request permanently?')) return;
+      await deleteDoc(doc(db, 'coachingRequests', id));
+      allCoachingRequests = allCoachingRequests.filter(x => x.id !== id);
+      renderCoachingTable();
+      closeCoachingDetail();
+    });
+    coachingDetailOverlay.classList.add('open');
+  }
+  function closeCoachingDetail(){ coachingDetailOverlay.classList.remove('open'); }
+  coachingDetailClose.addEventListener('click', closeCoachingDetail);
+  coachingDetailOverlay.addEventListener('click', (e) => { if (e.target === coachingDetailOverlay) closeCoachingDetail(); });
+
+  coachingSearch.addEventListener('input', renderCoachingTable);
+  coachingStatusFilter.addEventListener('change', renderCoachingTable);
 
   // ================= DISCOUNT CODES =================
   const discountForm = document.getElementById('discountForm');

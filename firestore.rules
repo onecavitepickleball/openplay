@@ -108,5 +108,23 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Coaching session requests, placed from the coaching page's form —
+    // no login required. Anyone can create a request (validated below),
+    // but only admins can read, change status, or delete — same shape as
+    // orders, since this replaced the old Google Form.
+    match /coachingRequests/{requestId} {
+      allow create: if
+        request.resource.data.status == 'pending'
+        && request.resource.data.fullName is string && request.resource.data.fullName.size() > 0
+        && request.resource.data.contactNumber is string && request.resource.data.contactNumber.size() > 0
+        && request.resource.data.email is string && request.resource.data.email.size() > 0
+        && request.resource.data.preferredDate is string && request.resource.data.preferredDate.size() > 0
+        && request.resource.data.timeslots is list && request.resource.data.timeslots.size() > 0
+        && request.resource.data.players is int && request.resource.data.players > 0
+        && request.resource.data.total is number && request.resource.data.total > 0;
+
+      allow read, update, delete: if isAdmin();
+    }
   }
 }
