@@ -514,6 +514,11 @@
   const auth = getAuth(app);
 
   const SUPER_ADMIN_EMAILS = ["ocpc.pickleball@gmail.com", "jamescastillo37@gmail.com"];
+  // Only the club-only account has no real player doc — it should always
+  // land on the admin login prompt here. Other super-admins (like James)
+  // are also real players and should see their own profile normally, with
+  // the admin pill layered on top (handled inside loadProfile below).
+  const ADMIN_ONLY_EMAIL = "ocpc.pickleball@gmail.com";
 
   const loginView = document.getElementById('loginView');
   const profileView = document.getElementById('profileView');
@@ -554,7 +559,7 @@
   });
 
   onAuthStateChanged(auth, async (user) => {
-    if (!user || SUPER_ADMIN_EMAILS.includes(user.email)){
+    if (!user || user.email === ADMIN_ONLY_EMAIL){
       loginView.style.display = 'block';
       profileView.style.display = 'none';
       heroSub.textContent = 'Log in with the email and password you used to sign up.';
