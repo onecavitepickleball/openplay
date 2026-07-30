@@ -175,6 +175,15 @@
   .order-detail-row{ display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
   .order-detail-row:last-child{ border-bottom:none; }
   .order-detail-row .k{ font-family: var(--font-mono); font-size:11px; text-transform:uppercase; color: var(--ink-faint); flex-shrink:0; }
+
+  .signup-name-link{ cursor:pointer; }
+  .signup-name-link:hover{ color: var(--sky-deep); text-decoration:underline; }
+  .member-detail-head{ display:flex; align-items:center; gap:14px; padding-bottom:16px; margin-bottom:6px; border-bottom:1.5px solid var(--line); }
+  .member-detail-head img{ width:52px; height:52px; border-radius:50%; object-fit:cover; background: var(--paper-dim); flex-shrink:0; }
+  .member-detail-section-title{
+    font-family: var(--font-mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
+    color: var(--ink-faint); margin:20px 0 8px;
+  }
   .order-detail-row .v{ text-align:right; }
   .order-detail-actions{ display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; }
 
@@ -603,6 +612,15 @@
     <button class="order-modal-close" id="coachingDetailClose" aria-label="Close">&times;</button>
     <h3>Coaching Request Details</h3>
     <div id="coachingDetailBody"></div>
+  </div>
+</div>
+
+<!-- Member detail modal (shares .order-modal styling) -->
+<div class="order-modal-overlay" id="memberDetailOverlay">
+  <div class="order-modal">
+    <button class="order-modal-close" id="memberDetailClose" aria-label="Close">&times;</button>
+    <h3>Member Details</h3>
+    <div id="memberDetailBody"></div>
   </div>
 </div>
 
@@ -1471,7 +1489,7 @@
             <div class="signup-row">
               <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
               <div class="signup-body">
-                <div class="signup-name">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
+                <div class="signup-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
                 <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${escapeHtml(p.email || '')} · ${escapeHtml(p.phone || '')}</div>
                 <div class="signup-count ${eligible ? 'eligible' : 'not-eligible'}">${count}/${MIN_CHECKINS_FOR_MEMBERSHIP} check-ins${eligible ? ' — eligible' : ''}</div>
                 <div class="signup-actions">
@@ -1492,7 +1510,7 @@
           <div class="signup-row">
             <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
             <div class="signup-body">
-              <div class="signup-name">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))} ${isPlayerAdmin ? '<span class="signup-count eligible" style="margin-left:6px;">Admin</span>' : ''} ${isProtected ? '<span class="signup-count eligible" style="margin-left:6px;">Protected</span>' : ''}</div>
+              <div class="signup-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))} ${isPlayerAdmin ? '<span class="signup-count eligible" style="margin-left:6px;">Admin</span>' : ''} ${isProtected ? '<span class="signup-count eligible" style="margin-left:6px;">Protected</span>' : ''}</div>
               <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${p.sessionsAttended || 0} check-ins recorded at approval</div>
               <div class="signup-actions">
                 ${isProtected ? '' : `
@@ -1549,7 +1567,65 @@
         await loadPlayers();
       });
     });
+
+    document.querySelectorAll('[data-action="view-member"]').forEach(el => {
+      el.addEventListener('click', () => openMemberDetail(el.dataset.id));
+    });
   }
+
+  // ================= MEMBER DETAIL =================
+  const memberDetailOverlay = document.getElementById('memberDetailOverlay');
+  const memberDetailBody = document.getElementById('memberDetailBody');
+  const memberDetailClose = document.getElementById('memberDetailClose');
+
+  function openMemberDetail(id){
+    const p = allPlayers.find(pl => pl.id === id);
+    if (!p) return;
+    const isProtected = SUPER_ADMIN_EMAILS.includes(p.email);
+    const isPlayerAdmin = p.role === 'admin' || isProtected;
+    const memberOrders = allOrders.filter(o => o.email && p.email && o.email.toLowerCase() === p.email.toLowerCase());
+    const memberCoaching = allCoachingRequests.filter(r => r.email && p.email && r.email.toLowerCase() === p.email.toLowerCase());
+
+    memberDetailBody.innerHTML = `
+      <div class="member-detail-head">
+        <img src="${escapeHtml(p.photoURL || '')}" alt="">
+        <div>
+          <div class="order-row-name" style="font-size:16px;">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
+          <div class="order-row-sub">${escapeHtml(p.status || '')}${isPlayerAdmin ? ' · Admin' : ''}${isProtected ? ' · Protected' : ''}</div>
+        </div>
+      </div>
+      <div class="order-detail-row"><span class="k">Email</span><span class="v">${escapeHtml(p.email || '—')}</span></div>
+      <div class="order-detail-row"><span class="k">Phone</span><span class="v">${escapeHtml(p.phone || '—')}</span></div>
+      <div class="order-detail-row"><span class="k">Address</span><span class="v">${escapeHtml(p.address || '—')}</span></div>
+      <div class="order-detail-row"><span class="k">Skill Rating</span><span class="v">${escapeHtml(p.skillRating || '—')}</span></div>
+      <div class="order-detail-row"><span class="k">Birthday</span><span class="v">${p.birthMonth && p.birthDay ? `${p.birthMonth}/${p.birthDay}${p.birthYear ? '/' + p.birthYear : ''}` : '—'}</span></div>
+      <div class="order-detail-row"><span class="k">Sessions Attended</span><span class="v">${p.sessionsAttended || 0}</span></div>
+
+      <div class="member-detail-section-title">Orders (${memberOrders.length})</div>
+      ${memberOrders.length === 0 ? '<div class="signup-empty">No orders from this player.</div>' : memberOrders.map(o => `
+        <div class="mini-order-row">
+          <span>${escapeHtml(o.product || '')}${o.qty > 1 ? ` × ${o.qty}` : ''}</span>
+          <span>${fmtPeso(o.total)}</span>
+          ${statusBadge(o.status)}
+        </div>
+      `).join('')}
+
+      ${memberCoaching.length > 0 ? `
+        <div class="member-detail-section-title">Coaching Requests (${memberCoaching.length})</div>
+        ${memberCoaching.map(r => `
+          <div class="mini-order-row">
+            <span>${escapeHtml(r.preferredDate || '')} · ${escapeHtml((r.timeslots || []).join(', '))}</span>
+            <span>${fmtPeso(r.total)}</span>
+            ${statusBadge(r.status)}
+          </div>
+        `).join('')}
+      ` : ''}
+    `;
+    memberDetailOverlay.classList.add('open');
+  }
+  function closeMemberDetail(){ memberDetailOverlay.classList.remove('open'); }
+  memberDetailClose.addEventListener('click', closeMemberDetail);
+  memberDetailOverlay.addEventListener('click', (e) => { if (e.target === memberDetailOverlay) closeMemberDetail(); });
 </script>
 
 </body>
