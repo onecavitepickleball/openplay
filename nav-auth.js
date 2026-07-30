@@ -88,6 +88,7 @@ function renderAccountPill(user, firstName){
 // short title/desc, and a link. Birthdays in the next 7 days are merged in
 // automatically from the roster below.
 const ANNOUNCEMENTS = [
+  { id: 'ann-shop-refresh', date: '2026-07-30', icon: '🛍️', title: 'New gear just dropped in the Shop', desc: 'OCPC T-Shirt V2, Cap, Mug, and Tumbler are up — cart and checkout in one flow.', url: '/merch/' },
   { id: 'ann-tshirt-v1', date: '2026-07-29', icon: '🛍️', title: 'OCPC T-Shirt v1 just dropped', desc: 'Heat press, ₱400, 8 colors — check the Shop.', url: '/merch/' },
   { id: 'ann-zambales-recap', date: '2026-07-27', icon: '📸', title: 'Zambales trip recap is up', desc: 'Photos and highlights from The Highgrounds Compound.', url: '/events/' },
 ];
