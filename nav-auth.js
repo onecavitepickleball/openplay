@@ -3,7 +3,7 @@
 // (upcoming birthdays from the roster + hand-edited club announcements).
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -18,15 +18,23 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   document.querySelectorAll('a[href="queue.html"]').forEach(el => {
     el.style.display = user ? '' : 'none';
   });
-  renderAccountPill(user);
+
+  let firstName = '';
+  if (user) {
+    try {
+      const snap = await getDoc(doc(db, 'players', user.uid));
+      if (snap.exists() && snap.data().firstName) firstName = toTitleCase(snap.data().firstName);
+    } catch (err) { /* fall back to generic greeting */ }
+  }
+  renderAccountPill(user, firstName);
 });
 
 // ---- Join OCPC / My Profile account pill ----
-function renderAccountPill(user){
+function renderAccountPill(user, firstName){
   const btn = document.getElementById('navAccountBtn');
   const label = document.getElementById('navAccountLabel');
   const panel = document.getElementById('navAccountPanel');
@@ -38,7 +46,7 @@ function renderAccountPill(user){
     panel.innerHTML = `
       <div class="nav-account-promo">
         <span class="nav-account-promo-tag">Member</span>
-        <h4>Welcome Back</h4>
+        <h4>${firstName ? `Welcome Back, ${firstName}` : 'Welcome Back'}</h4>
         <p>Manage your player profile, check your stats, and see what's new with the club.</p>
         <a class="btn-promo" href="/profile/">View Profile</a>
       </div>
