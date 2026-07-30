@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-H86SSQPCJ6');
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track Your Order — One Cavite Pickleball Club</title>
+<meta name="description" content="Check the status of your OCPC shop order.">
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#005E89">
+<link rel="canonical" href="https://www.onecavitepickleball.club/track/">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .track-hero{ padding:56px 0 12px; }
+  .track-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(40px, 7vw, 64px);
+    line-height:0.98;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .track-hero p{ margin-top:16px; font-size:15px; color: var(--ink-soft); max-width:480px; line-height:1.6; }
+
+  .track-form{
+    display:flex; gap:10px; max-width:440px; margin:28px 0 8px;
+  }
+  .track-form input{
+    flex:1; border: 1.5px solid var(--line); border-radius:4px; padding:13px 16px;
+    font-family: var(--font-mono); font-size:14px; letter-spacing:0.03em; color: var(--ink); background: var(--white);
+  }
+  .track-form input:focus{ outline:none; border-color: var(--sky-deep); }
+  .track-msg{ font-size:13px; color: var(--pop); min-height:18px; margin-bottom:20px; max-width:440px; }
+
+  .track-result{ display:none; }
+  .track-summary-head{
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    padding-bottom:20px; margin-bottom:20px; border-bottom: 1.5px solid var(--line);
+  }
+  .track-order-number{ font-family: var(--font-display); font-size:28px; text-transform:uppercase; }
+  .track-order-date{ font-family: var(--font-mono); font-size:12px; color: var(--ink-faint); }
+
+  .track-payment-banner{
+    display:flex; align-items:center; gap:10px;
+    border-radius:6px; padding:14px 18px; margin-bottom:24px;
+    font-size:14px; font-weight:600;
+  }
+  .track-payment-banner.pending{ background: rgba(184,134,11,0.1); color:#8a6206; }
+  .track-payment-banner.paid, .track-payment-banner.fulfilled{ background: rgba(46,125,50,0.1); color:#2E7D32; }
+  .track-payment-banner.cancelled{ background: rgba(0,94,137,0.08); color: var(--pop); }
+
+  .track-item{
+    display:flex; gap:16px; padding:16px 0; border-bottom:1px solid var(--line);
+  }
+  .track-item:last-of-type{ border-bottom:none; }
+  .track-item-media{
+    width:64px; height:64px; border-radius:6px; overflow:hidden; background: var(--navy-deep); flex-shrink:0;
+  }
+  .track-item-media img{ width:100%; height:100%; object-fit:cover; }
+  .track-item-body{ flex:1; min-width:0; }
+  .track-item-name{ font-weight:700; font-size:14.5px; }
+  .track-item-meta{ font-size:12.5px; color: var(--ink-faint); margin-top:2px; }
+  .track-item-price{ font-family: var(--font-mono); font-size:13px; color: var(--ink-soft); margin-top:6px; }
+  .track-stage-pill{
+    display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+    font-family: var(--font-mono); font-size:10px; letter-spacing:0.05em; text-transform:uppercase;
+    padding:4px 10px; border-radius:20px; font-weight:700; margin-top:8px;
+    background: rgba(44,147,222,0.12); color: var(--sky-deep);
+  }
+
+  .track-totals{ margin-top:8px; }
+  .track-totals-row{ display:flex; justify-content:space-between; font-size:13.5px; color: var(--ink-soft); padding:6px 0; }
+  .track-totals-row.discount{ color:#2E7D32; }
+  .track-totals-row.grand{
+    border-top: 1.5px solid var(--line); margin-top:8px; padding-top:14px;
+    font-size:16px; color: var(--ink); font-weight:700;
+  }
+  .track-totals-row.grand .amount{ font-family: var(--font-display); font-size:22px; color: var(--pop); }
+
+  .track-not-found{
+    display:none; border: 1.5px dashed var(--line); border-radius:6px;
+    padding:40px 24px; text-align:center; color: var(--ink-soft); max-width:440px; font-size:14px;
+  }
+
+  @media (max-width: 560px){
+    .track-form{ flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+<div class="announce-bar">
+  <div class="announce-track">
+    <span class="announce-item">🏓 Routine Court Visit — Join us at <b>The Pickleground</b> open play, <b>July 30, 2026</b> (1–4 PM &amp; 4–7 PM). Not OCPC-hosted — just an in-house open play we're joining since there's no session at SM City Rosario. <a href="/events/">See details →</a></span>
+    <span class="announce-item">🏓 Routine Court Visit — Join us at <b>The Pickleground</b> open play, <b>July 30, 2026</b> (1–4 PM &amp; 4–7 PM). Not OCPC-hosted — just an in-house open play we're joining since there's no session at SM City Rosario. <a href="/events/">See details →</a></span>
+  </div>
+</div>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="logo-chip"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/meet-the-club/">Meet the Club</a>
+      <a href="/events/">Events</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="/merch/">Shop</a>
+          <a href="/gear/">Gear Picks</a>
+          <a href="/gallery/">Gallery</a>
+          <a href="/queue/">Queue</a>
+          <a href="/leaderboard/">Leaderboard</a>
+          <a href="/coaching/">Coaching</a>
+          <a href="/rules/">Rules &amp; Etiquette</a>
+          <a href="/featured-courts/">Featured Courts</a>
+          <a href="/birthdays/">Birthdays</a>
+          <a href="/contact/">Contact</a>
+          <a href="/quiz/">Personality Quiz</a>
+        </div>
+      </div>
+      <div class="nav-search">
+        <button class="nav-icon-btn nav-search-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round"/></svg>
+        </button>
+        <form class="nav-search-form" id="navSearchForm" autocomplete="off">
+          <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search the site…" aria-label="Search the site">
+        </form>
+        <div class="nav-search-results" id="navSearchResults"></div>
+      </div>
+
+      <div class="nav-notif">
+        <button class="nav-icon-btn nav-notif-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="nav-notif-dot" id="navNotifDot" hidden></span>
+        </button>
+        <div class="nav-notif-panel">
+          <div class="nav-notif-head">
+            <span>Notifications</span>
+            <button class="nav-notif-clear" id="navNotifClear" hidden>Clear all</button>
+          </div>
+          <div class="nav-notif-list" id="navNotifList">
+            <div class="nav-notif-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <a href="/cart/" class="nav-shop" aria-label="Cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16l-1.4 12.2A2 2 0 0 1 16.6 22H7.4a2 2 0 0 1-2-1.8L4 8Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8V6a4 4 0 0 1 8 0v2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="nav-cart-badge" id="navCartBadge" hidden>0</span>
+      </a>
+
+      <div class="nav-account">
+        <button class="nav-account-btn" id="navAccountBtn">
+          <span id="navAccountLabel">Join OCPC</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="nav-account-panel" id="navAccountPanel">
+          <div class="nav-account-promo">
+            <span class="nav-account-promo-tag">Free</span>
+            <h4>Join OCPC Free</h4>
+            <p>Get on Meet the Club, birthday shoutouts, and your own player profile — sign up in a couple minutes.</p>
+            <a class="btn-promo" href="/join/">Join For Free</a>
+          </div>
+          <div class="nav-account-links">
+            <a class="nav-account-link" href="/profile/">Sign In</a>
+            <a class="nav-account-link" href="/join/">Join For Free</a>
+            <a class="nav-account-link" href="/meet-the-club/">About OCPC</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="track-hero">
+    <div class="eyebrow">OCPC Shop</div>
+    <h1>Track Your Order.</h1>
+    <p>Enter the order number from your confirmation email to check its payment and fulfillment status.</p>
+  </div>
+
+  <div class="section reveal">
+    <form class="track-form" id="trackForm">
+      <input type="text" id="trackInput" placeholder="e.g. 01042" inputmode="numeric" autocomplete="off">
+      <button class="btn btn-primary" type="submit">Track Order</button>
+    </form>
+    <div class="track-msg" id="trackMsg"></div>
+
+    <div class="track-not-found" id="trackNotFound">We couldn't find an order with that number. Double-check the number from your confirmation email, or contact us on Facebook if you need help.</div>
+
+    <div class="track-result" id="trackResult">
+      <div class="track-summary-head">
+        <div>
+          <div class="track-order-number" id="resultOrderNumber"></div>
+          <div class="track-order-date" id="resultOrderDate"></div>
+        </div>
+      </div>
+
+      <div class="track-payment-banner" id="resultPaymentBanner"></div>
+
+      <div id="resultItems"></div>
+
+      <div class="track-totals">
+        <div class="track-totals-row">
+          <span>Subtotal</span>
+          <span id="resultSubtotal">₱0</span>
+        </div>
+        <div class="track-totals-row discount" id="resultDiscountRow" style="display:none;">
+          <span>Discount</span>
+          <span id="resultDiscount">−₱0</span>
+        </div>
+        <div class="track-totals-row">
+          <span>Shipping</span>
+          <span id="resultShipping">Free</span>
+        </div>
+        <div class="track-totals-row grand">
+          <span>Total</span>
+          <span class="amount" id="resultTotal">₱0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="/join/">Join OCPC</a>
+      <a href="/coaching/">Coaching</a>
+      <a href="/gear/">Gear Picks</a>
+      <a href="/contact/">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <div class="foot-legal">
+      <a href="/privacy-policy/">Privacy Policy</a>
+      <a href="/accessibility/">Accessibility Help</a>
+      <a href="/privacy-notice/">Privacy Notice</a>
+      <a href="/terms/">Terms &amp; Conditions</a>
+      <a href="/social-media-policy/">Social Media Policy</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="/script.js"></script>
+<script type="module" src="/nav-auth.js"></script>
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const FULFILLMENT_LABELS = {
+    '': 'Order Received',
+    production: 'On-going Production',
+    processing: 'Processing',
+    for_dispatch: 'For Dispatch',
+    shipped: 'Shipped',
+    ready_pickup: 'Ready for Pickup',
+    picked_up_courier: 'Picked up by Courier',
+    out_for_delivery: 'Out for Delivery',
+    delivered: 'Delivered',
+    completed: 'Completed'
+  };
+
+  const PAYMENT_BANNER_TEXT = {
+    pending: '⏳ Awaiting payment verification',
+    paid: '✅ Payment verified',
+    fulfilled: '✅ Payment verified',
+    cancelled: '✕ Order cancelled'
+  };
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+
+  function normalizeOrderNumber(raw){
+    const digits = String(raw || '').replace(/\D/g, '');
+    if (!digits) return '';
+    return digits.padStart(5, '0');
+  }
+
+  const trackForm = document.getElementById('trackForm');
+  const trackInput = document.getElementById('trackInput');
+  const trackMsg = document.getElementById('trackMsg');
+  const trackNotFound = document.getElementById('trackNotFound');
+  const trackResult = document.getElementById('trackResult');
+
+  async function lookupOrder(orderNumber){
+    trackMsg.textContent = '';
+    trackNotFound.style.display = 'none';
+    trackResult.style.display = 'none';
+
+    if (!orderNumber){
+      trackMsg.textContent = 'Enter your order number.';
+      return;
+    }
+
+    trackMsg.textContent = 'Looking up your order…';
+    try {
+      const snap = await getDoc(doc(db, 'orderStatus', orderNumber));
+      trackMsg.textContent = '';
+      if (!snap.exists()){
+        trackNotFound.style.display = 'block';
+        return;
+      }
+      renderResult(snap.data());
+    } catch (err) {
+      trackMsg.textContent = 'Something went wrong looking that up — please try again.';
+    }
+  }
+
+  function renderResult(o){
+    document.getElementById('resultOrderNumber').textContent = `Order #${o.orderNumber}`;
+    const d = o.createdAt && o.createdAt.toDate ? o.createdAt.toDate() : null;
+    document.getElementById('resultOrderDate').textContent = d ? `Placed ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : '';
+
+    // Payment status is shared across all items in one checkout — read
+    // the "worst"/first one found for the banner (they're placed together
+    // so in practice they all match).
+    const paymentStatus = (o.items[0] && o.items[0].status) || 'pending';
+    const banner = document.getElementById('resultPaymentBanner');
+    banner.className = `track-payment-banner ${paymentStatus}`;
+    banner.textContent = PAYMENT_BANNER_TEXT[paymentStatus] || PAYMENT_BANNER_TEXT.pending;
+
+    document.getElementById('resultItems').innerHTML = o.items.map(item => `
+      <div class="track-item">
+        <div class="track-item-media"><img src="${escapeHtml(item.image || '')}" alt=""></div>
+        <div class="track-item-body">
+          <div class="track-item-name">${escapeHtml(item.product)}</div>
+          <div class="track-item-meta">${escapeHtml([item.color, item.size].filter(Boolean).join(' · '))} · Qty ${item.qty}</div>
+          <div class="track-item-price">₱${item.total.toLocaleString()}</div>
+          <div class="track-stage-pill">${escapeHtml(FULFILLMENT_LABELS[item.fulfillmentStatus || ''] || 'Order Received')}</div>
+        </div>
+      </div>
+    `).join('');
+
+    document.getElementById('resultSubtotal').textContent = `₱${(o.subtotal || 0).toLocaleString()}`;
+    const discountRow = document.getElementById('resultDiscountRow');
+    if (o.discountAmount > 0){
+      discountRow.style.display = 'flex';
+      document.getElementById('resultDiscount').textContent = `−₱${o.discountAmount.toLocaleString()}`;
+    } else {
+      discountRow.style.display = 'none';
+    }
+    document.getElementById('resultShipping').textContent = o.shippingFee > 0 ? `₱${o.shippingFee.toLocaleString()}` : 'Free';
+    document.getElementById('resultTotal').textContent = `₱${(o.total || 0).toLocaleString()}`;
+
+    trackResult.style.display = 'block';
+  }
+
+  trackForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    lookupOrder(normalizeOrderNumber(trackInput.value));
+  });
+
+  // Prefill + auto-lookup from the emailed tracking link (?order=01042).
+  const params = new URLSearchParams(window.location.search);
+  const prefill = params.get('order');
+  if (prefill){
+    trackInput.value = prefill;
+    lookupOrder(normalizeOrderNumber(prefill));
+  }
+</script>
+
+</body>
+</html>

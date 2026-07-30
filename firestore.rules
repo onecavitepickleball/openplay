@@ -126,5 +126,30 @@ service cloud.firestore {
 
       allow read, update, delete: if isAdmin();
     }
+
+    // Simple auto-incrementing counters (currently just "orders", used to
+    // generate human-friendly order numbers at checkout). No PII here —
+    // public can read/create/increment-by-exactly-1, which is the only
+    // shape a legitimate checkout transaction produces.
+    match /counters/{counterId} {
+      allow read: if true;
+      allow create: if request.resource.data.value is int && request.resource.data.value > 0;
+      allow update: if request.resource.data.value is int
+        && resource.data.value is int
+        && request.resource.data.value == resource.data.value + 1;
+    }
+
+    // Public-safe order status mirror, keyed by orderNumber (NOT the
+    // orders/{orderId} doc id) — this is what the public /track/ page reads
+    // so a buyer can check their order without logging in. Deliberately
+    // excludes name/phone/email/address; only items, statuses, and totals.
+    // Written by checkout on create, and kept in sync by admin.html
+    // whenever a line item's payment or fulfillment status changes.
+    match /orderStatus/{orderNumber} {
+      allow read: if true;
+      allow create: if request.resource.data.items is list && request.resource.data.items.size() > 0
+        && request.resource.data.total is number && request.resource.data.total > 0;
+      allow update, delete: if isAdmin();
+    }
   }
 }

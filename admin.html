@@ -152,7 +152,7 @@
   .orders-table tr:last-child td{ border-bottom:none; }
   .orders-table tr:hover{ background: var(--paper-dim); }
   .orders-table-roomy th, .orders-table-roomy td{ padding-top:16px; padding-bottom:16px; }
-  .orders-table-roomy{ min-width:960px; }
+  .orders-table-roomy{ min-width:1180px; }
   .proof-thumb{
     display:block; width:44px; height:44px; border-radius:5px; object-fit:cover;
     border: 1.5px solid var(--line); cursor:zoom-in; transition: border-color .15s ease;
@@ -462,7 +462,7 @@
         <div class="orders-table-wrap">
           <table class="orders-table orders-table-roomy">
             <thead>
-              <tr><th>Date</th><th>Product</th><th>Buyer</th><th>Qty</th><th>Total</th><th>Payment</th><th>Proof</th><th>Status</th><th></th></tr>
+              <tr><th>Order #</th><th>Date</th><th>Product</th><th>Buyer</th><th>Qty</th><th>Total</th><th>Payment</th><th>Proof</th><th>Status</th><th>Fulfillment</th><th></th></tr>
             </thead>
             <tbody id="ordersTableBody"></tbody>
           </table>
@@ -714,6 +714,45 @@
 
   function fmtPeso(n){ return `₱${Math.round(n || 0).toLocaleString()}`; }
 
+  const SITE_ORIGIN = "https://www.onecavitepickleball.club";
+  const FULFILLMENT_LABELS = {
+    '': 'Order Received',
+    production: 'On-going Production',
+    processing: 'Processing',
+    for_dispatch: 'For Dispatch',
+    shipped: 'Shipped',
+    ready_pickup: 'Ready for Pickup',
+    picked_up_courier: 'Picked up by Courier',
+    out_for_delivery: 'Out for Delivery',
+    delivered: 'Delivered',
+    completed: 'Completed'
+  };
+
+  // Keeps the public orderStatus/{orderNumber} mirror (read by /track/) in
+  // sync with whatever admin.html knows about that order's line items —
+  // called after any payment-status or fulfillment-status change.
+  async function syncOrderStatusDoc(orderNumber){
+    if (!orderNumber) return;
+    const lines = allOrders.filter(o => o.orderNumber === orderNumber);
+    if (lines.length === 0) return;
+    const subtotal = lines.reduce((s, o) => s + (o.subtotal != null ? o.subtotal : o.total || 0), 0);
+    const discountAmount = lines.reduce((s, o) => s + (o.discountAmount || 0), 0);
+    const shippingFee = lines.reduce((s, o) => s + (o.shippingFee || 0), 0);
+    const total = lines.reduce((s, o) => s + (o.total || 0), 0);
+    try {
+      await setDoc(doc(db, 'orderStatus', orderNumber), {
+        orderNumber,
+        items: lines.map(o => ({
+          product: o.product, color: o.color || null, size: o.size || null, image: o.image || '',
+          qty: o.qty, unitPrice: o.unitPrice, total: o.total,
+          status: o.status || 'pending', fulfillmentStatus: o.fulfillmentStatus || ''
+        })),
+        subtotal, discountAmount, shippingFee, total,
+        createdAt: orderDate(lines[0]) ? lines[0].createdAt : serverTimestamp()
+      });
+    } catch (err) { /* mirror sync is best-effort — admin data is still saved either way */ }
+  }
+
   // ================= SIDEBAR TAB SWITCHING =================
   function goToTab(tab){
     document.querySelectorAll('.dash-nav-item').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
@@ -830,14 +869,14 @@
   });
 
   document.getElementById('exportOrdersBtn').addEventListener('click', () => {
-    const rows = [['Date', 'Product', 'Color', 'Size', 'Qty', 'Unit Price', 'Subtotal', 'Discount Code', 'Discount Amount', 'Total', 'Payment Method', 'Payment Ref', 'Full Name', 'Contact Number', 'FB Name', 'Email', 'Notes', 'Status']];
+    const rows = [['Order #', 'Date', 'Product', 'Color', 'Size', 'Qty', 'Unit Price', 'Subtotal', 'Discount Code', 'Discount Amount', 'Shipping Fee', 'Total', 'Payment Method', 'Payment Ref', 'Full Name', 'Contact Number', 'FB Name', 'Email', 'Notes', 'Status', 'Fulfillment Status']];
     [...allOrders].sort((a, b) => (orderDate(b) || 0) - (orderDate(a) || 0)).forEach(o => {
       const d = orderDate(o);
       rows.push([
-        d ? isoDate(d) : '', o.product || '', o.color || '', o.size || '', o.qty || 0, o.unitPrice || 0,
-        o.subtotal != null ? o.subtotal : o.total || 0, o.discountCode || '', o.discountAmount || 0, o.total || 0,
+        o.orderNumber || '', d ? isoDate(d) : '', o.product || '', o.color || '', o.size || '', o.qty || 0, o.unitPrice || 0,
+        o.subtotal != null ? o.subtotal : o.total || 0, o.discountCode || '', o.discountAmount || 0, o.shippingFee || 0, o.total || 0,
         o.paymentMethod || '', o.paymentRef || '', o.fullName || '', o.contactNumber || '', o.fbName || '',
-        o.email || '', o.notes || '', o.status || ''
+        o.email || '', o.notes || '', o.status || '', FULFILLMENT_LABELS[o.fulfillmentStatus || ''] || ''
       ]);
     });
     downloadCSV(`ocpc-orders-${isoDate(new Date())}.csv`, rows);
@@ -896,6 +935,7 @@
       const d = orderDate(o);
       return `
         <tr>
+          <td>${o.orderNumber ? `<span class="order-row-name">#${escapeHtml(o.orderNumber)}</span>` : '<span class="order-row-sub">—</span>'}</td>
           <td>${d ? isoDate(d) : '—'}</td>
           <td>
             <div class="order-row-name">${escapeHtml(o.product || '')}</div>
@@ -920,6 +960,11 @@
               <option value="cancelled" ${o.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
             </select>
           </td>
+          <td>
+            <select class="status-select" data-action="fulfillment" data-id="${o.id}">
+              ${Object.entries(FULFILLMENT_LABELS).map(([val, label]) => `<option value="${val}" ${(o.fulfillmentStatus || '') === val ? 'selected' : ''}>${label}</option>`).join('')}
+            </select>
+          </td>
           <td><button class="order-view-btn" data-action="view" data-id="${o.id}">View</button></td>
         </tr>
       `;
@@ -932,13 +977,24 @@
         await updateDoc(doc(db, 'orders', sel.dataset.id), { status: sel.value });
         if (o) o.status = sel.value;
         if (o && !wasPaid && (sel.value === 'paid' || sel.value === 'fulfilled') && o.email){
+          const trackingUrl = `${SITE_ORIGIN}/track/?order=${o.orderNumber || ''}`;
           sendEmail(
             o.email, o.fullName || 'there',
-            'Your OCPC order is confirmed!',
-            `Hi ${(o.fullName || '').split(' ')[0] || 'there'}, we've verified your payment for ${o.product}${o.qty > 1 ? ` × ${o.qty}` : ''} — your order is now confirmed. We'll message you on Facebook when it's ready.`
+            `Payment for your Order #${o.orderNumber || ''} is now Confirmed! ✅`,
+            `Great news, ${(o.fullName || '').split(' ')[0] || 'there'}! We've verified your payment for ${o.product}${o.qty > 1 ? ` × ${o.qty}` : ''}. Your order is now being processed.` +
+            `<p style="margin:18px 0 0; font-family:Arial, sans-serif; font-size:13.5px; color:rgba(11,36,54,0.7);">Track your order status anytime here: <a href="${trackingUrl}" style="color:#2C93DE;">${trackingUrl}</a></p>`
           );
         }
+        if (o) await syncOrderStatusDoc(o.orderNumber);
         renderOverview();
+      });
+    });
+    ordersTableBody.querySelectorAll('[data-action="fulfillment"]').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        const o = allOrders.find(x => x.id === sel.dataset.id);
+        await updateDoc(doc(db, 'orders', sel.dataset.id), { fulfillmentStatus: sel.value });
+        if (o) o.fulfillmentStatus = sel.value;
+        if (o) await syncOrderStatusDoc(o.orderNumber);
       });
     });
     ordersTableBody.querySelectorAll('[data-action="view"]').forEach(btn => {
@@ -951,12 +1007,14 @@
     if (!o) return;
     const d = orderDate(o);
     orderDetailBody.innerHTML = `
+      ${o.orderNumber ? `<div class="order-detail-row"><span class="k">Order #</span><span class="v">#${escapeHtml(o.orderNumber)}</span></div>` : ''}
       <div class="order-detail-row"><span class="k">Product</span><span class="v">${escapeHtml(o.product || '')}</span></div>
       ${o.color ? `<div class="order-detail-row"><span class="k">Color</span><span class="v">${escapeHtml(o.color)}</span></div>` : ''}
       <div class="order-detail-row"><span class="k">Size</span><span class="v">${escapeHtml(o.size || '')}</span></div>
       <div class="order-detail-row"><span class="k">Qty</span><span class="v">${o.qty || 0}</span></div>
       ${o.discountCode ? `<div class="order-detail-row"><span class="k">Subtotal</span><span class="v">${fmtPeso(o.subtotal != null ? o.subtotal : o.total)}</span></div>
       <div class="order-detail-row"><span class="k">Discount</span><span class="v">${escapeHtml(o.discountCode)} (−${fmtPeso(o.discountAmount)})</span></div>` : ''}
+      <div class="order-detail-row"><span class="k">Shipping</span><span class="v">${o.shippingFee > 0 ? fmtPeso(o.shippingFee) : 'Free'}</span></div>
       <div class="order-detail-row"><span class="k">Total</span><span class="v">${fmtPeso(o.total)}</span></div>
       <div class="order-detail-row"><span class="k">Payment</span><span class="v">${escapeHtml(o.paymentMethod || '')}</span></div>
       <div class="order-detail-row"><span class="k">Ref No.</span><span class="v">${escapeHtml(o.paymentRef || '—')}</span></div>
@@ -967,7 +1025,8 @@
       ${o.address ? `<div class="order-detail-row"><span class="k">Address</span><span class="v">${escapeHtml([o.address.street, o.address.barangay, o.address.city, o.address.province, o.address.zip].filter(Boolean).join(', '))}</span></div>` : ''}
       ${o.notes ? `<div class="order-detail-row"><span class="k">Notes</span><span class="v">${escapeHtml(o.notes)}</span></div>` : ''}
       <div class="order-detail-row"><span class="k">Placed</span><span class="v">${d ? d.toLocaleString() : '—'}</span></div>
-      <div class="order-detail-row"><span class="k">Status</span><span class="v">${statusBadge(o.status)}</span></div>
+      <div class="order-detail-row"><span class="k">Payment Status</span><span class="v">${statusBadge(o.status)}</span></div>
+      <div class="order-detail-row"><span class="k">Fulfillment</span><span class="v">${escapeHtml(FULFILLMENT_LABELS[o.fulfillmentStatus || ''] || 'Order Received')}</span></div>
       ${o.paymentProofURL ? `
         <div class="order-detail-row" style="align-items:center;">
           <span class="k">Proof of Payment</span>
