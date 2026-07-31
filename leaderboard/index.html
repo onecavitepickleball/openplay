@@ -391,21 +391,30 @@
   let allRecords = [];
   let currentRecent = [];
 
-  // Maps a lowercased raw attendance name (nickname OR full name) to the
-  // player's canonical display name, so attendance logged under a
-  // nickname (e.g. "Vhen") still counts toward and displays as the
-  // player's real registered name (e.g. "Venven Montealto"). Player-set
-  // nicknames come from admin.html's Members tab.
+  // Maps a lowercased raw attendance name (nickname OR full name OR a
+  // unique first name) to the player's canonical full name — used only
+  // to MERGE attendance logged under different spellings into one
+  // person's count. The full name is never shown on screen (see
+  // displayNameFor below) — it's strictly the internal grouping key.
   let aliasMap = {};
+  // Canonical full name (lowercased) -> the short name to actually show:
+  // the player's nickname if they have one, else just their first name.
+  // Never the full "firstName lastName".
+  let displayMap = {};
 
   function toTitleCase(str){
     return String(str || '').replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
+  function firstWord(str){
+    return String(str || '').trim().split(/\s+/)[0] || '';
   }
 
   async function loadRosterAliases(){
     try {
       const snap = await getDocs(rosterCol);
       const map = {};
+      const display = {};
       const firstTokenCounts = {};
       const firstTokenCanonical = {};
 
@@ -413,15 +422,19 @@
         const p = d.data();
         const canonical = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
         if (!canonical) return;
-        map[canonical.toLowerCase()] = canonical;
-        if (p.nickname && p.nickname.trim()) map[p.nickname.trim().toLowerCase()] = canonical;
+        const canonicalKey = canonical.toLowerCase();
+        const nickname = p.nickname && p.nickname.trim() ? p.nickname.trim() : '';
+
+        map[canonicalKey] = canonical;
+        if (nickname) map[nickname.toLowerCase()] = canonical;
+        display[canonicalKey] = nickname || toTitleCase(firstWord(p.firstName || ''));
 
         // Attendance is often logged with just the first word of a
         // player's first name (e.g. "Ian" for "Ian Kenneth Tajuna", or
         // "Lanze" for "Lanze Rex Belli Esperila") — auto-alias that too,
         // but only when it's unique across the roster, so two different
         // "Rafael"s never get merged into one person.
-        const firstToken = toTitleCase((p.firstName || '').trim().split(/\s+/)[0] || '');
+        const firstToken = toTitleCase(firstWord(p.firstName || ''));
         if (firstToken){
           const tokenKey = firstToken.toLowerCase();
           firstTokenCounts[tokenKey] = (firstTokenCounts[tokenKey] || 0) + 1;
@@ -434,12 +447,24 @@
       });
 
       aliasMap = map;
+      displayMap = display;
     } catch (err) { /* roster unreachable — raw attendance names still show */ }
   }
 
+  // Grouping key only — always the full canonical name when a roster
+  // match exists, so different spellings of the same person merge.
   function normalizeName(raw){
     const clean = String(raw || '').trim();
     return aliasMap[clean.toLowerCase()] || clean;
+  }
+
+  // What actually gets shown on screen: nickname or first name only —
+  // never the full "firstName lastName", even for a matched roster player.
+  function displayNameFor(raw){
+    const clean = String(raw || '').trim();
+    const canonical = aliasMap[clean.toLowerCase()];
+    if (canonical) return displayMap[canonical.toLowerCase()] || firstWord(canonical);
+    return firstWord(clean);
   }
 
   function isoDate(d){ return d.toISOString().slice(0, 10); }
@@ -467,9 +492,8 @@
       (r.names || []).forEach(n => {
         const raw = String(n).trim();
         if (!raw) return;
-        const clean = normalizeName(raw);
-        const key = clean.toLowerCase();
-        if (!counts[key]) counts[key] = { name: clean, count: 0, key };
+        const key = normalizeName(raw).toLowerCase();
+        if (!counts[key]) counts[key] = { name: displayNameFor(raw), count: 0, key };
         counts[key].count++;
       });
     });

@@ -1273,14 +1273,24 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Maps a lowercased raw attendance name (nickname OR full name) to the
-  // player's canonical display name — same alias system as /leaderboard/,
-  // so a nickname logged at check-in still resolves to the real player.
+  // Maps a lowercased raw attendance name (nickname OR full name OR a
+  // unique first name) to the player's canonical full name — used only
+  // to MERGE attendance logged under different spellings into one
+  // person's count; the full name itself is never shown on screen.
   let aliasMap = {};
+  // Canonical full name (lowercased) -> the short name to actually show:
+  // the player's nickname if set, else just their first name.
+  let displayMap = {};
+
+  function firstWord(str){
+    return String(str || '').trim().split(/\s+/)[0] || '';
+  }
+
   async function loadRosterAliases(){
     try {
       const snap = await getDocs(collection(db, 'roster'));
       const map = {};
+      const display = {};
       const firstTokenCounts = {};
       const firstTokenCanonical = {};
 
@@ -1288,10 +1298,14 @@
         const p = d.data();
         const canonical = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
         if (!canonical) return;
-        map[canonical.toLowerCase()] = canonical;
-        if (p.nickname && p.nickname.trim()) map[p.nickname.trim().toLowerCase()] = canonical;
+        const canonicalKey = canonical.toLowerCase();
+        const nickname = p.nickname && p.nickname.trim() ? p.nickname.trim() : '';
 
-        const firstToken = toTitleCase((p.firstName || '').trim().split(/\s+/)[0] || '');
+        map[canonicalKey] = canonical;
+        if (nickname) map[nickname.toLowerCase()] = canonical;
+        display[canonicalKey] = nickname || toTitleCase(firstWord(p.firstName || ''));
+
+        const firstToken = toTitleCase(firstWord(p.firstName || ''));
         if (firstToken){
           const tokenKey = firstToken.toLowerCase();
           firstTokenCounts[tokenKey] = (firstTokenCounts[tokenKey] || 0) + 1;
@@ -1304,11 +1318,24 @@
       });
 
       aliasMap = map;
+      displayMap = display;
     } catch (err) { /* roster unreachable — raw attendance names still show */ }
   }
+
+  // Grouping key only — the full canonical name when a roster match
+  // exists, so different spellings of the same person merge together.
   function normalizeName(raw){
     const clean = String(raw || '').trim();
     return aliasMap[clean.toLowerCase()] || clean;
+  }
+
+  // What actually gets shown: nickname or first name only — never the
+  // full "firstName lastName", even for a matched roster player.
+  function displayNameFor(raw){
+    const clean = String(raw || '').trim();
+    const canonical = aliasMap[clean.toLowerCase()];
+    if (canonical) return displayMap[canonical.toLowerCase()] || firstWord(canonical);
+    return firstWord(clean);
   }
 
   function isoDate(d){ return d.toISOString().slice(0, 10); }
@@ -1337,9 +1364,8 @@
         (r.names || []).forEach(n => {
           const raw = String(n).trim();
           if (!raw) return;
-          const clean = normalizeName(raw);
-          const key = clean.toLowerCase();
-          if (!counts[key]) counts[key] = { name: clean, count: 0 };
+          const key = normalizeName(raw).toLowerCase();
+          if (!counts[key]) counts[key] = { name: displayNameFor(raw), count: 0 };
           counts[key].count++;
         });
       });
