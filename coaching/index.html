@@ -502,11 +502,8 @@
         </div>
 
         <div id="bankPanel" class="method-panel" style="display:none;">
-          <p class="payment-note">
-            Most Philippine banks can send directly to this GCash account via <b>InstaPay</b> — open your bank
-            app, choose InstaPay / QR transfer, and scan the same code below. No separate bank account needed.
-          </p>
-          <img src="/assets/payment/c899099bf9bcb78d1194.jpg" alt="OCPC GCash payment QR code, accepts InstaPay transfers" class="qr-image">
+          <p class="payment-note">Scan the QR code below to send your estimated total via GoTyme Bank (InstaPay), then enter the reference number from your payment confirmation.</p>
+          <img src="/assets/payment/25e18c45216296495ae9.webp" alt="OCPC GoTyme Bank payment QR code" class="qr-image">
         </div>
 
         <div class="form-row" style="margin-top:18px;">
@@ -519,8 +516,8 @@
         </label>
 
         <div class="form-row" style="margin-top:16px;">
-          <label for="cProof">Proof of Payment <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(optional — screenshot of your receipt)</span></label>
-          <input type="file" id="cProof" accept="image/*">
+          <label for="cProof">Proof of Payment <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(screenshot of your receipt)</span></label>
+          <input type="file" id="cProof" accept="image/*" required>
           <div class="proof-preview" id="cProofPreview"></div>
         </div>
       </div>

@@ -701,7 +701,7 @@
 <script type="module">
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, updateDoc, getDocs, getDoc, deleteDoc, doc, setDoc, serverTimestamp
+    getFirestore, collection, addDoc, updateDoc, getDocs, getDoc, deleteDoc, doc, setDoc, serverTimestamp, runTransaction
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -778,6 +778,19 @@
     delivered: 'Delivered',
     completed: 'Completed'
   };
+
+  // Same counter used by /checkout/ — for retroactively assigning an order
+  // number to orders placed before this feature existed.
+  async function getNextOrderNumber(){
+    const counterRef = doc(db, 'counters', 'orders');
+    const next = await runTransaction(db, async (tx) => {
+      const snap = await tx.get(counterRef);
+      const value = snap.exists() ? snap.data().value + 1 : 1001;
+      tx.set(counterRef, { value });
+      return value;
+    });
+    return String(next).padStart(5, '0');
+  }
 
   // Keeps the public orderStatus/{orderNumber} mirror (read by /track/) in
   // sync with whatever admin.html knows about that order's line items —
@@ -1114,9 +1127,52 @@
         </div>
       ` : ''}
       <div class="order-detail-actions">
+        ${!o.orderNumber ? `<button class="signup-btn approve" id="orderDetailAssignBtn">Assign Order Number &amp; Send Confirmation</button>` : ''}
         <button class="signup-btn reject" id="orderDetailDeleteBtn">Delete Order</button>
       </div>
+      <div class="admin-msg" id="orderDetailActionMsg"></div>
     `;
+    const assignBtn = document.getElementById('orderDetailAssignBtn');
+    if (assignBtn){
+      assignBtn.addEventListener('click', async () => {
+        const actionMsg = document.getElementById('orderDetailActionMsg');
+        assignBtn.disabled = true;
+        assignBtn.textContent = 'Assigning…';
+        try {
+          // Group every other orderless line item from the same buyer
+          // (matched by email, since that's always present and unique
+          // enough) so a multi-product legacy order gets ONE shared
+          // order number, same as a real checkout would produce.
+          const siblings = allOrders.filter(x => !x.orderNumber && x.email && o.email && x.email.toLowerCase() === o.email.toLowerCase());
+          const orderNumber = await getNextOrderNumber();
+          await Promise.all(siblings.map(x => updateDoc(doc(db, 'orders', x.id), {
+            orderNumber,
+            fulfillmentStatus: x.fulfillmentStatus || '',
+            shippingFee: x.shippingFee || 0
+          })));
+          siblings.forEach(x => { x.orderNumber = orderNumber; x.fulfillmentStatus = x.fulfillmentStatus || ''; x.shippingFee = x.shippingFee || 0; });
+          await syncOrderStatusDoc(orderNumber);
+
+          const trackingUrl = `${SITE_ORIGIN}/track/?order=${orderNumber}`;
+          const itemsText = siblings.map(x => `  • ${x.product}${x.color ? ` (${x.color})` : ''}${x.size ? ` · ${x.size}` : ''} — Qty ${x.qty} × ${fmtPeso(x.unitPrice)} = ${fmtPeso(x.total)}`).join('\n');
+          const total = siblings.reduce((s, x) => s + (x.total || 0), 0);
+          sendEmail(
+            o.email, o.fullName || 'there',
+            `Your OCPC Order #${orderNumber} Confirmation 🎾📦`,
+            `Hi ${(o.fullName || '').split(' ')[0] || 'there'}, here's the confirmation for your order:\n\n${itemsText}\n\n  Total: ${fmtPeso(total)}\n\nTrack your order status anytime here: ${trackingUrl}`
+          );
+
+          actionMsg.style.color = '#2E7D32';
+          actionMsg.textContent = `Assigned #${orderNumber} to ${siblings.length} item(s) and sent a confirmation email.`;
+          renderOrdersTable();
+        } catch (err) {
+          actionMsg.style.color = 'var(--pop)';
+          actionMsg.textContent = 'Something went wrong — try again.';
+          assignBtn.disabled = false;
+          assignBtn.textContent = 'Assign Order Number & Send Confirmation';
+        }
+      });
+    }
     document.getElementById('orderDetailDeleteBtn').addEventListener('click', async () => {
       if (!confirm('Delete this order permanently?')) return;
       await deleteDoc(doc(db, 'orders', id));
