@@ -1273,6 +1273,44 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  // Maps a lowercased raw attendance name (nickname OR full name) to the
+  // player's canonical display name — same alias system as /leaderboard/,
+  // so a nickname logged at check-in still resolves to the real player.
+  let aliasMap = {};
+  async function loadRosterAliases(){
+    try {
+      const snap = await getDocs(collection(db, 'roster'));
+      const map = {};
+      const firstTokenCounts = {};
+      const firstTokenCanonical = {};
+
+      snap.docs.forEach(d => {
+        const p = d.data();
+        const canonical = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
+        if (!canonical) return;
+        map[canonical.toLowerCase()] = canonical;
+        if (p.nickname && p.nickname.trim()) map[p.nickname.trim().toLowerCase()] = canonical;
+
+        const firstToken = toTitleCase((p.firstName || '').trim().split(/\s+/)[0] || '');
+        if (firstToken){
+          const tokenKey = firstToken.toLowerCase();
+          firstTokenCounts[tokenKey] = (firstTokenCounts[tokenKey] || 0) + 1;
+          firstTokenCanonical[tokenKey] = canonical;
+        }
+      });
+
+      Object.keys(firstTokenCounts).forEach(tokenKey => {
+        if (firstTokenCounts[tokenKey] === 1 && !map[tokenKey]) map[tokenKey] = firstTokenCanonical[tokenKey];
+      });
+
+      aliasMap = map;
+    } catch (err) { /* roster unreachable — raw attendance names still show */ }
+  }
+  function normalizeName(raw){
+    const clean = String(raw || '').trim();
+    return aliasMap[clean.toLowerCase()] || clean;
+  }
+
   function isoDate(d){ return d.toISOString().slice(0, 10); }
   function cutoffDate(){
     const d = new Date();
@@ -1285,6 +1323,7 @@
     const nameEl = document.getElementById('spotlightName');
     const cardEl = document.getElementById('spotlightCard');
     try {
+      await loadRosterAliases();
       const snap = await getDocs(collection(db, 'attendance'));
       const allRecords = snap.docs.map(d => d.data());
       const totalCheckins = allRecords.reduce((sum, r) => sum + (r.names ? r.names.length : 0), 0);
@@ -1296,8 +1335,9 @@
       const counts = {};
       recent.forEach(r => {
         (r.names || []).forEach(n => {
-          const clean = String(n).trim();
-          if (!clean) return;
+          const raw = String(n).trim();
+          if (!raw) return;
+          const clean = normalizeName(raw);
           const key = clean.toLowerCase();
           if (!counts[key]) counts[key] = { name: clean, count: 0 };
           counts[key].count++;

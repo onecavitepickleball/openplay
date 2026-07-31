@@ -652,7 +652,7 @@
       document.getElementById('profileSkillDisplay').textContent = p.skillRating || '';
       document.getElementById('profileAvatar').innerHTML = currentPhotoURL ? `<img src="${currentPhotoURL}" alt="">` : '';
 
-      await loadStats(p.firstName, p.lastName);
+      await loadStats(p.firstName, p.lastName, p.nickname);
       await loadOrders(p.email || currentUserEmail);
     } catch (err) {
       console.error('loadProfile failed:', err);
@@ -666,10 +666,12 @@
   // approach the Leaderboard/admin panel already use. Also drives the
   // leaderboard projection and the 8-week attendance chart from the same
   // fetched records, so it's a single read.
-  async function loadStats(firstName, lastName){
+  async function loadStats(firstName, lastName, nickname){
     const statsRow = document.getElementById('statsRow');
     const key = `${firstName || ''} ${lastName || ''}`.trim().toLowerCase();
     if (!key) return;
+    const keys = [key];
+    if (nickname && nickname.trim()) keys.push(nickname.trim().toLowerCase());
 
     try {
       const snap = await getDocs(collection(db, 'attendance'));
@@ -677,7 +679,7 @@
 
       let lifetime = 0;
       allRecords.forEach(r => (r.names || []).forEach(n => {
-        if (String(n).trim().toLowerCase() === key) lifetime++;
+        if (keys.includes(String(n).trim().toLowerCase())) lifetime++;
       }));
 
       const cutoff = new Date();
@@ -685,11 +687,15 @@
       const cutoffStr = cutoff.toISOString().slice(0, 10);
       const recent = allRecords.filter(r => typeof r.date === 'string' && r.date >= cutoffStr);
 
+      // Attendance logged under either the player's full name or their
+      // nickname should count as the same person on the ranking — merge
+      // both keys' tallies under the canonical (full-name) key.
       const counts = {};
       recent.forEach(r => (r.names || []).forEach(n => {
         const clean = String(n).trim();
         if (!clean) return;
-        const k = clean.toLowerCase();
+        let k = clean.toLowerCase();
+        if (keys.includes(k)) k = key;
         counts[k] = (counts[k] || 0) + 1;
       }));
 
@@ -703,7 +709,7 @@
       statsRow.style.display = 'grid';
 
       renderProjection(rank, recentCount, ranked, counts);
-      renderAttendanceChart(allRecords, key);
+      renderAttendanceChart(allRecords, keys);
     } catch (err) { console.error('loadStats failed:', err); }
   }
 
@@ -725,7 +731,7 @@
     card.style.display = 'block';
   }
 
-  function renderAttendanceChart(allRecords, key){
+  function renderAttendanceChart(allRecords, keys){
     const chart = document.getElementById('attendanceChart');
     const weeks = [];
     const now = new Date();
@@ -737,7 +743,7 @@
     allRecords.forEach(r => {
       if (typeof r.date !== 'string') return;
       const d = new Date(r.date);
-      if (!(r.names || []).some(n => String(n).trim().toLowerCase() === key)) return;
+      if (!(r.names || []).some(n => keys.includes(String(n).trim().toLowerCase()))) return;
       const w = weeks.find(w => d >= w.start && d <= w.end);
       if (w) w.count++;
     });

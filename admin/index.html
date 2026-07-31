@@ -1559,6 +1559,7 @@
         const p = d.data();
         const full = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
         if (full) names.add(full);
+        if (p.nickname && p.nickname.trim()) names.add(p.nickname.trim());
       });
     } catch (err) { /* roster unreachable — attendance history names still work */ }
     knownNamesList.innerHTML = Array.from(names).sort().map(n => `<option value="${escapeHtml(n)}">`).join('');
@@ -1700,12 +1701,13 @@
   const pendingPlayersList = document.getElementById('pendingPlayersList');
   const activePlayersList = document.getElementById('activePlayersList');
 
-  function lifetimeCheckins(firstName, lastName){
-    const key = `${firstName} ${lastName}`.trim().toLowerCase();
+  function lifetimeCheckins(firstName, lastName, nickname){
+    const keys = [`${firstName} ${lastName}`.trim().toLowerCase()];
+    if (nickname && nickname.trim()) keys.push(nickname.trim().toLowerCase());
     let count = 0;
     allRecords.forEach(r => {
       (r.names || []).forEach(n => {
-        if (String(n).trim().toLowerCase() === key) count++;
+        if (keys.includes(String(n).trim().toLowerCase())) count++;
       });
     });
     return count;
@@ -1735,7 +1737,7 @@
     pendingPlayersList.innerHTML = pending.length === 0
       ? '<div class="signup-empty">No pending signups.</div>'
       : pending.map(p => {
-          const count = lifetimeCheckins(p.firstName, p.lastName);
+          const count = lifetimeCheckins(p.firstName, p.lastName, p.nickname);
           const eligible = count >= MIN_CHECKINS_FOR_MEMBERSHIP;
           return `
             <div class="signup-row">
@@ -1779,11 +1781,12 @@
       btn.addEventListener('click', async () => {
         const p = allPlayers.find(pl => pl.id === btn.dataset.id);
         if (!p) return;
-        const count = lifetimeCheckins(p.firstName, p.lastName);
+        const count = lifetimeCheckins(p.firstName, p.lastName, p.nickname);
         await setDoc(doc(db, 'roster', p.id), {
           firstName: p.firstName, lastName: p.lastName,
           photoURL: p.photoURL || '', skillRating: p.skillRating || '',
           birthMonth: p.birthMonth, birthDay: p.birthDay,
+          nickname: p.nickname || '',
           sessionsAttended: count
         });
         await updateDoc(doc(db, 'players', p.id), { status: 'active', sessionsAttended: count, promotedAt: serverTimestamp() });
@@ -1851,6 +1854,14 @@
         <input type="file" id="memberPhotoInput" accept="image/*">
         <div class="admin-msg" id="memberPhotoMsg"></div>
       </div>
+      <div class="form-row">
+        <label for="memberNicknameInput">Nickname / Also Known As <span class="optional-tag">(so attendance logged under a nickname still counts for them — e.g. "Joe" for Aljoe)</span></label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="memberNicknameInput" value="${escapeHtml(p.nickname || '')}" placeholder="e.g. Joe" style="flex:1;">
+          <button class="signup-btn approve" id="memberNicknameSaveBtn" type="button" style="white-space:nowrap;">Save</button>
+        </div>
+        <div class="admin-msg" id="memberNicknameMsg"></div>
+      </div>
       <div class="order-detail-row"><span class="k">Email</span><span class="v">${escapeHtml(p.email || '—')}</span></div>
       <div class="order-detail-row"><span class="k">Phone</span><span class="v">${escapeHtml(p.phone || '—')}</span></div>
       <div class="order-detail-row"><span class="k">Address</span><span class="v">${escapeHtml(p.address || '—')}</span></div>
@@ -1900,6 +1911,33 @@
       } catch (err) {
         msg.style.color = 'var(--pop)';
         msg.textContent = 'Upload failed — try again.';
+      }
+    });
+
+    document.getElementById('memberNicknameSaveBtn').addEventListener('click', async () => {
+      const nickname = document.getElementById('memberNicknameInput').value.trim();
+      const msg = document.getElementById('memberNicknameMsg');
+      msg.style.color = '';
+      msg.textContent = 'Saving…';
+      try {
+        await updateDoc(doc(db, 'players', id), { nickname });
+        p.nickname = nickname;
+        // Recount sessions now that this nickname is a valid match key too
+        // (covers attendance already logged under it, e.g. old "Joe" entries
+        // for a player whose real name is Aljoe Ramonal) and sync the
+        // roster copy so the leaderboard/profile pick it up as well.
+        const count = lifetimeCheckins(p.firstName, p.lastName, nickname);
+        await updateDoc(doc(db, 'players', id), { sessionsAttended: count });
+        p.sessionsAttended = count;
+        if (p.status === 'active'){
+          await setDoc(doc(db, 'roster', id), { nickname, sessionsAttended: count }, { merge: true });
+        }
+        msg.style.color = '#2E7D32';
+        msg.textContent = nickname ? `Saved — now counts ${count} lifetime session(s).` : 'Nickname cleared.';
+        renderPlayerSignups();
+      } catch (err) {
+        msg.style.color = 'var(--pop)';
+        msg.textContent = 'Something went wrong — try again.';
       }
     });
 

@@ -385,10 +385,62 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const attendanceCol = collection(db, "attendance");
+  const rosterCol = collection(db, "roster");
 
   // ================= LEADERBOARD =================
   let allRecords = [];
   let currentRecent = [];
+
+  // Maps a lowercased raw attendance name (nickname OR full name) to the
+  // player's canonical display name, so attendance logged under a
+  // nickname (e.g. "Vhen") still counts toward and displays as the
+  // player's real registered name (e.g. "Venven Montealto"). Player-set
+  // nicknames come from admin.html's Members tab.
+  let aliasMap = {};
+
+  function toTitleCase(str){
+    return String(str || '').replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
+  async function loadRosterAliases(){
+    try {
+      const snap = await getDocs(rosterCol);
+      const map = {};
+      const firstTokenCounts = {};
+      const firstTokenCanonical = {};
+
+      snap.docs.forEach(d => {
+        const p = d.data();
+        const canonical = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
+        if (!canonical) return;
+        map[canonical.toLowerCase()] = canonical;
+        if (p.nickname && p.nickname.trim()) map[p.nickname.trim().toLowerCase()] = canonical;
+
+        // Attendance is often logged with just the first word of a
+        // player's first name (e.g. "Ian" for "Ian Kenneth Tajuna", or
+        // "Lanze" for "Lanze Rex Belli Esperila") — auto-alias that too,
+        // but only when it's unique across the roster, so two different
+        // "Rafael"s never get merged into one person.
+        const firstToken = toTitleCase((p.firstName || '').trim().split(/\s+/)[0] || '');
+        if (firstToken){
+          const tokenKey = firstToken.toLowerCase();
+          firstTokenCounts[tokenKey] = (firstTokenCounts[tokenKey] || 0) + 1;
+          firstTokenCanonical[tokenKey] = canonical;
+        }
+      });
+
+      Object.keys(firstTokenCounts).forEach(tokenKey => {
+        if (firstTokenCounts[tokenKey] === 1 && !map[tokenKey]) map[tokenKey] = firstTokenCanonical[tokenKey];
+      });
+
+      aliasMap = map;
+    } catch (err) { /* roster unreachable — raw attendance names still show */ }
+  }
+
+  function normalizeName(raw){
+    const clean = String(raw || '').trim();
+    return aliasMap[clean.toLowerCase()] || clean;
+  }
 
   function isoDate(d){ return d.toISOString().slice(0, 10); }
 
@@ -399,6 +451,7 @@
   }
 
   async function loadAttendance(){
+    await loadRosterAliases();
     const snap = await getDocs(attendanceCol);
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderLeaderboard();
@@ -412,8 +465,9 @@
     const counts = {};
     recent.forEach(r => {
       (r.names || []).forEach(n => {
-        const clean = String(n).trim();
-        if (!clean) return;
+        const raw = String(n).trim();
+        if (!raw) return;
+        const clean = normalizeName(raw);
         const key = clean.toLowerCase();
         if (!counts[key]) counts[key] = { name: clean, count: 0, key };
         counts[key].count++;
@@ -491,7 +545,7 @@
 
   function openPlayerModal(key, name){
     const dates = currentRecent
-      .filter(r => (r.names || []).some(n => String(n).trim().toLowerCase() === key))
+      .filter(r => (r.names || []).some(n => normalizeName(n).toLowerCase() === key))
       .map(r => r.date)
       .sort()
       .reverse();
