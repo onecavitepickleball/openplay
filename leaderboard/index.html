@@ -427,6 +427,10 @@
 
         map[canonicalKey] = canonical;
         if (nickname) map[nickname.toLowerCase()] = canonical;
+        // Admin-set aliases (old names attendance was logged under, e.g.
+        // "Ria" for a player who now goes by "Riyang") are match-only —
+        // they merge into this player's count but are never displayed.
+        (p.aliases || []).forEach(a => { if (a && a.trim()) map[a.trim().toLowerCase()] = canonical; });
         display[canonicalKey] = nickname || toTitleCase(firstWord(p.firstName || ''));
 
         // Attendance is often logged with just the first word of a

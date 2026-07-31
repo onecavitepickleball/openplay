@@ -1303,6 +1303,7 @@
 
         map[canonicalKey] = canonical;
         if (nickname) map[nickname.toLowerCase()] = canonical;
+        (p.aliases || []).forEach(a => { if (a && a.trim()) map[a.trim().toLowerCase()] = canonical; });
         display[canonicalKey] = nickname || toTitleCase(firstWord(p.firstName || ''));
 
         const firstToken = toTitleCase(firstWord(p.firstName || ''));

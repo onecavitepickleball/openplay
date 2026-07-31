@@ -415,6 +415,12 @@
           </div>
 
           <div class="form-row">
+            <label for="editNickname">Nickname <span style="text-transform:none; letter-spacing:0; font-weight:400; color: var(--ink-faint);">(optional)</span></label>
+            <input type="text" id="editNickname" placeholder="What should we call you on court?">
+            <div class="form-hint">Shown on the leaderboard and around the site instead of your first name, if you set one.</div>
+          </div>
+
+          <div class="form-row">
             <label for="editBirthday">Birthday</label>
             <input type="date" id="editBirthday" required>
           </div>
@@ -481,7 +487,7 @@
 <script type="module" src="/nav-auth.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, updateDoc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
@@ -540,6 +546,7 @@
 
   let currentPhotoURL = '';
   let currentUid = null;
+  let currentIsActive = false;
   let currentUserEmail = null;
 
   function escapeHtml(str){
@@ -629,6 +636,7 @@
       photoPreview.innerHTML = currentPhotoURL ? `<img src="${currentPhotoURL}" alt="Current photo">` : '';
       document.getElementById('editFirstName').value = p.firstName || '';
       document.getElementById('editLastName').value = p.lastName || '';
+      document.getElementById('editNickname').value = p.nickname || '';
       if (p.birthYear && p.birthMonth && p.birthDay){
         const mm = String(p.birthMonth).padStart(2, '0');
         const dd = String(p.birthDay).padStart(2, '0');
@@ -641,6 +649,7 @@
 
       const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(p.email);
       const isActive = p.status === 'active' || isSuperAdmin;
+      currentIsActive = isActive;
       profileStatus.className = `profile-status ${isActive ? 'status-active' : 'status-pending'}`;
       profileStatus.textContent = isActive
         ? 'Active Member'
@@ -652,7 +661,7 @@
       document.getElementById('profileSkillDisplay').textContent = p.skillRating || '';
       document.getElementById('profileAvatar').innerHTML = currentPhotoURL ? `<img src="${currentPhotoURL}" alt="">` : '';
 
-      await loadStats(p.firstName, p.lastName, p.nickname);
+      await loadStats(p.firstName, p.lastName, p.nickname, p.aliases);
       await loadOrders(p.email || currentUserEmail);
     } catch (err) {
       console.error('loadProfile failed:', err);
@@ -666,12 +675,13 @@
   // approach the Leaderboard/admin panel already use. Also drives the
   // leaderboard projection and the 8-week attendance chart from the same
   // fetched records, so it's a single read.
-  async function loadStats(firstName, lastName, nickname){
+  async function loadStats(firstName, lastName, nickname, aliases){
     const statsRow = document.getElementById('statsRow');
     const key = `${firstName || ''} ${lastName || ''}`.trim().toLowerCase();
     if (!key) return;
     const keys = [key];
     if (nickname && nickname.trim()) keys.push(nickname.trim().toLowerCase());
+    (aliases || []).forEach(a => { if (a && a.trim()) keys.push(a.trim().toLowerCase()); });
 
     try {
       const snap = await getDocs(collection(db, 'attendance'));
@@ -794,6 +804,7 @@
 
     const firstName = document.getElementById('editFirstName').value.trim();
     const lastName = document.getElementById('editLastName').value.trim();
+    const nickname = document.getElementById('editNickname').value.trim();
     const birthdayVal = document.getElementById('editBirthday').value;
     const address = document.getElementById('editAddress').value.trim();
     const phone = document.getElementById('editPhone').value.trim();
@@ -818,11 +829,16 @@
       if (photoFile) photoURL = await uploadPhoto(photoFile);
 
       await updateDoc(doc(db, 'players', currentUid), {
-        firstName, lastName,
+        firstName, lastName, nickname,
         birthYear, birthMonth, birthDay,
         address, phone, email, skillRating,
         photoURL
       });
+      // Active members have a public roster copy that the leaderboard and
+      // Meet the Club read from — keep the nickname in sync there too.
+      if (currentIsActive){
+        await setDoc(doc(db, 'roster', currentUid), { nickname }, { merge: true });
+      }
 
       currentPhotoURL = photoURL;
       document.getElementById('profileNameDisplay').textContent = `${toTitleCase(firstName)} ${toTitleCase(lastName)}`.trim();

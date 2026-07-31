@@ -254,6 +254,12 @@
       </div>
 
       <div class="form-row">
+        <label for="fNickname">Nickname <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(optional)</span></label>
+        <input type="text" id="fNickname" placeholder="What should we call you on court?" autocomplete="nickname">
+        <div class="form-hint">Shown on the leaderboard and around the site instead of your first name, if you set one.</div>
+      </div>
+
+      <div class="form-row">
         <label for="fBirthday">Birthday</label>
         <input type="date" id="fBirthday" required>
       </div>
@@ -392,6 +398,7 @@
 
     const firstName = document.getElementById('fFirstName').value.trim();
     const lastName = document.getElementById('fLastName').value.trim();
+    const nickname = document.getElementById('fNickname').value.trim();
     const birthdayVal = document.getElementById('fBirthday').value;
     const address = document.getElementById('fAddress').value.trim();
     const phone = document.getElementById('fPhone').value.trim();
@@ -420,7 +427,7 @@
       const cred = await createUserWithEmailAndPassword(auth, email, password);
 
       await setDoc(doc(db, 'players', cred.user.uid), {
-        firstName, lastName,
+        firstName, lastName, nickname,
         birthYear, birthMonth, birthDay,
         address, phone, email, skillRating,
         photoURL,
