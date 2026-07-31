@@ -1380,7 +1380,7 @@
       const photoEl = document.getElementById('bdayBannerPhoto');
       const nameEl = document.getElementById('bdayBannerName');
       const names = celebrants.map(p => `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim()).join(' & ');
-      photoEl.src = celebrants[0].photoURL || '';
+      photoEl.src = celebrants[0].photoURL || '/assets/directory/blank.svg';
       photoEl.alt = names;
       nameEl.textContent = `Happy Birthday, ${names}!`;
       banner.style.display = 'flex';

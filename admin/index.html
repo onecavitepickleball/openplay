@@ -46,6 +46,7 @@
     font-size:14px; font-weight:600; color: var(--ink);
   }
   .settings-check input{ width:18px; height:18px; accent-color: var(--navy); flex-shrink:0; }
+  .optional-tag{ text-transform:none; letter-spacing:0; font-family: var(--font-body); font-size:11.5px; color: var(--ink-faint); }
 
   /* ---- DASHBOARD SHELL ---- */
   .dash-shell{ display:flex; align-items:flex-start; gap:0; }
@@ -747,6 +748,22 @@
       await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email, to_name, subject, message });
     } catch (err) { /* email is a nicety */ }
   }
+  // Same unsigned Cloudinary preset used at /join/ and /profile/ — lets an
+  // admin add or replace a player's photo directly (e.g. when they signed
+  // up without one).
+  const CLOUDINARY_CLOUD_NAME = "spakpfuj";
+  const CLOUDINARY_PLAYER_PHOTO_PRESET = "ocpc_player_photos";
+  async function uploadPlayerPhoto(file){
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_PLAYER_PHOTO_PRESET);
+    formData.append('folder', 'player-photos');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('Cloudinary upload failed');
+    const data = await res.json();
+    return data.secure_url;
+  }
+
   let isAdmin = false;
 
   function isoDate(d){ return d.toISOString().slice(0, 10); }
@@ -1722,7 +1739,7 @@
           const eligible = count >= MIN_CHECKINS_FOR_MEMBERSHIP;
           return `
             <div class="signup-row">
-              <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
+              <img class="signup-photo" src="${escapeHtml(p.photoURL || '/assets/directory/blank.svg')}" alt="">
               <div class="signup-body">
                 <div class="signup-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
                 <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${escapeHtml(p.email || '')} · ${escapeHtml(p.phone || '')}</div>
@@ -1743,7 +1760,7 @@
           const isPlayerAdmin = p.role === 'admin' || isProtected;
           return `
           <div class="signup-row">
-            <img class="signup-photo" src="${escapeHtml(p.photoURL || '')}" alt="">
+            <img class="signup-photo" src="${escapeHtml(p.photoURL || '/assets/directory/blank.svg')}" alt="">
             <div class="signup-body">
               <div class="signup-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))} ${isPlayerAdmin ? '<span class="signup-count eligible" style="margin-left:6px;">Admin</span>' : ''} ${isProtected ? '<span class="signup-count eligible" style="margin-left:6px;">Protected</span>' : ''}</div>
               <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${p.sessionsAttended || 0} check-ins recorded at approval</div>
@@ -1823,11 +1840,16 @@
 
     memberDetailBody.innerHTML = `
       <div class="member-detail-head">
-        <img src="${escapeHtml(p.photoURL || '')}" alt="">
+        <img id="memberDetailPhoto" src="${escapeHtml(p.photoURL || '/assets/directory/blank.svg')}" alt="">
         <div>
           <div class="order-row-name" style="font-size:16px;">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
           <div class="order-row-sub">${escapeHtml(p.status || '')}${isPlayerAdmin ? ' · Admin' : ''}${isProtected ? ' · Protected' : ''}</div>
         </div>
+      </div>
+      <div class="form-row" style="margin-top:14px;">
+        <label for="memberPhotoInput">Player Photo <span class="optional-tag">(upload or replace)</span></label>
+        <input type="file" id="memberPhotoInput" accept="image/*">
+        <div class="admin-msg" id="memberPhotoMsg"></div>
       </div>
       <div class="order-detail-row"><span class="k">Email</span><span class="v">${escapeHtml(p.email || '—')}</span></div>
       <div class="order-detail-row"><span class="k">Phone</span><span class="v">${escapeHtml(p.phone || '—')}</span></div>
@@ -1856,6 +1878,31 @@
         `).join('')}
       ` : ''}
     `;
+
+    document.getElementById('memberPhotoInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const msg = document.getElementById('memberPhotoMsg');
+      msg.style.color = '';
+      msg.textContent = 'Uploading…';
+      try {
+        const photoURL = await uploadPlayerPhoto(file);
+        await updateDoc(doc(db, 'players', id), { photoURL });
+        p.photoURL = photoURL;
+        // Active members also have a public roster copy — keep it in sync
+        // so the new photo shows up on Meet the Club / birthdays too.
+        if (p.status === 'active') {
+          await setDoc(doc(db, 'roster', id), { photoURL }, { merge: true });
+        }
+        document.getElementById('memberDetailPhoto').src = photoURL;
+        msg.style.color = '#2E7D32';
+        msg.textContent = 'Photo updated.';
+      } catch (err) {
+        msg.style.color = 'var(--pop)';
+        msg.textContent = 'Upload failed — try again.';
+      }
+    });
+
     memberDetailOverlay.classList.add('open');
   }
   function closeMemberDetail(){ memberDetailOverlay.classList.remove('open'); }

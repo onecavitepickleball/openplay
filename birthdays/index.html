@@ -373,7 +373,7 @@
       const name = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
       return `
         <div class="bday-card ${isToday ? 'is-today' : ''}">
-          <div class="bday-photo"><img src="${escapeHtml(p.photoURL || '')}" alt="${escapeHtml(name)}"></div>
+          <div class="bday-photo"><img src="${escapeHtml(p.photoURL || '/assets/directory/blank.svg')}" alt="${escapeHtml(name)}"></div>
           <div class="bday-name">${escapeHtml(name)}</div>
           <div class="bday-date">${MONTH_NAMES[month - 1].slice(0, 3)} ${p.birthDay}</div>
           ${isToday ? '<div class="bday-today-flag">🎉 Today!</div>' : ''}
