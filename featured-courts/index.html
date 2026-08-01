@@ -105,6 +105,61 @@
     font-size:14px;
     line-height:1.6;
   }
+
+  .fc-pitch{
+    background: var(--navy);
+    color: var(--paper);
+    border-radius:8px;
+    padding:48px 40px;
+    text-align:center;
+  }
+  .fc-pitch .eyebrow{ color: var(--sky); }
+  .fc-pitch h2{
+    font-family: var(--font-display);
+    font-size:clamp(26px, 3.6vw, 36px);
+    text-transform:uppercase;
+    margin:10px 0 14px;
+  }
+  .fc-pitch p{
+    color: rgba(245,243,238,0.78);
+    font-size:14.5px;
+    line-height:1.7;
+    max-width:520px;
+    margin:0 auto 28px;
+  }
+  .fc-pitch-perks{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:28px;
+  }
+  .fc-pitch-perk{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius:20px;
+    padding:8px 16px;
+    font-size:13px;
+    color: rgba(245,243,238,0.9);
+  }
+  .fc-pitch-actions{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .fc-pitch .btn-ghost{
+    border-color: rgba(245,243,238,0.4);
+    color: var(--paper);
+  }
+  .fc-pitch .btn-ghost:hover{ background: rgba(245,243,238,0.1); }
+
+  @media (max-width: 560px){
+    .fc-pitch{ padding:36px 24px; }
+  }
 </style>
 </head>
 <body>
@@ -242,9 +297,19 @@
   </div>
 
   <div class="section reveal">
-    <div class="fc-note">
-      Run a court or facility and want to host OCPC for a session, dry run, or opening? Message us on
-      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" style="color:var(--sky-deep); text-decoration:underline;">Facebook</a>.
+    <div class="fc-pitch">
+      <span class="eyebrow">For Court Owners</span>
+      <h2>Want to Be Featured Next?</h2>
+      <p>Host an OCPC session and we'll bring real player turnout, document the visit for our Facebook page, and feature your court right here for a set period — free exposure to our members, our social following, and everyone who checks this page before deciding where to play.</p>
+      <div class="fc-pitch-perks">
+        <span class="fc-pitch-perk">👥 Guaranteed turnout</span>
+        <span class="fc-pitch-perk">📸 Photos &amp; recap on our socials</span>
+        <span class="fc-pitch-perk">📍 A featured spot right here</span>
+      </div>
+      <div class="fc-pitch-actions">
+        <a class="btn btn-primary" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Message Us on Facebook</a>
+        <a class="btn btn-ghost" href="mailto:ocpc.pickleball@gmail.com">Email Us</a>
+      </div>
     </div>
   </div>
 
