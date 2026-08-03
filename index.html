@@ -990,32 +990,20 @@
 <script type="module" src="/nav-auth.js"></script>
 <script>
   // ================= EDIT THIS EACH WEEK =================
-  // One block per week (label + days). Add or remove weeks below and the
-  // week tabs appear/disappear automatically — with only one week, no
-  // week tabs show at all.
+  // Add one entry per open play session, with its real date (each date
+  // needs its own unique Reclub registration link). That's it — the page
+  // automatically works out which sessions fall in "This Week" vs "Next
+  // Week" (or further out) based on today's date, so entries never need
+  // to be relabeled or moved between weeks by hand.
   //
-  // HOW MANY DAYS IN A WEEK?
-  // Just add or delete day entries — the page adjusts automatically.
-  // Leave a week's "days" EMPTY ( days: [] ) for a week with no open play,
-  // and a friendly "no sessions this week" message will show for it.
-  //
-  // Each day entry needs: weekday, date, venue, court, time, and link
-  // (link = that day's unique Reclub registration URL).
-  const weeks = [
-    {
-      label: "This Week",
-      days: [
-        { weekday: "Mon", date: "Jul 27", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/6CPIXL" },
-        { weekday: "Tue", date: "Jul 28", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/VVNQGT" },
-        { weekday: "Wed", date: "Jul 29", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/9LI6QQ" },
-        { weekday: "Fri", date: "Jul 31", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/72HQVQ" }
-      ]
-    },
-    {
-      label: "Next Week",
-      days: [],
-      emptyMessage: "August open play schedules to be announced."
-    }
+  // If there are no sessions entered for the current calendar week, a
+  // friendly "no sessions announced yet" message shows automatically —
+  // you don't need an empty placeholder entry for that.
+  const sessions = [
+    { date: "Jul 27", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/6CPIXL" },
+    { date: "Jul 28", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/VVNQGT" },
+    { date: "Jul 29", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/9LI6QQ" },
+    { date: "Jul 31", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/72HQVQ" }
   ];
   // =========================================================
 
@@ -1039,6 +1027,58 @@
     if (dt.getTime() < today0.getTime() - 200 * 86400000) dt.setFullYear(now.getFullYear() + 1);
     return dt;
   }
+
+  // Groups the flat session list into week buckets (Mon–Sun), computed
+  // fresh from today's date on every load — this is what keeps "This
+  // Week" and "Next Week" always accurate without manual relabeling.
+  function mondayOf(date){
+    const dt = new Date(date);
+    const day = dt.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    dt.setDate(dt.getDate() + diff);
+    dt.setHours(0, 0, 0, 0);
+    return dt;
+  }
+
+  function buildWeeks(sessionList){
+    const today0 = new Date();
+    today0.setHours(0, 0, 0, 0);
+    const thisMonday = mondayOf(today0).getTime();
+
+    const buckets = new Map();
+    buckets.set(thisMonday, []);
+
+    sessionList.forEach(s => {
+      const dt = parseDayDate(s.date);
+      const monday = mondayOf(dt).getTime();
+      if (monday < thisMonday) return;
+      if (!buckets.has(monday)) buckets.set(monday, []);
+      buckets.get(monday).push({
+        ...s,
+        weekday: dt.toLocaleDateString('en-US', { weekday: 'short' })
+      });
+    });
+
+    const mondayKeys = [...buckets.keys()].sort((a, b) => a - b);
+
+    return mondayKeys.map((monday, i) => {
+      const days = buckets.get(monday).slice().sort((a, b) => parseDayDate(a.date) - parseDayDate(b.date));
+      const label = i === 0
+        ? "This Week"
+        : i === 1
+          ? "Next Week"
+          : `Week of ${new Date(monday).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return {
+        label,
+        days,
+        emptyMessage: i === 0
+          ? "No open play sessions announced yet this week."
+          : "Schedule to be announced."
+      };
+    });
+  }
+
+  const weeks = buildWeeks(sessions);
 
   function isToday(dateStr){
     const today0 = new Date();
