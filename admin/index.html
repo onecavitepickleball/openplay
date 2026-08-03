@@ -490,7 +490,7 @@
       <section class="dash-panel" id="schedulePanel">
         <div class="dash-panel-head">
           <h1>Open Play Schedule</h1>
-          <p>Add sessions with their real date and Reclub registration link — the homepage automatically sorts them into "This Week" / "Next Week".</p>
+          <p>Add sessions with their real date and Reclub registration link — the homepage automatically sorts them into "This Week" / "Next Week". Mark a session Tentative if it's not locked in yet — the registration button pauses on the homepage until you confirm it.</p>
         </div>
 
         <div class="dash-card" style="max-width:480px;">
@@ -521,14 +521,21 @@
               <label for="schedLink">Registration Link</label>
               <input type="url" id="schedLink" placeholder="https://reclub.co/m/..." required>
             </div>
+            <div class="form-row">
+              <label for="schedStatus">Status</label>
+              <select id="schedStatus" style="width:100%; border: 1.5px solid var(--line); border-radius:4px; padding:11px 13px; font-family: var(--font-body); font-size:14px; background: var(--white); color: var(--ink);">
+                <option value="confirmed" selected>Confirmed</option>
+                <option value="tentative">Tentative — not locked in yet</option>
+              </select>
+            </div>
             <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Add Session</button>
             <div class="admin-msg" id="scheduleFormMsg"></div>
           </form>
         </div>
 
-        <div class="orders-table-wrap" style="margin-top:20px; max-width:760px;">
+        <div class="orders-table-wrap" style="margin-top:20px; max-width:860px;">
           <table class="orders-table" style="min-width:0;">
-            <thead><tr><th>Date</th><th>Venue</th><th>Time</th><th>Link</th><th></th></tr></thead>
+            <thead><tr><th>Date</th><th>Venue</th><th>Time</th><th>Link</th><th>Status</th><th></th></tr></thead>
             <tbody id="scheduleTableBody"></tbody>
           </table>
           <div class="signup-empty" id="scheduleEmpty" style="display:none;">No sessions added yet.</div>
@@ -1514,23 +1521,41 @@
     renderScheduleTable();
   }
 
+  const SCHEDULE_STATUS_BADGE = { confirmed: 'fulfilled', tentative: 'pending', cancelled: 'cancelled' };
+  const SCHEDULE_STATUS_LABEL = { confirmed: 'Confirmed', tentative: 'Tentative', cancelled: 'Cancelled' };
+
   function renderScheduleTable(){
     scheduleEmpty.style.display = allSessions.length === 0 ? 'block' : 'none';
     const today = new Date(); today.setHours(0, 0, 0, 0);
     scheduleTableBody.innerHTML = allSessions.map(s => {
       const isPast = new Date(s.date + 'T00:00:00').getTime() < today.getTime();
       const displayDate = new Date(s.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const status = s.status || 'confirmed';
       return `
         <tr style="${isPast ? 'opacity:0.5;' : ''}">
           <td><b>${escapeHtml(displayDate)}</b>${isPast ? ' <span style="font-size:11px; color:var(--ink-faint);">(past)</span>' : ''}</td>
           <td>${escapeHtml(s.venue || '')}<br><small>${escapeHtml(s.court || '')}</small></td>
           <td>${escapeHtml(s.time || '')}</td>
           <td><a href="${escapeHtml(s.link || '')}" target="_blank" rel="noopener">Open link</a></td>
+          <td>
+            <span class="status-badge ${SCHEDULE_STATUS_BADGE[status]}">${SCHEDULE_STATUS_LABEL[status]}</span><br>
+            <select data-action="set-status" data-id="${s.id}" style="margin-top:6px; font-size:12px; border: 1.5px solid var(--line); border-radius:4px; padding:4px 6px; background: var(--white); color: var(--ink);">
+              <option value="confirmed" ${status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+              <option value="tentative" ${status === 'tentative' ? 'selected' : ''}>Tentative</option>
+              <option value="cancelled" ${status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+            </select>
+          </td>
           <td><button class="order-view-btn" data-action="delete-session" data-id="${s.id}">Delete</button></td>
         </tr>
       `;
     }).join('');
 
+    scheduleTableBody.querySelectorAll('[data-action="set-status"]').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        await updateDoc(doc(db, 'scheduleSessions', sel.dataset.id), { status: sel.value });
+        await loadSchedule();
+      });
+    });
     scheduleTableBody.querySelectorAll('[data-action="delete-session"]').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('Delete this session?')) return;
@@ -1548,6 +1573,7 @@
     const start = document.getElementById('schedStart').value;
     const end = document.getElementById('schedEnd').value;
     const link = document.getElementById('schedLink').value.trim();
+    const status = document.getElementById('schedStatus').value;
     scheduleFormMsg.textContent = '';
     if (!date || !venue || !court || !start || !end || !link){
       scheduleFormMsg.style.color = 'var(--pop)';
@@ -1559,6 +1585,7 @@
         date, venue, court,
         time: `${formatTime12(start)} – ${formatTime12(end)}`,
         link,
+        status,
         createdAt: serverTimestamp()
       });
       scheduleFormMsg.style.color = 'var(--sky-deep)';
@@ -1568,6 +1595,7 @@
       document.getElementById('schedCourt').value = 'Indoor Courts 1-2';
       document.getElementById('schedStart').value = '15:30';
       document.getElementById('schedEnd').value = '21:00';
+      document.getElementById('schedStatus').value = 'confirmed';
       await loadSchedule();
     } catch (err) {
       scheduleFormMsg.style.color = 'var(--pop)';

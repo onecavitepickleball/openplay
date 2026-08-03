@@ -258,6 +258,16 @@
     color: var(--sky-deep);
     margin-top:5px;
   }
+  .day-tab .status-flag{
+    display:block;
+    font-family: var(--font-mono);
+    font-size:9px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    margin-top:5px;
+  }
+  .day-tab .status-flag.tentative{ color:#9A6B00; }
+  .day-tab .status-flag.cancelled{ color: var(--ink-faint); }
   .day-tab:hover{ border-bottom-color: rgba(79,182,255,0.5); }
   .day-tab.active{ border-bottom-color: var(--pop); }
   .day-tab.active .wk{ color: var(--sky-deep); }
@@ -304,6 +314,14 @@
     color: var(--paper);
     padding:6px 14px;
     border-radius:3px;
+  }
+  .detail-badge.tentative{ background:#9A6B00; }
+  .detail-badge.cancelled{ background: var(--ink-faint); }
+  .btn-paused{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family: inherit; font-weight:700; text-transform:uppercase; font-size:13px; letter-spacing:0.02em;
+    padding:14px 24px; border-radius:3px; border:1.5px solid var(--line);
+    background: none; color: var(--ink-faint); cursor:not-allowed;
   }
   .detail-rows{ display:flex; flex-direction:column; gap:22px; }
   .detail-row{ border-top: 1px solid var(--line); padding-top:18px; }
@@ -1019,7 +1037,8 @@
           venue: data.venue || '',
           court: data.court || '',
           time: data.time || '',
-          link: data.link || ''
+          link: data.link || '',
+          status: data.status || 'confirmed'
         };
       });
     } catch (err) {
@@ -1126,6 +1145,7 @@
     for (let wi = 0; wi < weeks.length; wi++){
       const days = weeks[wi].days;
       for (let di = 0; di < days.length; di++){
+        if ((days[di].status || 'confirmed') === 'cancelled') continue;
         const t = parseDayDate(days[di].date).getTime();
         if (t > today0.getTime() && (!best || t < best.t)) best = { week: wi, index: di, t };
       }
@@ -1166,25 +1186,52 @@
       return;
     }
 
-    pillsEl.innerHTML = schedule.map((d, i) => `
+    pillsEl.innerHTML = schedule.map((d, i) => {
+      const status = d.status || 'confirmed';
+      let flag = '';
+      if (isToday(d.date)) flag = '<span class="today-flag">Today</span>';
+      else if (status === 'tentative') flag = '<span class="status-flag tentative">Tentative</span>';
+      else if (status === 'cancelled') flag = '<span class="status-flag cancelled">Cancelled</span>';
+      return `
       <button class="day-tab ${i === activeIndex ? 'active' : ''} ${isToday(d.date) ? 'is-today' : ''}" data-index="${i}">
         <span class="wk">${d.weekday}</span>
         <span class="dt">${d.date}</span>
-        ${isToday(d.date) ? '<span class="today-flag">Today</span>' : ''}
+        ${flag}
       </button>
-    `).join('');
+    `;
+    }).join('');
 
     pillsEl.querySelectorAll('.day-tab').forEach(pill => {
       pill.addEventListener('click', () => render(parseInt(pill.dataset.index)));
     });
 
     const d = schedule[activeIndex];
+    const status = d.status || 'confirmed';
     cardEl.className = 'detail-panel';
     cardEl.style.gridColumn = '';
+
+    let badge = '<span class="detail-badge">All Levels Welcome</span>';
+    if (status === 'tentative') badge = '<span class="detail-badge tentative">Tentative — Not Yet Confirmed</span>';
+    else if (status === 'cancelled') badge = '<span class="detail-badge cancelled">Cancelled</span>';
+
+    let actions = `
+      <a class="btn btn-primary" href="${d.link}" target="_blank" rel="noopener">Register for this session ${icons.arrow}</a>
+      <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(d.venue)}" target="_blank" rel="noopener">Get directions</a>
+      <button class="btn btn-ghost" id="addToCalBtn" type="button">Add to Calendar</button>
+    `;
+    if (status === 'tentative'){
+      actions = `
+        <span class="btn-paused">Registration opens once confirmed</span>
+        <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(d.venue)}" target="_blank" rel="noopener">Get directions</a>
+      `;
+    } else if (status === 'cancelled'){
+      actions = `<span class="btn-paused">This session has been cancelled</span>`;
+    }
+
     cardEl.innerHTML = `
       <div>
         <div class="detail-heading">${d.weekday}, ${d.date}</div>
-        <span class="detail-badge">All Levels Welcome</span>
+        ${badge}
       </div>
       <div class="detail-rows">
         <div class="detail-row">
@@ -1196,14 +1243,13 @@
           <div class="value">${d.venue}<small>${d.court}</small></div>
         </div>
         <div class="detail-actions">
-          <a class="btn btn-primary" href="${d.link}" target="_blank" rel="noopener">Register for this session ${icons.arrow}</a>
-          <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(d.venue)}" target="_blank" rel="noopener">Get directions</a>
-          <button class="btn btn-ghost" id="addToCalBtn" type="button">Add to Calendar</button>
+          ${actions}
         </div>
       </div>
     `;
 
-    document.getElementById('addToCalBtn').addEventListener('click', () => downloadICS(d));
+    const addToCalBtn = document.getElementById('addToCalBtn');
+    if (addToCalBtn) addToCalBtn.addEventListener('click', () => downloadICS(d));
   }
 
   // ---- Add to Calendar (.ics download) ----
@@ -1273,6 +1319,7 @@
     const allDays = weeks.flatMap(w => w.days);
     const now = new Date();
     const upcoming = allDays
+      .filter(d => (d.status || 'confirmed') !== 'cancelled')
       .map(d => ({ d, dt: parseSessionStart(d) }))
       .filter(x => !isNaN(x.dt.getTime()) && x.dt > now)
       .sort((a, b) => a.dt - b.dt);
