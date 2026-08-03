@@ -391,6 +391,7 @@
       <nav class="dash-nav">
         <button class="dash-nav-item active" data-tab="overview">Overview</button>
         <button class="dash-nav-item" data-tab="orders">Orders <span class="dash-nav-badge" id="pendingOrdersBadge" hidden></span></button>
+        <button class="dash-nav-item" data-tab="schedule">Schedule</button>
         <button class="dash-nav-item" data-tab="coaching">Coaching <span class="dash-nav-badge" id="pendingCoachingBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="discounts">Discounts</button>
         <button class="dash-nav-item" data-tab="attendance">Attendance</button>
@@ -482,6 +483,55 @@
             <tbody id="ordersTableBody"></tbody>
           </table>
           <div class="signup-empty" id="ordersEmpty" style="display:none;">No orders match your filters.</div>
+        </div>
+      </section>
+
+      <!-- ============ SCHEDULE ============ -->
+      <section class="dash-panel" id="schedulePanel">
+        <div class="dash-panel-head">
+          <h1>Open Play Schedule</h1>
+          <p>Add sessions with their real date and Reclub registration link — the homepage automatically sorts them into "This Week" / "Next Week".</p>
+        </div>
+
+        <div class="dash-card" style="max-width:480px;">
+          <form id="scheduleForm">
+            <div class="form-row">
+              <label for="schedDate">Date</label>
+              <input type="date" id="schedDate" required>
+            </div>
+            <div class="form-row">
+              <label for="schedVenue">Venue</label>
+              <input type="text" id="schedVenue" value="SM City Rosario" required>
+            </div>
+            <div class="form-row">
+              <label for="schedCourt">Court</label>
+              <input type="text" id="schedCourt" value="Indoor Courts 1-2" required>
+            </div>
+            <div class="form-row" style="display:flex; gap:10px;">
+              <div style="flex:1;">
+                <label for="schedStart">Start Time</label>
+                <input type="time" id="schedStart" value="15:30" required>
+              </div>
+              <div style="flex:1;">
+                <label for="schedEnd">End Time</label>
+                <input type="time" id="schedEnd" value="21:00" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="schedLink">Registration Link</label>
+              <input type="url" id="schedLink" placeholder="https://reclub.co/m/..." required>
+            </div>
+            <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Add Session</button>
+            <div class="admin-msg" id="scheduleFormMsg"></div>
+          </form>
+        </div>
+
+        <div class="orders-table-wrap" style="margin-top:20px; max-width:760px;">
+          <table class="orders-table" style="min-width:0;">
+            <thead><tr><th>Date</th><th>Venue</th><th>Time</th><th>Link</th><th></th></tr></thead>
+            <tbody id="scheduleTableBody"></tbody>
+          </table>
+          <div class="signup-empty" id="scheduleEmpty" style="display:none;">No sessions added yet.</div>
         </div>
       </section>
 
@@ -727,6 +777,7 @@
   const ordersCol = collection(db, "orders");
   const discountsCol = collection(db, "discountCodes");
   const coachingCol = collection(db, "coachingRequests");
+  const scheduleCol = collection(db, "scheduleSessions");
 
   let allRecords = [];
   let allOrders = [];
@@ -880,6 +931,7 @@
       loadAttendance();
       loadPlayers();
       loadOrders();
+      loadSchedule();
       loadDiscounts();
       loadCoachingRequests();
       loadAnnounceSettings();
@@ -1439,6 +1491,87 @@
     } catch (err) {
       discountFormMsg.style.color = 'var(--pop)';
       discountFormMsg.textContent = 'Something went wrong saving this code.';
+    }
+  });
+
+  // ================= OPEN PLAY SCHEDULE =================
+  const scheduleForm = document.getElementById('scheduleForm');
+  const scheduleFormMsg = document.getElementById('scheduleFormMsg');
+  const scheduleTableBody = document.getElementById('scheduleTableBody');
+  const scheduleEmpty = document.getElementById('scheduleEmpty');
+  let allSessions = [];
+
+  function formatTime12(t){
+    const [h, m] = t.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  }
+
+  async function loadSchedule(){
+    const snap = await getDocs(scheduleCol);
+    allSessions = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.date.localeCompare(b.date));
+    renderScheduleTable();
+  }
+
+  function renderScheduleTable(){
+    scheduleEmpty.style.display = allSessions.length === 0 ? 'block' : 'none';
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    scheduleTableBody.innerHTML = allSessions.map(s => {
+      const isPast = new Date(s.date + 'T00:00:00').getTime() < today.getTime();
+      const displayDate = new Date(s.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      return `
+        <tr style="${isPast ? 'opacity:0.5;' : ''}">
+          <td><b>${escapeHtml(displayDate)}</b>${isPast ? ' <span style="font-size:11px; color:var(--ink-faint);">(past)</span>' : ''}</td>
+          <td>${escapeHtml(s.venue || '')}<br><small>${escapeHtml(s.court || '')}</small></td>
+          <td>${escapeHtml(s.time || '')}</td>
+          <td><a href="${escapeHtml(s.link || '')}" target="_blank" rel="noopener">Open link</a></td>
+          <td><button class="order-view-btn" data-action="delete-session" data-id="${s.id}">Delete</button></td>
+        </tr>
+      `;
+    }).join('');
+
+    scheduleTableBody.querySelectorAll('[data-action="delete-session"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this session?')) return;
+        await deleteDoc(doc(db, 'scheduleSessions', btn.dataset.id));
+        await loadSchedule();
+      });
+    });
+  }
+
+  scheduleForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const date = document.getElementById('schedDate').value;
+    const venue = document.getElementById('schedVenue').value.trim();
+    const court = document.getElementById('schedCourt').value.trim();
+    const start = document.getElementById('schedStart').value;
+    const end = document.getElementById('schedEnd').value;
+    const link = document.getElementById('schedLink').value.trim();
+    scheduleFormMsg.textContent = '';
+    if (!date || !venue || !court || !start || !end || !link){
+      scheduleFormMsg.style.color = 'var(--pop)';
+      scheduleFormMsg.textContent = 'Fill in every field.';
+      return;
+    }
+    try {
+      await addDoc(scheduleCol, {
+        date, venue, court,
+        time: `${formatTime12(start)} – ${formatTime12(end)}`,
+        link,
+        createdAt: serverTimestamp()
+      });
+      scheduleFormMsg.style.color = 'var(--sky-deep)';
+      scheduleFormMsg.textContent = 'Session added.';
+      scheduleForm.reset();
+      document.getElementById('schedVenue').value = 'SM City Rosario';
+      document.getElementById('schedCourt').value = 'Indoor Courts 1-2';
+      document.getElementById('schedStart').value = '15:30';
+      document.getElementById('schedEnd').value = '21:00';
+      await loadSchedule();
+    } catch (err) {
+      scheduleFormMsg.style.color = 'var(--pop)';
+      scheduleFormMsg.textContent = 'Something went wrong saving this session.';
     }
   });
 

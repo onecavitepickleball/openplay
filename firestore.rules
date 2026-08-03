@@ -160,6 +160,14 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Open play schedule sessions, shown in the homepage's "This Week's
+    // Schedule" widget. Public read so the homepage can render it without
+    // logging in; only admins can add, edit, or remove sessions.
+    match /scheduleSessions/{sessionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Site-wide settings, hand-edited from admin.html (currently just the
     // scrolling announce bar shown at the top of every page). Public read
     // so every page can render it without logging in; admin-only write.

@@ -988,24 +988,47 @@
 
 <script src="/script.js"></script>
 <script type="module" src="/nav-auth.js"></script>
-<script>
-  // ================= EDIT THIS EACH WEEK =================
-  // Add one entry per open play session, with its real date (each date
-  // needs its own unique Reclub registration link). That's it — the page
-  // automatically works out which sessions fall in "This Week" vs "Next
-  // Week" (or further out) based on today's date, so entries never need
-  // to be relabeled or moved between weeks by hand.
-  //
-  // If there are no sessions entered for the current calendar week, a
-  // friendly "no sessions announced yet" message shows automatically —
-  // you don't need an empty placeholder entry for that.
-  const sessions = [
-    { date: "Jul 27", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/6CPIXL" },
-    { date: "Jul 28", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/VVNQGT" },
-    { date: "Jul 29", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/9LI6QQ" },
-    { date: "Jul 31", venue: "SM City Rosario", court: "Indoor Courts 1-2", time: "3:30 PM – 9:00 PM", link: "https://reclub.co/m/72HQVQ" }
-  ];
-  // =========================================================
+<script type="module">
+  // Open play sessions now come from the admin backend's Schedule tab
+  // (Firestore collection "scheduleSessions") instead of being hand-edited
+  // here. The page automatically works out which sessions fall in "This
+  // Week" vs "Next Week" (or further out) based on today's date, so
+  // entries never need to be relabeled or moved by hand.
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function loadSessions(){
+    try {
+      const snap = await getDocs(collection(db, 'scheduleSessions'));
+      return snap.docs.map(docSnap => {
+        const data = docSnap.data();
+        const dt = new Date(`${data.date}T00:00:00`);
+        return {
+          date: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          venue: data.venue || '',
+          court: data.court || '',
+          time: data.time || '',
+          link: data.link || ''
+        };
+      });
+    } catch (err) {
+      console.error('Failed to load schedule sessions', err);
+      return [];
+    }
+  }
+
+  const sessions = await loadSessions();
 
   const weekPillsEl = document.getElementById('weekPills');
   const pillsEl = document.getElementById('dayPills');
@@ -1298,7 +1321,7 @@
 </script>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -1310,7 +1333,7 @@
     appId: "1:15833259684:web:0f2f4400f9995517ae5031"
   };
 
-  const app = initializeApp(firebaseConfig);
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
   // Maps a lowercased raw attendance name (nickname OR full name OR a
