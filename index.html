@@ -537,6 +537,15 @@
 
   /* ---- CHEER + WALL OF SUPPORT ---- */
   .cheer-block{ position:relative; margin-top:32px; padding-top:28px; border-top:1px dashed rgba(255,196,75,0.35); }
+  .cheer-note{ font-family: var(--font-mono); font-size:12px; color: rgba(255,255,255,0.65); margin-bottom:16px; }
+
+  .cheer-controls{ display:flex; gap:36px; flex-wrap:wrap; align-items:flex-start; }
+  .cheer-btn-wrap{ flex:0 0 auto; }
+  .reaction-side{ flex:0 0 auto; padding-left:32px; border-left:1px dashed rgba(255,196,75,0.35); }
+  @media (max-width: 640px){
+    .reaction-side{ padding-left:0; border-left:none; padding-top:20px; border-top:1px dashed rgba(255,196,75,0.35); }
+  }
+
   .cheer-btn{
     position:relative;
     display:inline-flex; align-items:center; gap:10px;
@@ -552,7 +561,23 @@
   .cheer-btn-icon{ font-size:18px; }
   .cheer-btn-count{ background: rgba(0,0,0,0.25); padding:3px 11px; border-radius:100px; font-size:13px; font-variant-numeric: tabular-nums; }
   .cheer-btn.cheered .cheer-btn-count{ background: rgba(0,0,0,0.16); }
-  .cheer-note{ margin-top:10px; font-family: var(--font-mono); font-size:12px; color: rgba(255,255,255,0.65); }
+
+  .reaction-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .reaction-btn{
+    position:relative;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    background: rgba(255,196,75,0.12); border:2px solid rgba(255,196,75,0.55); color:#FFC24B;
+    width:66px; padding:12px 6px 10px; border-radius:14px; cursor:pointer;
+    transition: transform .12s ease, background .12s ease;
+  }
+  .reaction-btn:hover{ background: rgba(255,196,75,0.26); transform: translateY(-2px); }
+  .reaction-btn:active{ transform: translateY(0) scale(0.92); }
+  .reaction-emoji{ font-size:24px; line-height:1; }
+  .reaction-count{
+    font-family: var(--font-mono); font-size:12px; font-weight:700;
+    font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.9);
+  }
+  .floating-emoji{ position:fixed; pointer-events:none; z-index:500; user-select:none; }
 
   .cheer-wall{ margin-top:28px; max-width:560px; }
   .cheer-wall-head{
@@ -1002,12 +1027,42 @@
       </div>
 
       <div class="cheer-block">
-        <button class="cheer-btn" id="cheerBtn" type="button">
-          <span class="cheer-btn-icon">📣</span>
-          <span class="cheer-btn-label">Cheer Them On</span>
-          <span class="cheer-btn-count" id="cheerCount">0</span>
-        </button>
-        <div class="cheer-note" id="cheerNote">Tap to send some hype their way.</div>
+        <div class="cheer-controls">
+          <div class="cheer-btn-wrap">
+            <button class="cheer-btn" id="cheerBtn" type="button">
+              <span class="cheer-btn-icon">📣</span>
+              <span class="cheer-btn-label">Cheer Them On</span>
+              <span class="cheer-btn-count" id="cheerCount">0</span>
+            </button>
+            <div class="cheer-note" id="cheerNote">Tap to send some hype their way.</div>
+          </div>
+
+          <div class="reaction-side">
+            <div class="cheer-note">Or send a quick reaction — as many as you want!</div>
+            <div class="reaction-row" id="reactionRow">
+              <button class="reaction-btn" type="button" data-key="celebrate" data-emoji="🎉">
+                <span class="reaction-emoji">🎉</span>
+                <span class="reaction-count" data-count="celebrate">0</span>
+              </button>
+              <button class="reaction-btn" type="button" data-key="clap" data-emoji="👏">
+                <span class="reaction-emoji">👏</span>
+                <span class="reaction-count" data-count="clap">0</span>
+              </button>
+              <button class="reaction-btn" type="button" data-key="fire" data-emoji="🔥">
+                <span class="reaction-emoji">🔥</span>
+                <span class="reaction-count" data-count="fire">0</span>
+              </button>
+              <button class="reaction-btn" type="button" data-key="strength" data-emoji="💪">
+                <span class="reaction-emoji">💪</span>
+                <span class="reaction-count" data-count="strength">0</span>
+              </button>
+              <button class="reaction-btn" type="button" data-key="paddle" data-emoji="🏓">
+                <span class="reaction-emoji">🏓</span>
+                <span class="reaction-count" data-count="paddle">0</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div class="cheer-wall">
           <div class="cheer-wall-head">Messages of Support</div>
@@ -1829,9 +1884,10 @@
   const cheerBtn = document.getElementById('cheerBtn');
   const cheerCountEl = document.getElementById('cheerCount');
   const cheerNoteEl = document.getElementById('cheerNote');
+  const reactionRow = document.getElementById('reactionRow');
   const cheerForm = document.getElementById('cheerForm');
   const cheerMessagesEl = document.getElementById('cheerMessages');
-  if (!cheerBtn) { /* section not on this page */ }
+  if (!reactionRow) { /* section not on this page */ }
   else {
 
   function escapeHtml(str){
@@ -1840,10 +1896,10 @@
     return div.innerHTML;
   }
 
+  // ---- "Cheer Them On" button: one confetti-burst cheer per browser ----
   async function loadCheerCount(){
     try {
-      const q = query(collection(db, 'cheers'));
-      const snap = await getDocs(q);
+      const snap = await getDocs(collection(db, 'cheers'));
       const match = snap.docs.find(d => d.id === CHEER_ID);
       cheerCountEl.textContent = match ? (match.data().count || 0) : 0;
     } catch (err) {
@@ -1909,6 +1965,83 @@
     }
   });
 
+  // ---- Reactions: floating emoji bubbles, Facebook Live style ----
+  const reactionButtons = Array.from(reactionRow.querySelectorAll('.reaction-btn'));
+
+  function reactionDocId(key){ return `${CHEER_ID}__${key}`; }
+
+  async function loadReactionCounts(){
+    try {
+      const snap = await getDocs(collection(db, 'cheers'));
+      const counts = {};
+      snap.docs.forEach(d => { counts[d.id] = d.data().count || 0; });
+      reactionButtons.forEach(btn => {
+        const key = btn.dataset.key;
+        const countEl = btn.querySelector('.reaction-count');
+        countEl.textContent = counts[reactionDocId(key)] || 0;
+      });
+    } catch (err) { /* leave at 0 */ }
+  }
+
+  function spawnFloatingEmoji(btn, emoji){
+    const rect = btn.getBoundingClientRect();
+    const el = document.createElement('span');
+    el.className = 'floating-emoji';
+    el.textContent = emoji;
+    el.style.left = `${rect.left + rect.width / 2 - 12}px`;
+    el.style.top = `${rect.top}px`;
+    el.style.fontSize = `${20 + Math.random() * 10}px`;
+    document.body.appendChild(el);
+    const drift = (Math.random() - 0.5) * 70;
+    const duration = 1300 + Math.random() * 500;
+    const anim = el.animate([
+      { transform: 'translate(0,0) scale(0.7) rotate(0deg)', opacity: 1 },
+      { transform: `translate(${drift * 0.5}px, -80px) scale(1.15) rotate(${(Math.random() - 0.5) * 40}deg)`, opacity: 1, offset: 0.35 },
+      { transform: `translate(${drift}px, -180px) scale(1) rotate(${(Math.random() - 0.5) * 60}deg)`, opacity: 0 }
+    ], { duration, easing: 'cubic-bezier(.2,.6,.35,1)' });
+    anim.onfinish = () => el.remove();
+  }
+
+  reactionButtons.forEach(btn => {
+    const key = btn.dataset.key;
+    const emoji = btn.dataset.emoji;
+    const countEl = btn.querySelector('.reaction-count');
+    let pending = 0;
+    let flushing = false;
+
+    // Rapid taps spawn bubbles instantly and queue up in `pending`; this
+    // drains the queue in the background so no click's write gets lost
+    // even if several land while a transaction is still in flight.
+    async function flushPending(){
+      if (flushing) return;
+      flushing = true;
+      while (pending > 0){
+        const amount = pending;
+        pending = 0;
+        try {
+          const ref = doc(db, 'cheers', reactionDocId(key));
+          await runTransaction(db, async (tx) => {
+            const snap = await tx.get(ref);
+            const base = snap.exists() ? (snap.data().count || 0) : 0;
+            if (snap.exists()) tx.update(ref, { count: base + amount });
+            else tx.set(ref, { count: amount });
+          });
+        } catch (err) {
+          pending += amount; // retry next time a click (or this loop) tries again
+          break;
+        }
+      }
+      flushing = false;
+    }
+
+    btn.addEventListener('click', () => {
+      spawnFloatingEmoji(btn, emoji);
+      countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+      pending += 1;
+      flushPending();
+    });
+  });
+
   async function loadCheerMessages(){
     try {
       const q = query(collection(db, 'cheerMessages'), orderBy('createdAt', 'desc'), limit(100));
@@ -1949,6 +2082,7 @@
   });
 
   loadCheerCount();
+  loadReactionCounts();
   loadCheerMessages();
   }
 </script>

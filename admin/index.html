@@ -704,10 +704,10 @@
         <div class="dash-card" style="max-width:560px;">
           <div class="dash-card-head"><h3>Cheer Wall — First Serve</h3></div>
           <p style="font-size:13px; color:var(--ink-soft); margin:-8px 0 18px; line-height:1.6;">
-            The "Cheer Them On" button and message wall on the homepage's Representing OCPC section. Remove anything inappropriate below.
+            The "Cheer Them On" button, emoji reactions, and message wall on the homepage's Representing OCPC section. Remove anything inappropriate below.
           </p>
           <div style="font-family:var(--font-mono); font-size:13px; color:var(--ink-soft); margin-bottom:14px;">
-            Total cheers: <b id="cheerCountAdmin" style="color:var(--ink);">—</b>
+            Cheers &nbsp;<b id="cheerCountAdmin" style="color:var(--ink);">—</b>
           </div>
           <div class="orders-table-wrap" style="max-width:100%;">
             <table class="orders-table" style="min-width:0;">
@@ -1457,10 +1457,24 @@
   const cheerMessagesTableBody = document.getElementById('cheerMessagesTableBody');
   const cheerMessagesEmpty = document.getElementById('cheerMessagesEmpty');
 
+  const CHEER_REACTIONS = [
+    { key: 'celebrate', emoji: '🎉' },
+    { key: 'clap', emoji: '👏' },
+    { key: 'fire', emoji: '🔥' },
+    { key: 'strength', emoji: '💪' },
+    { key: 'paddle', emoji: '🏓' }
+  ];
+
   async function loadCheerWall(){
     try {
-      const countSnap = await getDoc(doc(db, 'cheers', 'first-serve-2026'));
-      cheerCountAdmin.textContent = countSnap.exists() ? (countSnap.data().count || 0) : 0;
+      const snap = await getDocs(collection(db, 'cheers'));
+      const counts = {};
+      snap.docs.forEach(d => { counts[d.id] = d.data().count || 0; });
+      const cheerBtnCount = counts['first-serve-2026'] || 0;
+      const reactionsHtml = CHEER_REACTIONS
+        .map(r => `${r.emoji} ${counts[`first-serve-2026__${r.key}`] || 0}`)
+        .join('&nbsp;&nbsp;·&nbsp;&nbsp;');
+      cheerCountAdmin.innerHTML = `${cheerBtnCount} &nbsp;&nbsp;|&nbsp;&nbsp; ${reactionsHtml}`;
     } catch (err) {
       cheerCountAdmin.textContent = '—';
     }
