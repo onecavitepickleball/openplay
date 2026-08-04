@@ -237,7 +237,7 @@
     </div>
 
     <div class="events-list" id="upcomingEventsList">
-      <div class="event-card upcoming" data-event-end="2026-08-30">
+      <div class="event-card upcoming" data-event-start="2026-08-29" data-event-end="2026-08-30">
         <div class="event-media contain">
           <span class="event-status is-upcoming">Upcoming</span>
           <img src="/assets/events/first-serve-poster.jpg" alt="First Serve Grand Opening Tournament poster, Pickleball Elites">
@@ -261,7 +261,7 @@
           </div>
         </div>
       </div>
-      <div class="event-card upcoming" data-event-end="2026-08-09">
+      <div class="event-card upcoming" data-event-start="2026-08-08" data-event-end="2026-08-09">
         <div class="event-media contain">
           <span class="event-status is-upcoming">Upcoming</span>
           <img src="/assets/events/la-union-baguio-trip.svg" alt="Illustration of an OCPC van driving from Cavite to San Juan, La Union, then Camp John Hay in Baguio, on a map">
@@ -284,7 +284,7 @@
           </div>
         </div>
       </div>
-      <div class="event-card upcoming" data-event-end="2026-07-30">
+      <div class="event-card upcoming" data-event-start="2026-07-30" data-event-end="2026-07-30">
         <div class="event-media" style="display:flex; align-items:center; justify-content:center; font-size:64px;">
           <span class="event-status is-upcoming">Upcoming</span>
           🏓
@@ -433,6 +433,14 @@
         else pastList.appendChild(card);
       }
     });
+
+    // Whatever's left in "Upcoming" gets sorted soonest-first by its
+    // start date, so the card closest to today always shows first —
+    // regardless of the order cards were added to the page.
+    const remainingCards = Array.from(upcomingList.querySelectorAll('.event-card[data-event-start]'));
+    remainingCards
+      .sort((a, b) => new Date(a.dataset.eventStart) - new Date(b.dataset.eventStart))
+      .forEach(card => upcomingList.appendChild(card));
 
     if (emptyState) emptyState.style.display = upcomingList.children.length === 0 ? 'block' : 'none';
   })();
