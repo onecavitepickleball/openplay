@@ -599,7 +599,18 @@
   .cheer-form-submit:hover:not(:disabled){ background:#FFD37A; }
   .cheer-form-submit:disabled{ opacity:0.6; cursor:default; }
   .cheer-messages{ display:flex; flex-direction:column; gap:10px; max-height:230px; overflow-y:auto; padding-right:4px; }
-  .cheer-message{ background: rgba(0,0,0,0.18); border-radius:8px; padding:10px 14px; font-size:13.5px; line-height:1.5; color: rgba(255,255,255,0.92); }
+  .cheer-message{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    background: rgba(0,0,0,0.18); border-radius:8px; padding:10px 14px; font-size:13.5px; line-height:1.5; color: rgba(255,255,255,0.92);
+  }
+  .cheer-message-text{ flex:1; }
+  .cheer-message-delete{
+    flex-shrink:0;
+    background:none; border:none; color: rgba(255,255,255,0.5); cursor:pointer;
+    font-size:18px; line-height:1; padding:0 2px; margin-top:-1px;
+    transition: color .15s ease;
+  }
+  .cheer-message-delete:hover{ color:#FF5A36; }
   .cheer-message b{ color:#FFC24B; }
   .cheer-empty{ font-size:13px; color: rgba(255,255,255,0.55); font-style:italic; }
 
@@ -1864,8 +1875,10 @@
   // ---- Cheer button + wall of support (Representing OCPC section) ----
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import {
-    getFirestore, doc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp
+    getFirestore, doc, getDoc, deleteDoc, runTransaction, onSnapshot,
+    collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -1877,6 +1890,21 @@
   };
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  const SUPER_ADMIN_EMAILS = ["ocpc.pickleball@gmail.com", "jamescastillo37@gmail.com"];
+  let currentIsAdmin = false;
+
+  async function checkIsAdmin(user){
+    if (!user) return false;
+    if (SUPER_ADMIN_EMAILS.includes(user.email)) return true;
+    try {
+      const snap = await getDoc(doc(db, 'players', user.uid));
+      return snap.exists() && snap.data().role === 'admin';
+    } catch (err) {
+      return false;
+    }
+  }
 
   const CHEER_ID = 'first-serve-2026';
   const CHEERED_KEY = `ocpc-cheered-${CHEER_ID}`;
@@ -1897,15 +1925,6 @@
   }
 
   // ---- "Cheer Them On" button: one confetti-burst cheer per browser ----
-  async function loadCheerCount(){
-    try {
-      const snap = await getDocs(collection(db, 'cheers'));
-      const match = snap.docs.find(d => d.id === CHEER_ID);
-      cheerCountEl.textContent = match ? (match.data().count || 0) : 0;
-    } catch (err) {
-      cheerCountEl.textContent = '0';
-    }
-  }
 
   function markCheeredUI(){
     cheerBtn.classList.add('cheered');
@@ -1970,15 +1989,19 @@
 
   function reactionDocId(key){ return `${CHEER_ID}__${key}`; }
 
-  async function loadReactionCounts(){
+  // Live-updates the cheer button count and every reaction button count
+  // for ALL visitors as taps come in — no refresh needed.
+  function subscribeToCheers(){
     try {
-      const snap = await getDocs(collection(db, 'cheers'));
-      const counts = {};
-      snap.docs.forEach(d => { counts[d.id] = d.data().count || 0; });
-      reactionButtons.forEach(btn => {
-        const key = btn.dataset.key;
-        const countEl = btn.querySelector('.reaction-count');
-        countEl.textContent = counts[reactionDocId(key)] || 0;
+      onSnapshot(collection(db, 'cheers'), (snap) => {
+        const counts = {};
+        snap.docs.forEach(d => { counts[d.id] = d.data().count || 0; });
+        cheerCountEl.textContent = counts[CHEER_ID] || 0;
+        reactionButtons.forEach(btn => {
+          const key = btn.dataset.key;
+          const countEl = btn.querySelector('.reaction-count');
+          countEl.textContent = counts[reactionDocId(key)] || 0;
+        });
       });
     } catch (err) { /* leave at 0 */ }
   }
@@ -2050,9 +2073,28 @@
       cheerMessagesEl.innerHTML = mine.length
         ? mine.map(d => {
             const data = d.data();
-            return `<div class="cheer-message"><b>${escapeHtml(data.name)}</b> — ${escapeHtml(data.message)}</div>`;
+            return `
+              <div class="cheer-message">
+                <span class="cheer-message-text"><b>${escapeHtml(data.name)}</b> — ${escapeHtml(data.message)}</span>
+                <button class="cheer-message-delete" data-id="${d.id}" title="Delete message" ${currentIsAdmin ? '' : 'hidden'}>&times;</button>
+              </div>
+            `;
           }).join('')
         : '<div class="cheer-empty">No messages yet — be the first to leave one!</div>';
+
+      cheerMessagesEl.querySelectorAll('.cheer-message-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this message?')) return;
+          btn.disabled = true;
+          try {
+            await deleteDoc(doc(db, 'cheerMessages', btn.dataset.id));
+            await loadCheerMessages();
+          } catch (err) {
+            btn.disabled = false;
+            alert("Couldn't delete this message — try again.");
+          }
+        });
+      });
     } catch (err) {
       cheerMessagesEl.innerHTML = '<div class="cheer-empty">Couldn\'t load messages.</div>';
     }
@@ -2081,9 +2123,13 @@
     }
   });
 
-  loadCheerCount();
-  loadReactionCounts();
+  subscribeToCheers();
   loadCheerMessages();
+
+  onAuthStateChanged(auth, async (user) => {
+    currentIsAdmin = await checkIsAdmin(user);
+    await loadCheerMessages(); // re-render so the delete × shows/hides
+  });
   }
 </script>
 
