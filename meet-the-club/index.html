@@ -517,7 +517,7 @@
   // Leave ALL three arrays empty to show the "Profiles Coming Soon" placeholder.
   const team = {
     leadership: [
-      { name: "Ria Asa", role: "Club President / Director of Operations", photo: "/assets/directory/ria-asa.jpg" },
+      { name: "Maria Sarah Asa", role: "Club President / Director of Operations", photo: "/assets/directory/ria-asa.jpg" },
       { name: "James Castillo", role: "Club Vice President / Head of Tech and Social Media", photo: "/assets/directory/james-castillo.jpg" },
     ],
     officers: [
@@ -565,11 +565,13 @@
   const emptyState = document.getElementById('emptyState');
 
   function cardHtml(m){
-    const firstName = m.name.trim().split(' ')[0];
+    // A player's own nickname (set from their profile) always wins over
+    // the legal first name here — that's what "Ria Asa" -> "Riyang" needed.
+    const displayName = m.nickname || m.name.trim().split(' ')[0];
     return `
       <div class="member-card">
         <div class="member-photo"><img src="${m.photo}" alt="${m.name}"></div>
-        <div class="member-name">${firstName}</div>
+        <div class="member-name">${displayName}</div>
         ${m.role ? `<div class="member-role">${m.role}</div>` : ''}
         ${m.bio ? `<div class="member-bio">${m.bio}</div>` : ''}
       </div>
@@ -649,9 +651,10 @@
         const match = allStatic.find(m => m.name.trim().toLowerCase() === name.toLowerCase());
         if (match){
           match.photo = p.photoURL;
+          if (p.nickname) match.nickname = p.nickname;
         } else {
-          window.team.members.push({ name, photo: p.photoURL });
-          allStatic.push({ name, photo: p.photoURL });
+          window.team.members.push({ name, photo: p.photoURL, nickname: p.nickname || '' });
+          allStatic.push({ name, photo: p.photoURL, nickname: p.nickname || '' });
         }
       });
 
