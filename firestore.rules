@@ -168,6 +168,29 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Cheer counter for homepage hype sections (currently the "Representing
+    // OCPC" cheer button) — a lightweight public reaction count, not tied
+    // to accounts. Anyone can create a cheer doc at 1, or bump it by
+    // exactly 1; nothing else about the doc is writable.
+    match /cheers/{cheerId} {
+      allow read: if true;
+      allow create: if request.resource.data.count is int && request.resource.data.count == 1;
+      allow update: if request.resource.data.count is int && resource.data.count is int
+        && request.resource.data.count == resource.data.count + 1
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count']);
+    }
+
+    // Public messages of support left under a cheer (e.g. the First Serve
+    // wall of support). Anyone can post one; only admins can remove a
+    // message (moderation from admin.html).
+    match /cheerMessages/{messageId} {
+      allow read: if true;
+      allow create: if request.resource.data.cheerId is string && request.resource.data.cheerId.size() > 0
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
+        && request.resource.data.message is string && request.resource.data.message.size() > 0 && request.resource.data.message.size() <= 280;
+      allow delete: if isAdmin();
+    }
+
     // Site-wide settings, hand-edited from admin.html (currently just the
     // scrolling announce bar shown at the top of every page). Public read
     // so every page can render it without logging in; admin-only write.

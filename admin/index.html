@@ -700,6 +700,23 @@
             <div class="admin-msg" id="announceMsg"></div>
           </form>
         </div>
+
+        <div class="dash-card" style="max-width:560px;">
+          <div class="dash-card-head"><h3>Cheer Wall — First Serve</h3></div>
+          <p style="font-size:13px; color:var(--ink-soft); margin:-8px 0 18px; line-height:1.6;">
+            The "Cheer Them On" button and message wall on the homepage's Representing OCPC section. Remove anything inappropriate below.
+          </p>
+          <div style="font-family:var(--font-mono); font-size:13px; color:var(--ink-soft); margin-bottom:14px;">
+            Total cheers: <b id="cheerCountAdmin" style="color:var(--ink);">—</b>
+          </div>
+          <div class="orders-table-wrap" style="max-width:100%;">
+            <table class="orders-table" style="min-width:0;">
+              <thead><tr><th>Name</th><th>Message</th><th></th></tr></thead>
+              <tbody id="cheerMessagesTableBody"></tbody>
+            </table>
+            <div class="signup-empty" id="cheerMessagesEmpty" style="display:none;">No messages yet.</div>
+          </div>
+        </div>
       </section>
 
     </main>
@@ -942,6 +959,7 @@
       loadDiscounts();
       loadCoachingRequests();
       loadAnnounceSettings();
+      loadCheerWall();
       showLoggedInAs(user);
     }
   });
@@ -1433,6 +1451,46 @@
       announceMsg.textContent = 'Something went wrong saving — try again.';
     }
   });
+
+  // ================= CHEER WALL MODERATION =================
+  const cheerCountAdmin = document.getElementById('cheerCountAdmin');
+  const cheerMessagesTableBody = document.getElementById('cheerMessagesTableBody');
+  const cheerMessagesEmpty = document.getElementById('cheerMessagesEmpty');
+
+  async function loadCheerWall(){
+    try {
+      const countSnap = await getDoc(doc(db, 'cheers', 'first-serve-2026'));
+      cheerCountAdmin.textContent = countSnap.exists() ? (countSnap.data().count || 0) : 0;
+    } catch (err) {
+      cheerCountAdmin.textContent = '—';
+    }
+
+    try {
+      const snap = await getDocs(collection(db, 'cheerMessages'));
+      const messages = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+
+      cheerMessagesEmpty.style.display = messages.length === 0 ? 'block' : 'none';
+      cheerMessagesTableBody.innerHTML = messages.map(m => `
+        <tr>
+          <td><b>${escapeHtml(m.name || '')}</b></td>
+          <td>${escapeHtml(m.message || '')}</td>
+          <td><button class="order-view-btn" data-action="delete-cheer" data-id="${m.id}">Delete</button></td>
+        </tr>
+      `).join('');
+
+      cheerMessagesTableBody.querySelectorAll('[data-action="delete-cheer"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this message?')) return;
+          await deleteDoc(doc(db, 'cheerMessages', btn.dataset.id));
+          await loadCheerWall();
+        });
+      });
+    } catch (err) {
+      cheerMessagesEmpty.style.display = 'block';
+    }
+  }
 
   // ================= DISCOUNT CODES =================
   const discountForm = document.getElementById('discountForm');

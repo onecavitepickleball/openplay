@@ -535,6 +535,53 @@
     .roster-hype-divider{ display:none; }
   }
 
+  /* ---- CHEER + WALL OF SUPPORT ---- */
+  .cheer-block{ position:relative; margin-top:32px; padding-top:28px; border-top:1px dashed rgba(255,196,75,0.35); }
+  .cheer-btn{
+    position:relative;
+    display:inline-flex; align-items:center; gap:10px;
+    background: rgba(255,196,75,0.14); border:2px solid #FFC24B; color:#FFC24B;
+    font-family: var(--font-mono); font-weight:700; font-size:14px; letter-spacing:0.03em; text-transform:uppercase;
+    padding:14px 22px; border-radius:100px; cursor:pointer;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .cheer-btn:hover:not(:disabled){ background: rgba(255,196,75,0.26); transform: translateY(-2px); }
+  .cheer-btn:active:not(:disabled){ transform: translateY(0) scale(0.97); }
+  .cheer-btn.cheered{ background:#FFC24B; color: var(--navy-deep); cursor:default; }
+  .cheer-btn:disabled{ opacity:0.85; }
+  .cheer-btn-icon{ font-size:18px; }
+  .cheer-btn-count{ background: rgba(0,0,0,0.25); padding:3px 11px; border-radius:100px; font-size:13px; font-variant-numeric: tabular-nums; }
+  .cheer-btn.cheered .cheer-btn-count{ background: rgba(0,0,0,0.16); }
+  .cheer-note{ margin-top:10px; font-family: var(--font-mono); font-size:12px; color: rgba(255,255,255,0.65); }
+
+  .cheer-wall{ margin-top:28px; max-width:560px; }
+  .cheer-wall-head{
+    font-family: var(--font-mono); font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase;
+    color:#FFC24B; margin-bottom:14px;
+  }
+  .cheer-form{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .cheer-form input{
+    font-family: var(--font-body); font-size:13.5px; color: var(--ink);
+    border:none; border-radius:6px; padding:10px 14px; background: rgba(255,255,255,0.94);
+  }
+  .cheer-form input:focus{ outline:2px solid #FFC24B; }
+  .cheer-form input#cheerName{ flex:0 0 140px; }
+  .cheer-form input#cheerMessage{ flex:1 1 220px; }
+  .cheer-form-submit{
+    font-family: var(--font-mono); font-weight:700; font-size:12.5px; letter-spacing:0.03em; text-transform:uppercase;
+    background:#FFC24B; color: var(--navy-deep); border:none; border-radius:6px; padding:10px 18px; cursor:pointer;
+  }
+  .cheer-form-submit:hover:not(:disabled){ background:#FFD37A; }
+  .cheer-form-submit:disabled{ opacity:0.6; cursor:default; }
+  .cheer-messages{ display:flex; flex-direction:column; gap:10px; max-height:230px; overflow-y:auto; padding-right:4px; }
+  .cheer-message{ background: rgba(0,0,0,0.18); border-radius:8px; padding:10px 14px; font-size:13.5px; line-height:1.5; color: rgba(255,255,255,0.92); }
+  .cheer-message b{ color:#FFC24B; }
+  .cheer-empty{ font-size:13px; color: rgba(255,255,255,0.55); font-style:italic; }
+
+  @media (max-width: 640px){
+    .cheer-form input#cheerName{ flex:1 1 100%; }
+  }
+
   /* ---- GALLERY TEASER ---- */
   .gallery-teaser-strip{
     display:grid;
@@ -952,6 +999,25 @@
       </div>
       <div class="roster-hype-actions">
         <a class="btn-gold" href="/events/">🎊 See Tournament Details →</a>
+      </div>
+
+      <div class="cheer-block">
+        <button class="cheer-btn" id="cheerBtn" type="button">
+          <span class="cheer-btn-icon">📣</span>
+          <span class="cheer-btn-label">Cheer Them On</span>
+          <span class="cheer-btn-count" id="cheerCount">0</span>
+        </button>
+        <div class="cheer-note" id="cheerNote">Tap to send some hype their way.</div>
+
+        <div class="cheer-wall">
+          <div class="cheer-wall-head">Messages of Support</div>
+          <form class="cheer-form" id="cheerForm">
+            <input type="text" id="cheerName" placeholder="Your name" maxlength="40" required>
+            <input type="text" id="cheerMessage" placeholder="Leave a message of support..." maxlength="280" required>
+            <button class="cheer-form-submit" type="submit">Post</button>
+          </form>
+          <div class="cheer-messages" id="cheerMessages"><div class="cheer-empty">Loading messages...</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1736,6 +1802,154 @@
     });
 
     setInterval(() => showSlide((activeSlide + 1) % slides.length), 6000);
+  }
+</script>
+
+<script type="module">
+  // ---- Cheer button + wall of support (Representing OCPC section) ----
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import {
+    getFirestore, doc, runTransaction, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const CHEER_ID = 'first-serve-2026';
+  const CHEERED_KEY = `ocpc-cheered-${CHEER_ID}`;
+
+  const cheerBtn = document.getElementById('cheerBtn');
+  const cheerCountEl = document.getElementById('cheerCount');
+  const cheerNoteEl = document.getElementById('cheerNote');
+  const cheerForm = document.getElementById('cheerForm');
+  const cheerMessagesEl = document.getElementById('cheerMessages');
+  if (!cheerBtn) { /* section not on this page */ }
+  else {
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = String(str || '');
+    return div.innerHTML;
+  }
+
+  async function loadCheerCount(){
+    try {
+      const q = query(collection(db, 'cheers'));
+      const snap = await getDocs(q);
+      const match = snap.docs.find(d => d.id === CHEER_ID);
+      cheerCountEl.textContent = match ? (match.data().count || 0) : 0;
+    } catch (err) {
+      cheerCountEl.textContent = '0';
+    }
+  }
+
+  function markCheeredUI(){
+    cheerBtn.classList.add('cheered');
+    cheerBtn.disabled = true;
+    cheerNoteEl.textContent = 'You cheered — thank you! 🎉';
+  }
+
+  if (localStorage.getItem(CHEERED_KEY)) markCheeredUI();
+
+  function spawnCheerBurst(x, y){
+    const colors = ['#FFC24B', '#4FB6FF', '#FF5A36', '#2E9E5B', '#FFFFFF'];
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:400;overflow:hidden;';
+    document.body.appendChild(container);
+    for (let i = 0; i < 26; i++){
+      const piece = document.createElement('div');
+      const size = 5 + Math.random() * 6;
+      piece.style.cssText = `
+        position:absolute; top:${y}px; left:${x}px;
+        width:${size}px; height:${size * 0.4}px;
+        background:${colors[Math.floor(Math.random() * colors.length)]};
+        border-radius:2px;
+      `;
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 120;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist - 40;
+      piece.animate([
+        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy + 160}px) rotate(${360 + Math.random() * 360}deg)`, opacity: 0 }
+      ], { duration: 900 + Math.random() * 500, easing: 'cubic-bezier(.25,.46,.45,.94)' });
+      container.appendChild(piece);
+    }
+    setTimeout(() => container.remove(), 1600);
+  }
+
+  cheerBtn.addEventListener('click', async () => {
+    if (localStorage.getItem(CHEERED_KEY)) return;
+    cheerBtn.disabled = true;
+    const rect = cheerBtn.getBoundingClientRect();
+    spawnCheerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    try {
+      const ref = doc(db, 'cheers', CHEER_ID);
+      const newCount = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        const next = snap.exists() ? (snap.data().count || 0) + 1 : 1;
+        if (snap.exists()) tx.update(ref, { count: next });
+        else tx.set(ref, { count: 1 });
+        return next;
+      });
+      cheerCountEl.textContent = newCount;
+      localStorage.setItem(CHEERED_KEY, '1');
+      markCheeredUI();
+    } catch (err) {
+      cheerBtn.disabled = false;
+      cheerNoteEl.textContent = "Couldn't record your cheer — try again.";
+    }
+  });
+
+  async function loadCheerMessages(){
+    try {
+      const q = query(collection(db, 'cheerMessages'), orderBy('createdAt', 'desc'), limit(100));
+      const snap = await getDocs(q);
+      const mine = snap.docs.filter(d => d.data().cheerId === CHEER_ID);
+      cheerMessagesEl.innerHTML = mine.length
+        ? mine.map(d => {
+            const data = d.data();
+            return `<div class="cheer-message"><b>${escapeHtml(data.name)}</b> — ${escapeHtml(data.message)}</div>`;
+          }).join('')
+        : '<div class="cheer-empty">No messages yet — be the first to leave one!</div>';
+    } catch (err) {
+      cheerMessagesEl.innerHTML = '<div class="cheer-empty">Couldn\'t load messages.</div>';
+    }
+  }
+
+  cheerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('cheerName').value.trim();
+    const message = document.getElementById('cheerMessage').value.trim();
+    if (!name || !message) return;
+    const submitBtn = cheerForm.querySelector('.cheer-form-submit');
+    submitBtn.disabled = true;
+    try {
+      await addDoc(collection(db, 'cheerMessages'), {
+        cheerId: CHEER_ID,
+        name: name.slice(0, 40),
+        message: message.slice(0, 280),
+        createdAt: serverTimestamp()
+      });
+      cheerForm.reset();
+      await loadCheerMessages();
+    } catch (err) {
+      alert('Something went wrong posting your message. Try again.');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  loadCheerCount();
+  loadCheerMessages();
   }
 </script>
 
