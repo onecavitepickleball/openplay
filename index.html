@@ -424,58 +424,115 @@
 
   /* ---- REPRESENTING OCPC ---- */
   .roster-hype-card{
-    background: var(--navy);
+    position:relative;
+    overflow:hidden;
+    background: linear-gradient(135deg, var(--sky-deep) 0%, var(--navy) 45%, var(--navy-deep) 100%);
     color: var(--paper);
-    border-radius:6px;
-    padding:44px;
+    border-radius:10px;
+    padding:52px 48px;
+    border:2px solid rgba(255,196,75,0.4);
+    box-shadow: 0 20px 50px rgba(0,63,94,0.35);
   }
+  .roster-hype-card::before{
+    content:'';
+    position:absolute; inset:0;
+    background-image: radial-gradient(rgba(255,255,255,0.16) 1.5px, transparent 1.5px);
+    background-size:24px 24px;
+    opacity:0.5;
+    pointer-events:none;
+  }
+  .roster-hype-card::after{
+    content:'';
+    position:absolute; top:-60px; right:-60px;
+    width:220px; height:220px; border-radius:50%;
+    background: radial-gradient(circle, rgba(255,196,75,0.35) 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .roster-hype-intro{ position:relative; }
   .roster-hype-intro .event-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
     font-family: var(--font-mono);
     font-size:11.5px;
     letter-spacing:0.08em;
     text-transform:uppercase;
-    color: var(--sky);
+    color:#FFC24B;
+    background: rgba(255,196,75,0.16);
+    border:1px solid rgba(255,196,75,0.45);
+    padding:7px 16px;
+    border-radius:100px;
+    margin-bottom:18px;
   }
+  .roster-hype-headline{
+    font-family: var(--font-display);
+    font-size: clamp(30px, 4.2vw, 46px);
+    text-transform:uppercase;
+    line-height:1.05;
+    margin-bottom:14px;
+  }
+  .roster-hype-headline .accent{ color:#FFC24B; }
   .roster-hype-intro p{
-    margin-top:10px;
-    font-size:15px;
-    line-height:1.6;
-    color: rgba(255,255,255,0.82);
+    font-size:15.5px;
+    line-height:1.65;
+    color: rgba(255,255,255,0.86);
     max-width:640px;
   }
   .roster-hype-grid{
+    position:relative;
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:1fr auto 1fr;
+    align-items:center;
     gap:24px;
-    margin-top:28px;
+    margin-top:36px;
+  }
+  .roster-hype-divider{
+    font-family: var(--font-display);
+    font-size:30px;
+    color:#FFC24B;
+    text-align:center;
   }
   .roster-hype-player{
-    border-radius:6px;
+    position:relative;
+    border-radius:10px;
     overflow:hidden;
-    background: var(--navy-deep);
-    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    border:2px solid rgba(255,196,75,0.55);
+    transition: transform .2s ease;
   }
   .roster-hype-img{ aspect-ratio: 4/5; overflow:hidden; }
   .roster-hype-img img{ width:100%; height:100%; object-fit:cover; display:block; }
   .roster-hype-name{
     font-family: var(--font-display);
-    font-size:20px;
+    font-size:22px;
     text-transform:uppercase;
-    padding:16px 18px 2px;
+    padding:18px 18px 2px;
   }
   .roster-hype-tag{
+    display:flex;
+    align-items:center;
+    gap:6px;
     font-family: var(--font-mono);
     font-size:11px;
     letter-spacing:0.06em;
     text-transform:uppercase;
-    color: var(--sky);
-    padding:0 18px 16px;
+    color:#FFC24B;
+    padding:0 18px 18px;
   }
-  .roster-hype-actions{ margin-top:28px; }
+  .roster-hype-actions{ position:relative; margin-top:36px; display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+  .roster-hype-actions .btn-gold{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family: var(--font-mono); font-weight:700; font-size:13px; letter-spacing:0.04em; text-transform:uppercase;
+    background:#FFC24B; color: var(--navy-deep);
+    padding:13px 24px; border-radius:100px; text-decoration:none;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .roster-hype-actions .btn-gold:hover{ background:#FFD37A; transform: translateY(-1px); }
 
   @media (max-width: 640px){
-    .roster-hype-card{ padding:30px 24px; }
+    .roster-hype-card{ padding:34px 26px; }
     .roster-hype-grid{ grid-template-columns:1fr; }
+    .roster-hype-divider{ display:none; }
   }
 
   /* ---- GALLERY TEASER ---- */
@@ -872,8 +929,9 @@
     </div>
     <div class="roster-hype-card">
       <div class="roster-hype-intro">
-        <span class="event-tag">First Serve Grand Opening Tournament · Aug 29–30, 2026</span>
-        <p>Two of our own are stepping up to represent One Cavite Pickleball Club at Pickleball Elites' grand opening tournament in Indang, Cavite. Let's root for them!</p>
+        <span class="event-tag">🏆 First Serve Grand Opening Tournament · Aug 29–30, 2026</span>
+        <div class="roster-hype-headline">Let's go, <span class="accent">OCPC!</span> 🎉</div>
+        <p>Harvey Cariño and JS Nazareno are stepping up to represent One Cavite Pickleball Club at Pickleball Elites' grand opening tournament in Indang, Cavite. Show them some love!</p>
       </div>
       <div class="roster-hype-grid">
         <div class="roster-hype-player">
@@ -881,18 +939,19 @@
             <img src="/assets/events/harvey-carino.jpg" alt="Harvey Cariño playing pickleball at PickleFour Sports Center" loading="lazy">
           </div>
           <div class="roster-hype-name">Harvey Cariño</div>
-          <div class="roster-hype-tag">Representing OCPC</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
         </div>
+        <div class="roster-hype-divider">&amp;</div>
         <div class="roster-hype-player">
           <div class="roster-hype-img">
             <img src="/assets/events/js-nazareno.jpg" alt="JS Nazareno serving at PickleFour Sports Center" loading="lazy">
           </div>
           <div class="roster-hype-name">JS Nazareno</div>
-          <div class="roster-hype-tag">Representing OCPC</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
         </div>
       </div>
       <div class="roster-hype-actions">
-        <a class="btn btn-outline-light" href="/events/">See Tournament Details →</a>
+        <a class="btn-gold" href="/events/">🎊 See Tournament Details →</a>
       </div>
     </div>
   </div>
