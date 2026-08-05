@@ -1132,7 +1132,7 @@ footer p{
 /* ---- FLOATING GIVING WIDGET (injected by giving-widget.js) ---- */
 #givingFloatWidget{
   position:fixed;
-  bottom:20px;
+  bottom:92px;
   right:20px;
   z-index:250;
   width:280px;
@@ -1170,5 +1170,5 @@ footer p{
 #givingFloatClose:hover{ color: var(--paper); }
 
 @media (max-width: 520px){
-  #givingFloatWidget{ left:16px; right:16px; width:auto; bottom:16px; }
+  #givingFloatWidget{ left:16px; right:16px; width:auto; bottom:76px; }
 }
