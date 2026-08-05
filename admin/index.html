@@ -908,6 +908,15 @@
     return o.createdAt && o.createdAt.toDate ? o.createdAt.toDate() : null;
   }
 
+  function playerJoinedDate(p){
+    return p.joinedAt && p.joinedAt.toDate ? p.joinedAt.toDate() : null;
+  }
+
+  function daysWaiting(d){
+    if (!d) return null;
+    return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
+  }
+
   function fmtPeso(n){ return `₱${Math.round(n || 0).toLocaleString()}`; }
 
   const SITE_ORIGIN = "https://www.onecavitepickleball.club";
@@ -2132,8 +2141,11 @@
   }
 
   function renderPlayerSignups(){
-    const pending = allPlayers.filter(p => p.status !== 'active');
-    const active = allPlayers.filter(p => p.status === 'active');
+    const pending = allPlayers.filter(p => p.status !== 'active')
+      .sort((a, b) => (playerJoinedDate(a)?.getTime() || 0) - (playerJoinedDate(b)?.getTime() || 0));
+    const active = allPlayers.filter(p => p.status === 'active')
+      .sort((a, b) => `${a.lastName || ''} ${a.firstName || ''}`.trim().toLowerCase()
+        .localeCompare(`${b.lastName || ''} ${b.firstName || ''}`.trim().toLowerCase()));
 
     const pendingBadge = document.getElementById('pendingSignupsBadge');
     pendingBadge.textContent = pending.length;
@@ -2144,12 +2156,14 @@
       : pending.map(p => {
           const count = lifetimeCheckins(p.firstName, p.lastName, p.nickname, p.aliases);
           const eligible = count >= MIN_CHECKINS_FOR_MEMBERSHIP;
+          const waited = daysWaiting(playerJoinedDate(p));
+          const waitedLabel = waited === null ? '' : waited === 0 ? 'Signed up today' : `Waiting ${waited} day${waited === 1 ? '' : 's'}`;
           return `
             <div class="signup-row">
               <img class="signup-photo" src="${escapeHtml(p.photoURL || '/assets/directory/blank.svg')}" alt="">
               <div class="signup-body">
                 <div class="signup-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
-                <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${escapeHtml(p.email || '')} · ${escapeHtml(p.phone || '')}</div>
+                <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${escapeHtml(p.email || '')} · ${escapeHtml(p.phone || '')}${waitedLabel ? ` · ${waitedLabel}` : ''}</div>
                 <div class="signup-count ${eligible ? 'eligible' : 'not-eligible'}">${count}/${MIN_CHECKINS_FOR_MEMBERSHIP} check-ins${eligible ? ' — eligible' : ''}</div>
                 <div class="signup-actions">
                   <button class="signup-btn approve" data-action="approve" data-id="${p.id}">Approve as Member</button>
