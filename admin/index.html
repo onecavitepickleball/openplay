@@ -298,6 +298,7 @@
           <a href="/queue/">Queue</a>
           <a href="/leaderboard/">Leaderboard</a>
           <a href="/coaching/">Coaching</a>
+          <a href="/giving/">Giving Back</a>
           <a href="/rules/">Rules &amp; Etiquette</a>
           <a href="/featured-courts/">Featured Courts</a>
           <a href="/birthdays/">Birthdays</a>
@@ -394,6 +395,7 @@
         <button class="dash-nav-item" data-tab="schedule">Schedule</button>
         <button class="dash-nav-item" data-tab="coaching">Coaching <span class="dash-nav-badge" id="pendingCoachingBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="discounts">Discounts</button>
+        <button class="dash-nav-item" data-tab="fundraiser">Fundraiser</button>
         <button class="dash-nav-item" data-tab="attendance">Attendance</button>
         <button class="dash-nav-item" data-tab="members">Members <span class="dash-nav-badge" id="pendingSignupsBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="settings">Settings</button>
@@ -609,6 +611,51 @@
         </div>
       </section>
 
+      <!-- ============ FUNDRAISER ============ -->
+      <section class="dash-panel" id="fundraiserPanel">
+        <div class="dash-panel-head">
+          <h1>Fundraiser</h1>
+          <p>Powers the /giving/ page — fill these in as decisions are made and the page updates instantly, no code changes needed.</p>
+        </div>
+
+        <div class="dash-card" style="max-width:640px;">
+          <form id="fundraiserForm">
+            <div class="form-row">
+              <label for="frEventDate">Event Date <span class="optional-tag">(shown as-is, e.g. "October 17-18, 2026")</span></label>
+              <input type="text" id="frEventDate" placeholder="October 2026 — Date To Be Announced">
+            </div>
+            <div class="form-row">
+              <label for="frBeneficiaryName">Beneficiary Name</label>
+              <input type="text" id="frBeneficiaryName" placeholder="Leave blank to show &quot;To Be Announced&quot;">
+            </div>
+            <div class="form-row">
+              <label for="frBeneficiaryDesc">Beneficiary Description</label>
+              <textarea id="frBeneficiaryDesc" rows="3" placeholder="Who they are, and how the funds will be used."></textarea>
+            </div>
+            <div class="form-row">
+              <label for="frGoFundMeUrl">GoFundMe URL <span class="optional-tag">(leave blank to keep the button showing "Coming Soon")</span></label>
+              <input type="text" id="frGoFundMeUrl" placeholder="https://gofundme.com/f/...">
+            </div>
+            <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Save</button>
+            <div class="admin-msg" id="fundraiserFormMsg"></div>
+          </form>
+        </div>
+
+        <div class="dash-card" style="max-width:900px; margin-top:20px;">
+          <div class="dash-card-head"><h3>Local Donations</h3></div>
+          <div style="font-family:var(--font-mono); font-size:13px; color:var(--ink-soft); margin-bottom:14px;">
+            Confirmed total: <b id="donationsTotal" style="color:var(--ink);">₱0</b>
+          </div>
+          <div class="orders-table-wrap" style="max-width:100%;">
+            <table class="orders-table">
+              <thead><tr><th>Donor</th><th>Amount</th><th>Payment</th><th>Proof</th><th>Status</th><th></th></tr></thead>
+              <tbody id="donationsTableBody"></tbody>
+            </table>
+            <div class="signup-empty" id="donationsEmpty" style="display:none;">No donations yet.</div>
+          </div>
+        </div>
+      </section>
+
       <!-- ============ ATTENDANCE ============ -->
       <section class="dash-panel" id="attendancePanel">
         <div class="dash-panel-head">
@@ -755,6 +802,7 @@
     <div class="foot-links">
       <a href="/join/">Join OCPC</a>
       <a href="/coaching/">Coaching</a>
+      <a href="/giving/">Giving Back</a>
       <a href="/gear/">Gear Picks</a>
       <a href="/contact/">Contact</a>
       <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
@@ -960,6 +1008,8 @@
       loadCoachingRequests();
       loadAnnounceSettings();
       loadCheerWall();
+      loadFundraiserSettings();
+      loadDonations();
       showLoggedInAs(user);
     }
   });
@@ -1503,6 +1553,95 @@
       });
     } catch (err) {
       cheerMessagesEmpty.style.display = 'block';
+    }
+  }
+
+  // ================= FUNDRAISER =================
+  const fundraiserForm = document.getElementById('fundraiserForm');
+  const fundraiserFormMsg = document.getElementById('fundraiserFormMsg');
+  const donationsTableBody = document.getElementById('donationsTableBody');
+  const donationsEmpty = document.getElementById('donationsEmpty');
+  const donationsTotalEl = document.getElementById('donationsTotal');
+  const donationsCol = collection(db, 'donations');
+
+  async function loadFundraiserSettings(){
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'fundraiser'));
+      if (snap.exists()){
+        const s = snap.data();
+        document.getElementById('frEventDate').value = s.eventDate || '';
+        document.getElementById('frBeneficiaryName').value = s.beneficiaryName || '';
+        document.getElementById('frBeneficiaryDesc').value = s.beneficiaryDescription || '';
+        document.getElementById('frGoFundMeUrl').value = s.goFundMeUrl || '';
+      }
+    } catch (err) { /* leave defaults blank */ }
+  }
+
+  fundraiserForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    fundraiserFormMsg.textContent = 'Saving…';
+    try {
+      await setDoc(doc(db, 'settings', 'fundraiser'), {
+        eventDate: document.getElementById('frEventDate').value.trim(),
+        beneficiaryName: document.getElementById('frBeneficiaryName').value.trim(),
+        beneficiaryDescription: document.getElementById('frBeneficiaryDesc').value.trim(),
+        goFundMeUrl: document.getElementById('frGoFundMeUrl').value.trim()
+      });
+      fundraiserFormMsg.style.color = '#2E7D32';
+      fundraiserFormMsg.textContent = 'Saved — live on /giving/ now.';
+    } catch (err) {
+      fundraiserFormMsg.style.color = 'var(--pop)';
+      fundraiserFormMsg.textContent = 'Something went wrong saving — try again.';
+    }
+  });
+
+  async function loadDonations(){
+    try {
+      const snap = await getDocs(donationsCol);
+      const donations = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+
+      donationsEmpty.style.display = donations.length === 0 ? 'block' : 'none';
+      const confirmedTotal = donations.filter(d => d.status === 'received').reduce((sum, d) => sum + (d.amount || 0), 0);
+      donationsTotalEl.textContent = fmtPeso(confirmedTotal);
+
+      donationsTableBody.innerHTML = donations.map(d => `
+        <tr>
+          <td>
+            <div class="order-row-name">${escapeHtml(d.fullName || '')}</div>
+            <div class="order-row-sub">${escapeHtml(d.contactNumber || '')}${d.email ? ' · ' + escapeHtml(d.email) : ''}</div>
+          </td>
+          <td>${fmtPeso(d.amount)}</td>
+          <td>${escapeHtml(d.paymentMethod || '')}<br><small>${escapeHtml(d.paymentRef || '')}</small></td>
+          <td>${d.paymentProofURL
+            ? `<a href="${d.paymentProofURL}" target="_blank" rel="noopener"><img class="proof-thumb" src="${d.paymentProofURL}" alt="Payment proof for ${escapeHtml(d.fullName || 'donation')}"></a>`
+            : `<span class="proof-thumb-empty">—</span>`}</td>
+          <td><span class="status-badge ${d.status === 'received' ? 'fulfilled' : 'pending'}">${escapeHtml(d.status || 'pending')}</span></td>
+          <td style="white-space:nowrap;">
+            <button class="order-view-btn" data-action="toggle-donation" data-id="${d.id}">${d.status === 'received' ? 'Mark Pending' : 'Mark Received'}</button>
+            <button class="order-view-btn" data-action="delete-donation" data-id="${d.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+
+      donationsTableBody.querySelectorAll('[data-action="toggle-donation"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const donation = donations.find(x => x.id === btn.dataset.id);
+          if (!donation) return;
+          await updateDoc(doc(db, 'donations', btn.dataset.id), { status: donation.status === 'received' ? 'pending' : 'received' });
+          await loadDonations();
+        });
+      });
+      donationsTableBody.querySelectorAll('[data-action="delete-donation"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this donation record?')) return;
+          await deleteDoc(doc(db, 'donations', btn.dataset.id));
+          await loadDonations();
+        });
+      });
+    } catch (err) {
+      donationsEmpty.style.display = 'block';
     }
   }
 

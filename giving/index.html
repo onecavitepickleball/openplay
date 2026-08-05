@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-H86SSQPCJ6');
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Giving Back — One Cavite Pickleball Club</title>
+<meta name="description" content="OCPC's October fundraiser — supporting a local orphanage or home for the aged. Give internationally via GoFundMe, or locally via GCash and bank transfer.">
+
+<meta property="og:title" content="Giving Back — One Cavite Pickleball Club">
+<meta property="og:description" content="OCPC's October fundraiser — give internationally via GoFundMe, or locally via GCash and bank transfer.">
+<meta property="og:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://www.onecavitepickleball.club/giving/">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Giving Back — One Cavite Pickleball Club">
+<meta name="twitter:description" content="OCPC's October fundraiser — give internationally via GoFundMe, or locally via GCash and bank transfer.">
+<meta name="twitter:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#005E89">
+<link rel="canonical" href="https://www.onecavitepickleball.club/giving/">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .giving-hero{ padding:56px 0 12px; }
+  .giving-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:680px;
+  }
+  .giving-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:560px; line-height:1.6;
+  }
+  .giving-hero .event-tag{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family: var(--font-mono); font-size:12px; letter-spacing:0.06em; text-transform:uppercase;
+    background: rgba(0,94,137,0.08); color: var(--navy); border:1px solid rgba(0,94,137,0.25);
+    padding:8px 16px; border-radius:100px; margin-bottom:18px;
+  }
+
+  .cause-card{
+    background: var(--navy); color: var(--paper);
+    border-radius:8px; padding:36px 40px; margin:32px 0;
+  }
+  .cause-card .tag{
+    font-family: var(--font-mono); font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase;
+    color: var(--sky); margin-bottom:10px; display:block;
+  }
+  .cause-card h2{ font-family: var(--font-display); font-size:26px; text-transform:uppercase; margin-bottom:12px; }
+  .cause-card p{ font-size:14.5px; line-height:1.7; color: rgba(245,243,238,0.85); max-width:640px; }
+  .cause-card .tba{
+    display:inline-block; margin-top:14px;
+    font-family: var(--font-mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase;
+    background: rgba(255,196,75,0.15); color:#FFC24B; border:1px solid rgba(255,196,75,0.4);
+    padding:6px 14px; border-radius:100px;
+  }
+
+  .ways-to-give{
+    display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:40px 0;
+  }
+  .give-way-card{
+    border: 1.5px solid var(--line); border-radius:8px; padding:32px;
+    display:flex; flex-direction:column;
+  }
+  .give-way-card .icon-badge{
+    width:48px; height:48px; border-radius:50%; background: var(--paper-dim);
+    display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:16px;
+  }
+  .give-way-card h3{ font-size:19px; margin-bottom:10px; }
+  .give-way-card p{ font-size:14px; line-height:1.65; color: var(--ink-soft); margin-bottom:20px; flex:1; }
+  .give-way-card .btn{ width:100%; justify-content:center; }
+  .give-way-card .btn[aria-disabled="true"]{
+    background: var(--paper-dim); color: var(--ink-faint); border-color: var(--line);
+    cursor:not-allowed; pointer-events:none;
+  }
+
+  @media (max-width: 780px){
+    .ways-to-give{ grid-template-columns:1fr; }
+  }
+
+  .local-giving-section{ margin:56px 0; }
+  .local-giving-section .section-head{ max-width:640px; margin-bottom:28px; }
+  .local-giving-section .section-head h2{
+    font-family: var(--font-display); font-size:clamp(26px,4vw,36px); text-transform:uppercase; margin-bottom:10px;
+  }
+  .local-giving-section .section-head p{ font-size:14.5px; color: var(--ink-soft); line-height:1.65; }
+
+  .booking-form{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:36px;
+    background: var(--white);
+    max-width:600px;
+  }
+  .form-row{ margin-bottom:20px; }
+  .form-row label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:8px;
+  }
+  .form-row input,
+  .form-row select,
+  .form-row textarea{
+    width:100%;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+    font-family: var(--font-body);
+    font-size:14.5px;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  .form-row input:focus,
+  .form-row select:focus,
+  .form-row textarea:focus{
+    outline:none;
+    border-color: var(--sky-deep);
+  }
+  .form-row-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width: 480px){
+    .form-row-2{ grid-template-columns:1fr; }
+  }
+
+  .payment-block{
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:24px;
+    margin: 24px 0;
+  }
+  .payment-note{ font-size:13.5px; line-height:1.6; color: var(--ink-soft); margin-bottom:16px; }
+  .payment-method-group{ display:flex; gap:10px; margin-bottom:18px; }
+  .payment-method-opt{
+    flex:1;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border: 1.5px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+    background: var(--white);
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .payment-method-opt:hover{ border-color: var(--sky-deep); }
+  .payment-method-opt input{ width:17px; height:17px; accent-color: var(--navy); flex-shrink:0; }
+  .payment-method-opt:has(input:checked){ background: rgba(79,182,255,0.1); border-color: var(--sky-deep); }
+  .method-panel{ margin-bottom:4px; }
+  .qr-image{
+    display:block;
+    max-width:220px;
+    width:100%;
+    margin:0 auto;
+    border-radius:6px;
+    border: 1.5px solid var(--line);
+  }
+  .proof-preview{ margin-top:10px; }
+  .proof-preview img{ max-width:150px; border-radius:6px; border:1.5px solid var(--line); display:block; }
+
+  .giving-success{ text-align:center; max-width:480px; margin:60px auto; }
+  .giving-success-icon{
+    width:60px; height:60px; border-radius:50%; background: var(--sky-deep); color: var(--white);
+    display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 20px;
+  }
+  .giving-success h2{ font-family: var(--font-display); font-size:28px; text-transform:uppercase; margin-bottom:12px; }
+  .giving-success p{ font-size:15px; color: var(--ink-soft); line-height:1.6; margin-bottom:24px; }
+</style>
+</head>
+<body>
+<div class="announce-bar" style="display:none;">
+  <div class="announce-track"></div>
+</div>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="logo-chip"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/meet-the-club/">Meet the Club</a>
+      <a href="/events/">Events</a>
+      <div class="nav-more">
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="/merch/">Shop</a>
+          <a href="/track/">Track Order</a>
+          <a href="/gear/">Gear Picks</a>
+          <a href="/gallery/">Gallery</a>
+          <a href="/queue/">Queue</a>
+          <a href="/leaderboard/">Leaderboard</a>
+          <a href="/coaching/">Coaching</a>
+          <a href="/giving/" class="active">Giving Back</a>
+          <a href="/rules/">Rules &amp; Etiquette</a>
+          <a href="/featured-courts/">Featured Courts</a>
+          <a href="/birthdays/">Birthdays</a>
+          <a href="/contact/">Contact</a>
+          <a href="/quiz/">Personality Quiz</a>
+        </div>
+      </div>
+      <div class="nav-search">
+        <button class="nav-icon-btn nav-search-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round"/></svg>
+        </button>
+        <form class="nav-search-form" id="navSearchForm" autocomplete="off">
+          <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search the site…" aria-label="Search the site">
+        </form>
+        <div class="nav-search-results" id="navSearchResults"></div>
+      </div>
+
+      <div class="nav-notif">
+        <button class="nav-icon-btn nav-notif-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="nav-notif-dot" id="navNotifDot" hidden></span>
+        </button>
+        <div class="nav-notif-panel">
+          <div class="nav-notif-head">
+            <span>Notifications</span>
+            <button class="nav-notif-clear" id="navNotifClear" hidden>Clear all</button>
+          </div>
+          <div class="nav-notif-list" id="navNotifList">
+            <div class="nav-notif-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <a href="/cart/" class="nav-shop" aria-label="Cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16l-1.4 12.2A2 2 0 0 1 16.6 22H7.4a2 2 0 0 1-2-1.8L4 8Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8V6a4 4 0 0 1 8 0v2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="nav-cart-badge" id="navCartBadge" hidden>0</span>
+      </a>
+
+      <div class="nav-account">
+        <button class="nav-account-btn" id="navAccountBtn">
+          <span id="navAccountLabel">Join OCPC</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="nav-account-panel" id="navAccountPanel">
+
+          <div class="nav-account-promo">
+
+            <span class="nav-account-promo-tag">Free</span>
+
+            <h4>Join OCPC Free</h4>
+
+            <p>Get on Meet the Club, birthday shoutouts, and your own player profile — sign up in a couple minutes.</p>
+
+            <a class="btn-promo" href="/join/">Join For Free</a>
+
+          </div>
+
+          <div class="nav-account-links">
+
+            <a class="nav-account-link" href="/profile/">Sign In</a>
+
+            <a class="nav-account-link" href="/join/">Join For Free</a>
+
+            <a class="nav-account-link" href="/meet-the-club/">About OCPC</a>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="giving-hero reveal">
+    <div class="event-tag" id="eventDateTag">📅 October 2026 — Date To Be Announced</div>
+    <h1>Giving Back.</h1>
+    <p>Every open play session is about community — this October, we're putting that spirit toward something bigger. OCPC is running a club-wide fundraiser to support a local cause, and we'd love for you to be part of it, whether you're down the road or on the other side of the world.</p>
+  </div>
+
+  <div class="cause-card reveal">
+    <span class="tag">The Cause</span>
+    <h2 id="beneficiaryName">Beneficiary To Be Announced</h2>
+    <p id="beneficiaryDesc">We're finalizing whether we'll be supporting a local orphanage or a home for the aged in Cavite. Once confirmed, we'll share exactly who your donation supports and how the funds will be used — check back here or follow our Facebook page for the announcement.</p>
+    <span class="tba" id="beneficiaryTba">To Be Announced</span>
+  </div>
+
+  <div class="ways-to-give reveal">
+    <div class="give-way-card">
+      <div class="icon-badge">🌏</div>
+      <h3>Giving Internationally</h3>
+      <p>If you're outside the Philippines (or just prefer a card/PayPal-style donation), we're setting up a GoFundMe campaign for this fundraiser. The link goes live here as soon as it's ready.</p>
+      <a class="btn btn-primary" id="goFundMeBtn" href="#" target="_blank" rel="noopener" aria-disabled="true">GoFundMe — Coming Soon</a>
+    </div>
+    <div class="give-way-card">
+      <div class="icon-badge">🇵🇭</div>
+      <h3>Giving Locally</h3>
+      <p>Based in the Philippines? Give directly via GCash or bank transfer using the form below — same simple process as our merch orders and coaching bookings.</p>
+      <a class="btn btn-ghost" href="#local-giving">Give Locally ↓</a>
+    </div>
+  </div>
+
+  <div class="local-giving-section reveal" id="local-giving">
+    <div class="section-head">
+      <h2>Give Locally.</h2>
+      <p>Fill this out after sending your donation via GCash or bank transfer — we'll follow up to confirm and say thank you personally.</p>
+    </div>
+
+    <form class="booking-form" id="givingForm">
+      <div class="form-row">
+        <label for="gName">Full Name</label>
+        <input type="text" id="gName" required>
+      </div>
+      <div class="form-row-2">
+        <div class="form-row">
+          <label for="gContact">Contact Number</label>
+          <input type="tel" id="gContact" required>
+        </div>
+        <div class="form-row">
+          <label for="gEmail">Email <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(optional)</span></label>
+          <input type="email" id="gEmail">
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="gAmount">Donation Amount (₱)</label>
+        <input type="number" id="gAmount" min="1" step="1" required>
+      </div>
+      <div class="form-row">
+        <label for="gMessage">Message <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(optional — shown to no one but the OCPC team)</span></label>
+        <textarea id="gMessage" rows="2"></textarea>
+      </div>
+
+      <!-- PAYMENT -->
+      <div class="payment-block">
+        <div class="payment-method-group">
+          <label class="payment-method-opt">
+            <input type="radio" name="paymentMethod" value="GCash" checked>
+            <span>GCash</span>
+          </label>
+          <label class="payment-method-opt">
+            <input type="radio" name="paymentMethod" value="Bank Transfer">
+            <span>Bank Transfer</span>
+          </label>
+        </div>
+
+        <div id="gcashPanel" class="method-panel">
+          <p class="payment-note">Scan the QR code below to send your donation via GCash, then enter the reference number from your payment confirmation.</p>
+          <img src="/assets/payment/c899099bf9bcb78d1194.jpg" alt="OCPC GCash payment QR code" class="qr-image">
+        </div>
+
+        <div id="bankPanel" class="method-panel" style="display:none;">
+          <p class="payment-note">Scan the QR code below to send your donation via GoTyme Bank (InstaPay), then enter the reference number from your payment confirmation.</p>
+          <img src="/assets/payment/25e18c45216296495ae9.webp" alt="OCPC GoTyme Bank payment QR code" class="qr-image">
+        </div>
+
+        <div class="form-row" style="margin-top:18px;">
+          <label for="gRef">Payment Reference Number</label>
+          <input type="text" id="gRef" placeholder="e.g. 1234567890123" required>
+        </div>
+
+        <div class="form-row" style="margin-top:16px;">
+          <label for="gProof">Proof of Payment <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(screenshot of your receipt)</span></label>
+          <input type="file" id="gProof" accept="image/*" required>
+          <div class="proof-preview" id="gProofPreview"></div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="givingSubmitBtn" style="width:100%; justify-content:center;">Submit Donation</button>
+      <div class="checkout-msg" id="givingMsg" style="font-size:13.5px; margin-top:16px; min-height:18px;"></div>
+    </form>
+
+    <div class="giving-success" id="givingSuccessView" style="display:none;">
+      <div class="giving-success-icon">&#10003;</div>
+      <h2>Thank You!</h2>
+      <p id="givingSuccessText"></p>
+      <a class="btn btn-primary" href="/">Back to Home</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="/join/">Join OCPC</a>
+      <a href="/coaching/">Coaching</a>
+      <a href="/giving/">Giving Back</a>
+      <a href="/gear/">Gear Picks</a>
+      <a href="/contact/">Contact</a>
+      <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener">Facebook</a>
+
+    </div>
+    <div class="foot-legal">
+      <a href="/privacy-policy/">Privacy Policy</a>
+      <a href="/accessibility/">Accessibility Help</a>
+      <a href="/privacy-notice/">Privacy Notice</a>
+      <a href="/terms/">Terms &amp; Conditions</a>
+      <a href="/social-media-policy/">Social Media Policy</a>
+    </div>
+    <p>One Cavite Pickleball Club · SM City Rosario · See you on the courts!</p>
+  </div>
+</footer>
+
+<script src="/script.js"></script>
+<script type="module" src="/nav-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const donationsCol = collection(db, "donations");
+
+  // ---- Load fundraiser details (beneficiary, GoFundMe link, event date) ----
+  // set from admin.html's Fundraiser tab — this is what lets the page go
+  // live now with "To Be Announced" placeholders and get filled in later
+  // without a code change.
+  async function loadFundraiserSettings(){
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'fundraiser'));
+      if (!snap.exists()) return;
+      const s = snap.data();
+
+      if (s.eventDate){
+        document.getElementById('eventDateTag').textContent = `📅 ${s.eventDate}`;
+      }
+      if (s.beneficiaryName){
+        document.getElementById('beneficiaryName').textContent = s.beneficiaryName;
+        document.getElementById('beneficiaryTba').style.display = 'none';
+      }
+      if (s.beneficiaryDescription){
+        document.getElementById('beneficiaryDesc').textContent = s.beneficiaryDescription;
+      }
+      if (s.goFundMeUrl){
+        const btn = document.getElementById('goFundMeBtn');
+        btn.href = s.goFundMeUrl;
+        btn.textContent = 'Donate on GoFundMe →';
+        btn.removeAttribute('aria-disabled');
+      }
+    } catch (err) { /* placeholders stay as-is */ }
+  }
+  loadFundraiserSettings();
+
+  const ADMIN_EMAIL = "ocpc.pickleball@gmail.com";
+
+  const EMAILJS_PUBLIC_KEY = "gvsTI7xX9QRtW7hl9";
+  const EMAILJS_SERVICE_ID = "service_h7o9v7a";
+  const EMAILJS_TEMPLATE_ID = "template_74o6c0t";
+  const EMAILJS_READY = EMAILJS_PUBLIC_KEY !== "YOUR_EMAILJS_PUBLIC_KEY" && window.emailjs;
+  if (EMAILJS_READY) window.emailjs.init(EMAILJS_PUBLIC_KEY);
+
+  async function sendEmail(to_email, to_name, subject, message){
+    if (!EMAILJS_READY || !to_email) return;
+    try {
+      await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email, to_name, subject, message });
+    } catch (err) { /* email is a nicety — the donation is already saved */ }
+  }
+
+  // Cloudinary — same unsigned preset as /checkout/ and /coaching/'s proof uploads.
+  const CLOUDINARY_CLOUD_NAME = "spakpfuj";
+  const CLOUDINARY_UPLOAD_PRESET_PAYMENTS = "ocpc_payment_proofs";
+
+  function compressImage(file, maxDim = 1280, quality = 0.72){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height && width > maxDim){ height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else if (height > maxDim){ width = Math.round(width * (maxDim / height)); height = maxDim; }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Compression failed')), 'image/jpeg', quality);
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadPaymentProof(file){
+    const compressed = await compressImage(file);
+    const formData = new FormData();
+    formData.append('file', compressed, 'proof.jpg');
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET_PAYMENTS);
+    formData.append('folder', 'payment-proofs');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    return data.secure_url;
+  }
+
+  const gProofInput = document.getElementById('gProof');
+  const gProofPreview = document.getElementById('gProofPreview');
+  gProofInput.addEventListener('change', () => {
+    const file = gProofInput.files[0];
+    gProofPreview.innerHTML = file ? `<img src="${URL.createObjectURL(file)}" alt="Payment proof preview">` : '';
+  });
+
+  const methodRadios = document.querySelectorAll('input[name="paymentMethod"]');
+  const gcashPanel = document.getElementById('gcashPanel');
+  const bankPanel = document.getElementById('bankPanel');
+
+  function updateMethodPanel(){
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    gcashPanel.style.display = method === 'GCash' ? 'block' : 'none';
+    bankPanel.style.display = method === 'GCash' ? 'none' : 'block';
+  }
+  methodRadios.forEach(r => r.addEventListener('change', updateMethodPanel));
+  updateMethodPanel();
+
+  const givingSubmitBtn = document.getElementById('givingSubmitBtn');
+  const givingMsg = document.getElementById('givingMsg');
+  const givingForm = document.getElementById('givingForm');
+  const givingSuccessView = document.getElementById('givingSuccessView');
+
+  givingForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const fullName = document.getElementById('gName').value.trim();
+    const contactNumber = document.getElementById('gContact').value.trim();
+    const email = document.getElementById('gEmail').value.trim();
+    const amount = parseFloat(document.getElementById('gAmount').value) || 0;
+    const message = document.getElementById('gMessage').value.trim();
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const paymentRef = document.getElementById('gRef').value.trim();
+
+    if (amount <= 0){
+      givingMsg.style.color = 'var(--pop)';
+      givingMsg.textContent = 'Please enter a donation amount.';
+      return;
+    }
+
+    givingSubmitBtn.disabled = true;
+    givingSubmitBtn.textContent = 'Sending…';
+    givingMsg.textContent = '';
+
+    try {
+      let paymentProofURL = null;
+      const proofFile = gProofInput.files[0];
+      if (proofFile){
+        givingSubmitBtn.textContent = 'Uploading Proof…';
+        paymentProofURL = await uploadPaymentProof(proofFile);
+        givingSubmitBtn.textContent = 'Sending…';
+      }
+
+      await addDoc(donationsCol, {
+        fullName, contactNumber, email, amount, message,
+        paymentMethod, paymentRef, paymentProofURL,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+
+      sendEmail(
+        email, fullName,
+        'Thank you for your OCPC fundraiser donation!',
+        `Thanks ${fullName.split(' ')[0] || 'there'}! We've recorded your donation of ₱${amount.toLocaleString()} for the October fundraiser. We'll verify your payment and follow up with a proper thank-you soon.`
+      );
+      sendEmail(
+        ADMIN_EMAIL, 'OCPC Admin',
+        'New fundraiser donation',
+        `${fullName} (${contactNumber}${email ? ', ' + email : ''}) donated ₱${amount.toLocaleString()} via ${paymentMethod}. Check the admin dashboard to confirm.`
+      );
+
+      document.getElementById('givingSuccessText').textContent =
+        `Thank you, ${fullName.split(' ')[0] || 'there'}! Your generosity means a lot to OCPC and the community we're supporting. We'll confirm your payment shortly.`;
+      givingForm.style.display = 'none';
+      givingSuccessView.style.display = 'block';
+    } catch (err) {
+      givingMsg.style.color = 'var(--pop)';
+      givingMsg.textContent = 'Something went wrong sending your donation — please try again or message us on Facebook.';
+    } finally {
+      givingSubmitBtn.disabled = false;
+      givingSubmitBtn.textContent = 'Submit Donation';
+    }
+  });
+</script>
+
+</body>
+</html>

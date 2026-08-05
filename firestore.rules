@@ -191,6 +191,21 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Local (Philippines) donation submissions from the /giving/ page —
+    // no login required. Anyone can create a submission (validated below),
+    // but only admins can read, change status, or delete — same shape as
+    // orders and coaching requests.
+    match /donations/{donationId} {
+      allow create: if
+        request.resource.data.status == 'pending'
+        && request.resource.data.fullName is string && request.resource.data.fullName.size() > 0
+        && request.resource.data.contactNumber is string && request.resource.data.contactNumber.size() > 0
+        && request.resource.data.amount is number && request.resource.data.amount > 0
+        && request.resource.data.paymentMethod is string && request.resource.data.paymentMethod.size() > 0;
+
+      allow read, update, delete: if isAdmin();
+    }
+
     // Site-wide settings, hand-edited from admin.html (currently just the
     // scrolling announce bar shown at the top of every page). Public read
     // so every page can render it without logging in; admin-only write.
