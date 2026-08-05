@@ -711,8 +711,15 @@
         </div>
 
         <div class="dash-card-head"><h3>Active Members</h3></div>
+        <div class="orders-toolbar">
+          <input type="text" id="memberSearch" placeholder="Search name, email, skill…">
+        </div>
         <div class="orders-table-wrap">
-          <div id="activePlayersList"><div class="signup-empty">No active members yet.</div></div>
+          <table class="orders-table">
+            <thead><tr><th>Member</th><th>Skill</th><th>Check-ins</th><th>Role</th><th></th></tr></thead>
+            <tbody id="activeMembersTableBody"></tbody>
+          </table>
+          <div class="signup-empty" id="activeMembersEmpty" style="display:none;">No active members yet.</div>
         </div>
       </section>
 
@@ -2112,7 +2119,10 @@
   const MIN_CHECKINS_FOR_MEMBERSHIP = 3;
   let allPlayers = [];
   const pendingPlayersList = document.getElementById('pendingPlayersList');
-  const activePlayersList = document.getElementById('activePlayersList');
+  const memberSearch = document.getElementById('memberSearch');
+  const activeMembersTableBody = document.getElementById('activeMembersTableBody');
+  const activeMembersEmpty = document.getElementById('activeMembersEmpty');
+  memberSearch.addEventListener('input', renderPlayerSignups);
 
   function lifetimeCheckins(firstName, lastName, nickname, aliases){
     const keys = [`${firstName} ${lastName}`.trim().toLowerCase()];
@@ -2133,7 +2143,8 @@
       allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (err) {
       pendingPlayersList.innerHTML = '<div class="signup-empty">Couldn\'t load signups — check that firestore.rules has been deployed.</div>';
-      activePlayersList.innerHTML = '';
+      activeMembersTableBody.innerHTML = '';
+      activeMembersEmpty.style.display = 'none';
       return;
     }
     renderPlayerSignups();
@@ -2174,27 +2185,36 @@
           `;
         }).join('');
 
-    activePlayersList.innerHTML = active.length === 0
-      ? '<div class="signup-empty">No active members yet.</div>'
-      : active.map(p => {
-          const isProtected = SUPER_ADMIN_EMAILS.includes(p.email);
-          const isPlayerAdmin = p.role === 'admin' || isProtected;
-          return `
-          <div class="signup-row">
-            <img class="signup-photo" src="${escapeHtml(p.photoURL || '/assets/directory/blank.svg')}" alt="">
-            <div class="signup-body">
-              <div class="signup-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))} ${isPlayerAdmin ? '<span class="signup-count eligible" style="margin-left:6px;">Admin</span>' : ''} ${isProtected ? '<span class="signup-count eligible" style="margin-left:6px;">Protected</span>' : ''}</div>
-              <div class="signup-meta">${escapeHtml(p.skillRating || '')} · ${p.sessionsAttended || 0} check-ins recorded at approval</div>
-              <div class="signup-actions">
-                ${isProtected ? '' : `
-                  <button class="signup-btn ${isPlayerAdmin ? 'reject' : 'approve'}" data-action="toggle-role" data-id="${p.id}" data-role="${isPlayerAdmin ? 'member' : 'admin'}">${isPlayerAdmin ? 'Remove Admin' : 'Make Admin'}</button>
-                  <button class="signup-btn reject" data-action="revoke" data-id="${p.id}">Revoke Membership</button>
-                `}
-              </div>
-            </div>
-          </div>
-        `;
-        }).join('');
+    const memberQuery = memberSearch.value.trim().toLowerCase();
+    const activeFiltered = memberQuery ? active.filter(p => {
+      const hay = `${p.firstName || ''} ${p.lastName || ''} ${p.nickname || ''} ${p.email || ''} ${p.skillRating || ''}`.toLowerCase();
+      return hay.includes(memberQuery);
+    }) : active;
+
+    activeMembersEmpty.style.display = activeFiltered.length === 0 ? 'block' : 'none';
+    activeMembersEmpty.textContent = active.length === 0
+      ? 'No active members yet.'
+      : 'No active members match your search.';
+
+    activeMembersTableBody.innerHTML = activeFiltered.map(p => {
+      const isProtected = SUPER_ADMIN_EMAILS.includes(p.email);
+      const isPlayerAdmin = p.role === 'admin' || isProtected;
+      const roleBadge = isProtected
+        ? '<span class="signup-count eligible">Protected</span>'
+        : isPlayerAdmin ? '<span class="signup-count eligible">Admin</span>' : '—';
+      return `
+        <tr>
+          <td>
+            <div class="order-row-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
+            <div class="order-row-sub">${escapeHtml(p.email || '')}</div>
+          </td>
+          <td>${escapeHtml(p.skillRating || '—')}</td>
+          <td>${p.sessionsAttended || 0}</td>
+          <td>${roleBadge}</td>
+          <td><button class="order-view-btn" data-action="view-member" data-id="${p.id}">Manage</button></td>
+        </tr>
+      `;
+    }).join('');
 
     pendingPlayersList.querySelectorAll('[data-action="approve"]').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -2218,27 +2238,6 @@
       btn.addEventListener('click', async () => {
         if (!confirm('Reject and delete this signup?')) return;
         await deleteDoc(doc(db, 'players', btn.dataset.id));
-        await loadPlayers();
-      });
-    });
-
-    activePlayersList.querySelectorAll('[data-action="revoke"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Revoke membership? They will be removed from Meet the Club and birthday shoutouts.')) return;
-        await deleteDoc(doc(db, 'roster', btn.dataset.id));
-        await updateDoc(doc(db, 'players', btn.dataset.id), { status: 'pending' });
-        await loadPlayers();
-      });
-    });
-
-    activePlayersList.querySelectorAll('[data-action="toggle-role"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const makingAdmin = btn.dataset.role === 'admin';
-        const msg = makingAdmin
-          ? 'Give this player admin access? They will be able to record attendance and manage all player signups.'
-          : 'Remove admin access from this player?';
-        if (!confirm(msg)) return;
-        await updateDoc(doc(db, 'players', btn.dataset.id), { role: makingAdmin ? 'admin' : 'member' });
         await loadPlayers();
       });
     });
@@ -2312,6 +2311,14 @@
           </div>
         `).join('')}
       ` : ''}
+
+      ${p.status === 'active' && !isProtected ? `
+        <div class="member-detail-section-title">Membership</div>
+        <div class="signup-actions" style="margin-bottom:4px;">
+          <button class="signup-btn ${isPlayerAdmin ? 'reject' : 'approve'}" id="memberToggleRoleBtn" type="button">${isPlayerAdmin ? 'Remove Admin' : 'Make Admin'}</button>
+          <button class="signup-btn reject" id="memberRevokeBtn" type="button">Revoke Membership</button>
+        </div>
+      ` : ''}
     `;
 
     document.getElementById('memberPhotoInput').addEventListener('change', async (e) => {
@@ -2367,6 +2374,31 @@
         msg.textContent = 'Something went wrong — try again.';
       }
     });
+
+    const toggleRoleBtn = document.getElementById('memberToggleRoleBtn');
+    if (toggleRoleBtn){
+      toggleRoleBtn.addEventListener('click', async () => {
+        const makingAdmin = !isPlayerAdmin;
+        const msg = makingAdmin
+          ? 'Give this player admin access? They will be able to record attendance and manage all player signups.'
+          : 'Remove admin access from this player?';
+        if (!confirm(msg)) return;
+        await updateDoc(doc(db, 'players', id), { role: makingAdmin ? 'admin' : 'member' });
+        closeMemberDetail();
+        await loadPlayers();
+      });
+    }
+
+    const revokeBtn = document.getElementById('memberRevokeBtn');
+    if (revokeBtn){
+      revokeBtn.addEventListener('click', async () => {
+        if (!confirm('Revoke membership? They will be removed from Meet the Club and birthday shoutouts.')) return;
+        await deleteDoc(doc(db, 'roster', id));
+        await updateDoc(doc(db, 'players', id), { status: 'pending' });
+        closeMemberDetail();
+        await loadPlayers();
+      });
+    }
 
     memberDetailOverlay.classList.add('open');
   }
