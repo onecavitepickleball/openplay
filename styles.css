@@ -1128,3 +1128,47 @@ footer p{
 }
 .qr-lightbox img{ width:100%; border-radius:6px; display:block; }
 .qr-lightbox .order-modal-close{ background: var(--white); }
+
+/* ---- FLOATING GIVING WIDGET (injected by giving-widget.js) ---- */
+#givingFloatWidget{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  z-index:250;
+  width:280px;
+  background: var(--navy);
+  color: var(--paper);
+  border-radius:10px;
+  padding:18px 18px 18px 16px;
+  box-shadow:0 12px 32px rgba(0,63,94,0.35);
+  border:1px solid rgba(255,196,75,0.35);
+  display:flex;
+  gap:12px;
+  animation: gfw-slide-in .4s ease;
+}
+@keyframes gfw-slide-in{
+  from{ transform:translateY(16px); opacity:0; }
+  to{ transform:translateY(0); opacity:1; }
+}
+#givingFloatWidget .gfw-icon{ font-size:26px; flex-shrink:0; line-height:1; }
+#givingFloatWidget .gfw-title{
+  font-family: var(--font-display); font-size:14.5px; text-transform:uppercase;
+  line-height:1.2; margin-bottom:6px;
+}
+#givingFloatWidget .gfw-text{ font-size:12.5px; line-height:1.5; color: rgba(245,243,238,0.8); margin-bottom:10px; }
+#givingFloatWidget .gfw-btn{
+  display:inline-block; font-family: var(--font-mono); font-size:11px; font-weight:700;
+  letter-spacing:0.04em; text-transform:uppercase;
+  background:#FFC24B; color: var(--navy-deep); padding:8px 14px; border-radius:100px;
+  text-decoration:none;
+}
+#givingFloatClose{
+  position:absolute; top:8px; right:10px;
+  background:none; border:none; color: rgba(245,243,238,0.6);
+  font-size:18px; line-height:1; cursor:pointer; padding:2px 4px;
+}
+#givingFloatClose:hover{ color: var(--paper); }
+
+@media (max-width: 520px){
+  #givingFloatWidget{ left:16px; right:16px; width:auto; bottom:16px; }
+}

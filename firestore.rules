@@ -206,6 +206,16 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // Public-safe Donor Board mirror for the /giving/board/ page, keyed by
+    // the donations/{donationId} doc id. Only ever contains a display name
+    // and tier, nothing private. Written by admin.html when a donation is
+    // marked "received" (and removed if unmarked or deleted), the same
+    // sync pattern used for orderStatus.
+    match /donorBoard/{donationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Site-wide settings, hand-edited from admin.html (currently just the
     // scrolling announce bar shown at the top of every page). Public read
     // so every page can render it without logging in; admin-only write.

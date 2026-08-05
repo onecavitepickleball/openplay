@@ -288,6 +288,7 @@
       <a href="/">Home</a>
       <a href="/meet-the-club/">Meet the Club</a>
       <a href="/events/">Events</a>
+      <a href="/giving/">Giving Back</a>
       <div class="nav-more">
         <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="nav-more-menu">
@@ -298,7 +299,6 @@
           <a href="/queue/">Queue</a>
           <a href="/leaderboard/">Leaderboard</a>
           <a href="/coaching/">Coaching</a>
-          <a href="/giving/">Giving Back</a>
           <a href="/rules/">Rules &amp; Etiquette</a>
           <a href="/featured-courts/">Featured Courts</a>
           <a href="/birthdays/">Birthdays</a>
@@ -615,14 +615,14 @@
       <section class="dash-panel" id="fundraiserPanel">
         <div class="dash-panel-head">
           <h1>Fundraiser</h1>
-          <p>Powers the /giving/ page — fill these in as decisions are made and the page updates instantly, no code changes needed.</p>
+          <p>Powers the /giving/ page. Fill these in as decisions are made and the page updates instantly, no code changes needed.</p>
         </div>
 
         <div class="dash-card" style="max-width:640px;">
           <form id="fundraiserForm">
             <div class="form-row">
               <label for="frEventDate">Event Date <span class="optional-tag">(shown as-is, e.g. "October 17-18, 2026")</span></label>
-              <input type="text" id="frEventDate" placeholder="October 2026 — Date To Be Announced">
+              <input type="text" id="frEventDate" placeholder="October 2026, Date To Be Announced">
             </div>
             <div class="form-row">
               <label for="frBeneficiaryName">Beneficiary Name</label>
@@ -633,9 +633,13 @@
               <textarea id="frBeneficiaryDesc" rows="3" placeholder="Who they are, and how the funds will be used."></textarea>
             </div>
             <div class="form-row">
-              <label for="frGoFundMeUrl">GoFundMe URL <span class="optional-tag">(leave blank to keep the button showing "Coming Soon")</span></label>
-              <input type="text" id="frGoFundMeUrl" placeholder="https://gofundme.com/f/...">
+              <label for="frCampaignUrl">GoGetFunding URL</label>
+              <input type="text" id="frCampaignUrl" placeholder="https://gogetfunding.com/?p=...">
             </div>
+            <label class="settings-check" style="margin-bottom:18px;">
+              <input type="checkbox" id="frFloatingWidget">
+              <span>Show the floating "Support Our Fundraiser" widget site-wide</span>
+            </label>
             <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Save</button>
             <div class="admin-msg" id="fundraiserFormMsg"></div>
           </form>
@@ -820,6 +824,7 @@
 
 <script src="/script.js"></script>
 <script type="module" src="/nav-auth.js"></script>
+<script type="module" src="/giving-widget.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script type="module">
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
@@ -1572,7 +1577,8 @@
         document.getElementById('frEventDate').value = s.eventDate || '';
         document.getElementById('frBeneficiaryName').value = s.beneficiaryName || '';
         document.getElementById('frBeneficiaryDesc').value = s.beneficiaryDescription || '';
-        document.getElementById('frGoFundMeUrl').value = s.goFundMeUrl || '';
+        document.getElementById('frCampaignUrl').value = s.campaignUrl || '';
+        document.getElementById('frFloatingWidget').checked = !!s.floatingWidgetEnabled;
       }
     } catch (err) { /* leave defaults blank */ }
   }
@@ -1585,15 +1591,37 @@
         eventDate: document.getElementById('frEventDate').value.trim(),
         beneficiaryName: document.getElementById('frBeneficiaryName').value.trim(),
         beneficiaryDescription: document.getElementById('frBeneficiaryDesc').value.trim(),
-        goFundMeUrl: document.getElementById('frGoFundMeUrl').value.trim()
+        campaignUrl: document.getElementById('frCampaignUrl').value.trim(),
+        floatingWidgetEnabled: document.getElementById('frFloatingWidget').checked
       });
       fundraiserFormMsg.style.color = '#2E7D32';
-      fundraiserFormMsg.textContent = 'Saved — live on /giving/ now.';
+      fundraiserFormMsg.textContent = 'Saved, live on /giving/ now.';
     } catch (err) {
       fundraiserFormMsg.style.color = 'var(--pop)';
-      fundraiserFormMsg.textContent = 'Something went wrong saving — try again.';
+      fundraiserFormMsg.textContent = 'Something went wrong saving. Try again.';
     }
   });
+
+  const DONATION_TIER_LABELS = {
+    supporter: 'Supporter', bronze: 'Bronze Backer', silver: 'Silver Supporter',
+    gold: 'Gold Patron', platinum: 'Platinum Champion'
+  };
+
+  // Keeps the public /giving/board/ page in sync with a donation's status:
+  // marking it "received" adds (or updates) the Donor Board entry, and
+  // unmarking it (or deleting the donation) removes it. Mirrors how
+  // syncOrderStatusDoc keeps /track/ in sync with orders.
+  async function syncDonorBoard(donation){
+    const ref = doc(db, 'donorBoard', donation.id);
+    if (donation.status === 'received' && donation.tier && !donation.anonymous){
+      await setDoc(ref, {
+        displayName: donation.displayName || donation.fullName || 'A Supporter',
+        tier: donation.tier
+      });
+    } else {
+      await deleteDoc(ref).catch(() => {});
+    }
+  }
 
   async function loadDonations(){
     try {
@@ -1611,12 +1639,13 @@
           <td>
             <div class="order-row-name">${escapeHtml(d.fullName || '')}</div>
             <div class="order-row-sub">${escapeHtml(d.contactNumber || '')}${d.email ? ' · ' + escapeHtml(d.email) : ''}</div>
+            <div class="order-row-sub">Board name: ${escapeHtml(d.displayName || d.fullName || '')}${d.anonymous ? ' (anonymous)' : ''}</div>
           </td>
-          <td>${fmtPeso(d.amount)}</td>
+          <td>${fmtPeso(d.amount)}${d.tier ? `<br><small>${DONATION_TIER_LABELS[d.tier] || d.tier}</small>` : ''}</td>
           <td>${escapeHtml(d.paymentMethod || '')}<br><small>${escapeHtml(d.paymentRef || '')}</small></td>
           <td>${d.paymentProofURL
             ? `<a href="${d.paymentProofURL}" target="_blank" rel="noopener"><img class="proof-thumb" src="${d.paymentProofURL}" alt="Payment proof for ${escapeHtml(d.fullName || 'donation')}"></a>`
-            : `<span class="proof-thumb-empty">—</span>`}</td>
+            : `<span class="proof-thumb-empty">n/a</span>`}</td>
           <td><span class="status-badge ${d.status === 'received' ? 'fulfilled' : 'pending'}">${escapeHtml(d.status || 'pending')}</span></td>
           <td style="white-space:nowrap;">
             <button class="order-view-btn" data-action="toggle-donation" data-id="${d.id}">${d.status === 'received' ? 'Mark Pending' : 'Mark Received'}</button>
@@ -1629,7 +1658,9 @@
         btn.addEventListener('click', async () => {
           const donation = donations.find(x => x.id === btn.dataset.id);
           if (!donation) return;
-          await updateDoc(doc(db, 'donations', btn.dataset.id), { status: donation.status === 'received' ? 'pending' : 'received' });
+          const newStatus = donation.status === 'received' ? 'pending' : 'received';
+          await updateDoc(doc(db, 'donations', btn.dataset.id), { status: newStatus });
+          await syncDonorBoard({ ...donation, status: newStatus });
           await loadDonations();
         });
       });
@@ -1637,6 +1668,7 @@
         btn.addEventListener('click', async () => {
           if (!confirm('Delete this donation record?')) return;
           await deleteDoc(doc(db, 'donations', btn.dataset.id));
+          await deleteDoc(doc(db, 'donorBoard', btn.dataset.id)).catch(() => {});
           await loadDonations();
         });
       });
