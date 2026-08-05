@@ -244,6 +244,8 @@
   .signup-row{ display:flex; align-items:flex-start; gap:12px; padding:16px; border-bottom: 1px solid var(--line); }
   .signup-row:last-child{ border-bottom:none; }
   .signup-photo{ width:48px; height:48px; border-radius:50%; object-fit:cover; background: var(--paper-dim); flex-shrink:0; }
+  .member-row{ display:flex; align-items:center; gap:10px; }
+  .member-row-photo{ width:36px; height:36px; border-radius:50%; object-fit:cover; background: var(--paper-dim); flex-shrink:0; }
   .signup-body{ flex:1; min-width:0; }
   .signup-name{ font-weight:700; font-size:14.5px; }
   .signup-meta{ font-size:12.5px; color: var(--ink-soft); margin-top:2px; line-height:1.6; }
@@ -2154,9 +2156,18 @@
   function renderPlayerSignups(){
     const pending = allPlayers.filter(p => p.status !== 'active')
       .sort((a, b) => (playerJoinedDate(a)?.getTime() || 0) - (playerJoinedDate(b)?.getTime() || 0));
+    function memberRank(p){
+      if (SUPER_ADMIN_EMAILS.includes(p.email)) return 0;
+      if (p.role === 'admin') return 1;
+      return 2;
+    }
     const active = allPlayers.filter(p => p.status === 'active')
-      .sort((a, b) => `${a.lastName || ''} ${a.firstName || ''}`.trim().toLowerCase()
-        .localeCompare(`${b.lastName || ''} ${b.firstName || ''}`.trim().toLowerCase()));
+      .sort((a, b) => {
+        const rankDiff = memberRank(a) - memberRank(b);
+        if (rankDiff !== 0) return rankDiff;
+        return `${a.firstName || ''} ${a.lastName || ''}`.trim().toLowerCase()
+          .localeCompare(`${b.firstName || ''} ${b.lastName || ''}`.trim().toLowerCase());
+      });
 
     const pendingBadge = document.getElementById('pendingSignupsBadge');
     pendingBadge.textContent = pending.length;
@@ -2205,8 +2216,13 @@
       return `
         <tr>
           <td>
-            <div class="order-row-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
-            <div class="order-row-sub">${escapeHtml(p.email || '')}</div>
+            <div class="member-row">
+              <img class="member-row-photo" src="${escapeHtml(p.photoURL || '/assets/directory/blank.svg')}" alt="">
+              <div>
+                <div class="order-row-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
+                <div class="order-row-sub">${escapeHtml(p.email || '')}</div>
+              </div>
+            </div>
           </td>
           <td>${escapeHtml(p.skillRating || '—')}</td>
           <td>${p.sessionsAttended || 0}</td>
