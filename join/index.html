@@ -344,6 +344,7 @@
 </footer>
 
 <script src="/script.js"></script>
+<script src="/photo-crop.js"></script>
 <script type="module" src="/nav-auth.js"></script>
 <script type="module" src="/giving-widget.js"></script>
 <script type="module">
@@ -388,11 +389,15 @@
   const photoInput = document.getElementById('fPhoto');
   const photoPreview = document.getElementById('photoPreview');
 
-  photoInput.addEventListener('change', () => {
+  photoInput.addEventListener('change', async () => {
     const file = photoInput.files[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    photoPreview.innerHTML = `<img src="${url}" alt="Photo preview">`;
+    const cropped = await window.OCPCPhotoCrop.open(file);
+    if (!cropped){ photoInput.value = ''; return; }
+    const dt = new DataTransfer();
+    dt.items.add(cropped);
+    photoInput.files = dt.files;
+    photoPreview.innerHTML = `<img src="${URL.createObjectURL(cropped)}" alt="Photo preview">`;
   });
 
   form.addEventListener('submit', async (e) => {

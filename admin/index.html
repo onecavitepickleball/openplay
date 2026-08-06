@@ -832,6 +832,7 @@
 </footer>
 
 <script src="/script.js"></script>
+<script src="/photo-crop.js"></script>
 <script type="module" src="/nav-auth.js"></script>
 <script type="module" src="/giving-widget.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -2338,13 +2339,15 @@
     `;
 
     document.getElementById('memberPhotoInput').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      const rawFile = e.target.files[0];
+      if (!rawFile) return;
       const msg = document.getElementById('memberPhotoMsg');
+      const cropped = await window.OCPCPhotoCrop.open(rawFile);
+      if (!cropped){ e.target.value = ''; return; }
       msg.style.color = '';
       msg.textContent = 'Uploading…';
       try {
-        const photoURL = await uploadPlayerPhoto(file);
+        const photoURL = await uploadPlayerPhoto(cropped);
         await updateDoc(doc(db, 'players', id), { photoURL });
         p.photoURL = photoURL;
         // Active members also have a public roster copy — keep it in sync
