@@ -72,13 +72,16 @@ service cloud.firestore {
     match /roster/{playerId} {
       allow read: if true;
       allow create: if isAdmin();
-      // A player can update ONLY the nickname field on their own roster
-      // entry (so their preferred display name syncs to the leaderboard
-      // themselves, without needing an admin to re-save it) — everything
-      // else about their public roster entry stays admin-controlled.
+      // A player can update ONLY the public-facing fields they control
+      // from their own profile page (name, nickname, photo, skill rating,
+      // birth month/day) on their own roster entry, so editing their
+      // profile syncs to the leaderboard/Meet the Club immediately,
+      // without needing an admin to re-save it. aliases and
+      // sessionsAttended stay admin-controlled either way.
       allow update: if isAdmin() || (
         request.auth != null && request.auth.uid == playerId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nickname'])
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['firstName', 'lastName', 'nickname', 'photoURL', 'skillRating', 'birthMonth', 'birthDay'])
       );
       allow delete: if isAdmin()
         && !isSuperAdminEmail(get(/databases/$(database)/documents/players/$(playerId)).data.email);

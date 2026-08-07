@@ -1412,6 +1412,7 @@
           <td>
             <div class="order-row-name">${escapeHtml(r.preferredDate || '')}</div>
             <div class="order-row-sub">${escapeHtml((r.timeslots || []).join(', '))}</div>
+            ${r.confirmedDate ? `<div class="signup-count eligible" style="margin-top:4px;">Confirmed: ${escapeHtml(r.confirmedDate)}</div>` : ''}
           </td>
           <td>${r.players || 0}</td>
           <td>${fmtPeso(r.total)}</td>
@@ -1452,6 +1453,12 @@
       <div class="order-detail-row"><span class="k">Email</span><span class="v">${escapeHtml(r.email || '')}</span></div>
       <div class="order-detail-row"><span class="k">Preferred Date</span><span class="v">${escapeHtml(r.preferredDate || '')}</span></div>
       <div class="order-detail-row"><span class="k">Timeslot(s)</span><span class="v">${escapeHtml((r.timeslots || []).join(', '))}</span></div>
+      <div class="form-row" style="margin-top:14px;">
+        <label for="coachingConfirmedDateInput">Confirmed Date <span class="optional-tag">(correct this once the actual date is settled with the player. May differ from their preferred date above)</span></label>
+        <input type="date" id="coachingConfirmedDateInput" value="${escapeHtml(r.confirmedDate || r.preferredDate || '')}">
+        <button type="button" class="signup-btn approve" id="coachingConfirmedDateSaveBtn" style="margin-top:8px;">Save Confirmed Date</button>
+        <div class="admin-msg" id="coachingConfirmedDateMsg"></div>
+      </div>
       <div class="order-detail-row"><span class="k">Players</span><span class="v">${r.players || 0}</span></div>
       <div class="order-detail-row"><span class="k">Coaching Cost</span><span class="v">${fmtPeso(r.coachingCost)}</span></div>
       <div class="order-detail-row"><span class="k">Court Fees</span><span class="v">${fmtPeso(r.courtFees)}</span></div>
@@ -1477,6 +1484,22 @@
       allCoachingRequests = allCoachingRequests.filter(x => x.id !== id);
       renderCoachingTable();
       closeCoachingDetail();
+    });
+    document.getElementById('coachingConfirmedDateSaveBtn').addEventListener('click', async () => {
+      const confirmedDate = document.getElementById('coachingConfirmedDateInput').value;
+      const msg = document.getElementById('coachingConfirmedDateMsg');
+      msg.style.color = '';
+      msg.textContent = 'Saving…';
+      try {
+        await updateDoc(doc(db, 'coachingRequests', id), { confirmedDate });
+        r.confirmedDate = confirmedDate;
+        msg.style.color = '#2E7D32';
+        msg.textContent = 'Saved.';
+        renderCoachingTable();
+      } catch (err) {
+        msg.style.color = 'var(--pop)';
+        msg.textContent = 'Something went wrong — try again.';
+      }
     });
     coachingDetailOverlay.classList.add('open');
   }

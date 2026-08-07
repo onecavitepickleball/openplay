@@ -863,9 +863,15 @@
         photoURL
       });
       // Active members have a public roster copy that the leaderboard and
-      // Meet the Club read from — keep the nickname in sync there too.
+      // Meet the Club read from. Keep every public-facing field in sync
+      // there too, not just the nickname, so a photo/name/skill edit here
+      // shows up immediately instead of needing an admin to re-sync it.
       if (currentIsActive){
-        await setDoc(doc(db, 'roster', currentUid), { nickname }, { merge: true });
+        await setDoc(doc(db, 'roster', currentUid), {
+          firstName, lastName, nickname,
+          photoURL, skillRating,
+          birthMonth, birthDay
+        }, { merge: true });
       }
 
       currentPhotoURL = photoURL;
