@@ -2288,6 +2288,7 @@
       <div class="form-row" style="margin-top:14px;">
         <label for="memberPhotoInput">Player Photo <span class="optional-tag">(upload or replace)</span></label>
         <input type="file" id="memberPhotoInput" accept="image/*">
+        ${p.photoURL ? `<button type="button" class="signup-btn" id="memberAdjustPhotoBtn" style="margin-top:8px;">Adjust Current Photo</button>` : ''}
         <div class="admin-msg" id="memberPhotoMsg"></div>
       </div>
       <div class="form-row">
@@ -2338,12 +2339,8 @@
       ` : ''}
     `;
 
-    document.getElementById('memberPhotoInput').addEventListener('change', async (e) => {
-      const rawFile = e.target.files[0];
-      if (!rawFile) return;
+    async function saveMemberPhoto(cropped){
       const msg = document.getElementById('memberPhotoMsg');
-      const cropped = await window.OCPCPhotoCrop.open(rawFile);
-      if (!cropped){ e.target.value = ''; return; }
       msg.style.color = '';
       msg.textContent = 'Uploading…';
       try {
@@ -2362,7 +2359,25 @@
         msg.style.color = 'var(--pop)';
         msg.textContent = 'Upload failed — try again.';
       }
+    }
+
+    document.getElementById('memberPhotoInput').addEventListener('change', async (e) => {
+      const rawFile = e.target.files[0];
+      if (!rawFile) return;
+      const cropped = await window.OCPCPhotoCrop.open(rawFile);
+      e.target.value = '';
+      if (!cropped) return;
+      await saveMemberPhoto(cropped);
     });
+
+    const adjustPhotoBtn = document.getElementById('memberAdjustPhotoBtn');
+    if (adjustPhotoBtn){
+      adjustPhotoBtn.addEventListener('click', async () => {
+        const cropped = await window.OCPCPhotoCrop.open(p.photoURL);
+        if (!cropped) return;
+        await saveMemberPhoto(cropped);
+      });
+    }
 
     document.getElementById('memberNicknameSaveBtn').addEventListener('click', async () => {
       const nickname = document.getElementById('memberNicknameInput').value.trim();

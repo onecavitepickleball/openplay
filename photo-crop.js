@@ -40,9 +40,13 @@
     document.body.appendChild(overlay);
   }
 
-  function open(file){
+  // Accepts either a File (freshly picked, not yet uploaded) or a string
+  // URL (an already-uploaded photo the user wants to reframe). Either way
+  // resolves a cropped square File, or null if cancelled.
+  function open(source){
     return new Promise((resolve) => {
-      if (!file || !file.type || !file.type.startsWith('image/')){ resolve(null); return; }
+      const isUrl = typeof source === 'string';
+      if (!isUrl && (!source || !source.type || !source.type.startsWith('image/'))){ resolve(null); return; }
 
       ensureUI();
       const overlay = document.getElementById('photoCropOverlay');
@@ -54,7 +58,10 @@
       const saveBtn = document.getElementById('pcSave');
 
       const img = new Image();
-      const objectUrl = URL.createObjectURL(file);
+      // Existing uploaded photos are cross-origin (Cloudinary), so request
+      // CORS access so the canvas isn't tainted and toBlob() still works.
+      if (isUrl) img.crossOrigin = 'anonymous';
+      const objectUrl = isUrl ? null : URL.createObjectURL(source);
       let scale = 1, minScale = 1, offsetX = 0, offsetY = 0;
       let dragging = false, lastX = 0, lastY = 0;
 
@@ -116,7 +123,7 @@
 
       function cleanup(){
         overlay.classList.remove('open');
-        URL.revokeObjectURL(objectUrl);
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
         stage.removeEventListener('mousedown', onDown);
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
@@ -161,7 +168,11 @@
 
         overlay.classList.add('open');
       };
-      img.src = objectUrl;
+      img.onerror = () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        resolve(null);
+      };
+      img.src = isUrl ? source : objectUrl;
     });
   }
 

@@ -399,7 +399,10 @@
             <label for="editPhoto">Photo</label>
             <div class="photo-picker">
               <div class="photo-preview" id="photoPreview"></div>
-              <input type="file" id="editPhoto" accept="image/*" style="width:auto;">
+              <div>
+                <input type="file" id="editPhoto" accept="image/*" style="width:auto;">
+                <button type="button" class="profile-link-btn" id="adjustPhotoBtn" style="display:none; margin-top:8px;">Adjust current photo</button>
+              </div>
             </div>
             <div class="form-hint">Leave blank to keep your current photo.</div>
           </div>
@@ -618,11 +621,29 @@
 
   signOutBtn.addEventListener('click', () => signOut(auth));
 
+  const adjustPhotoBtn = document.getElementById('adjustPhotoBtn');
+
   photoInput.addEventListener('change', async () => {
     const file = photoInput.files[0];
     if (!file) return;
     const cropped = await window.OCPCPhotoCrop.open(file);
     if (!cropped){ photoInput.value = ''; return; }
+    const dt = new DataTransfer();
+    dt.items.add(cropped);
+    photoInput.files = dt.files;
+    photoPreview.innerHTML = `<img src="${URL.createObjectURL(cropped)}" alt="Photo preview">`;
+    adjustPhotoBtn.style.display = '';
+  });
+
+  adjustPhotoBtn.addEventListener('click', async () => {
+    // Re-crop whichever photo is currently showing in the preview: a
+    // freshly picked file if one's staged, otherwise the saved photoURL.
+    // Lets a member reframe their photo without re-uploading a file.
+    const staged = photoInput.files[0];
+    const source = staged || currentPhotoURL;
+    if (!source) return;
+    const cropped = await window.OCPCPhotoCrop.open(source);
+    if (!cropped) return;
     const dt = new DataTransfer();
     dt.items.add(cropped);
     photoInput.files = dt.files;
@@ -643,6 +664,7 @@
       const p = snap.data();
       currentPhotoURL = p.photoURL || '';
       photoPreview.innerHTML = currentPhotoURL ? `<img src="${currentPhotoURL}" alt="Current photo">` : '';
+      adjustPhotoBtn.style.display = currentPhotoURL ? '' : 'none';
       document.getElementById('editFirstName').value = p.firstName || '';
       document.getElementById('editLastName').value = p.lastName || '';
       document.getElementById('editNickname').value = p.nickname || '';
