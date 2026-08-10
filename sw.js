@@ -2,7 +2,7 @@
 // HTML pages (so content stays fresh; cache is only a fallback if offline).
 // Never intercepts cross-origin requests (Firebase, Cloudinary, Google
 // Analytics, gstatic, etc.) — those always go straight to the network.
-const CACHE_NAME = 'ocpc-v18';
+const CACHE_NAME = 'ocpc-v19';
 const PRECACHE_URLS = ['/styles.css', '/script.js', '/nav-auth.js', '/assets/logo.png'];
 
 self.addEventListener('install', (event) => {
