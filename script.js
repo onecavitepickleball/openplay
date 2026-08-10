@@ -360,4 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     revealEls.forEach(el => el.classList.add('in-view'));
   }
+
+  // ---- Footer copyright year ----
+  document.querySelectorAll('.foot-year').forEach(el => {
+    el.textContent = new Date().getFullYear();
+  });
 });
