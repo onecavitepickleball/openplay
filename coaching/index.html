@@ -325,6 +325,7 @@
           <a href="/birthdays/">Birthdays</a>
           <a href="/contact/">Contact</a>
           <a href="/quiz/">Personality Quiz</a>
+          <a href="/testimonials/">Share Your Story</a>
         </div>
       </div>
       <div class="nav-search">
@@ -597,6 +598,7 @@
         <a href="/join/">Join OCPC</a>
         <a href="/contact/">Contact</a>
         <a href="/giving/">Giving Back</a>
+        <a href="/testimonials/">Share Your Story</a>
       </div>
       <div class="foot-col">
         <div class="foot-col-title">Stop By At</div>
@@ -623,7 +625,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script type="module">
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -783,7 +785,11 @@
         coachingSubmitBtn.textContent = 'Sending Request…';
       }
 
-      await addDoc(coachingCol, {
+      // Explicit doc id (instead of addDoc) so the private request and its
+      // public-safe coachingStatus mirror share one reference the requester
+      // can use to check status later at /track/ without logging in.
+      const requestRef = doc(coachingCol);
+      await setDoc(requestRef, {
         fullName, contactNumber, email,
         preferredDate: date,
         timeslots: selectedSlots,
@@ -794,11 +800,21 @@
         status: 'pending',
         createdAt: serverTimestamp()
       });
+      await setDoc(doc(db, 'coachingStatus', requestRef.id), {
+        preferredDate: date,
+        confirmedDate: '',
+        timeslots: selectedSlots,
+        players,
+        total,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
 
       sendEmail(
         email, fullName,
         'Your OCPC coaching request is in!',
-        `Thanks ${fullName.split(' ')[0] || 'there'}! We've recorded your coaching request for ${date} (${selectedSlots.join(', ')}), ${players} player(s), estimated total ₱${total.toLocaleString()}. We'll message you to confirm availability.`
+        `Thanks ${fullName.split(' ')[0] || 'there'}! We've recorded your coaching request for ${date} (${selectedSlots.join(', ')}), ${players} player(s), estimated total ₱${total.toLocaleString()}. We'll message you to confirm availability.\n\n` +
+        `Track your request status anytime here: ${window.location.origin}/track/?coaching=${requestRef.id}`
       );
       sendEmail(
         ADMIN_EMAIL, 'OCPC Admin',
@@ -807,7 +823,7 @@
       );
 
       document.getElementById('coachingSuccessText').textContent =
-        `Thanks, ${fullName.split(' ')[0] || 'there'}! We've recorded your request and will reach out to confirm your slot and payment.`;
+        `Thanks, ${fullName.split(' ')[0] || 'there'}! We've recorded your request and will reach out to confirm your slot and payment. Check your email for a link to track its status.`;
       coachingForm.style.display = 'none';
       coachingSuccessView.style.display = 'block';
     } catch (err) {

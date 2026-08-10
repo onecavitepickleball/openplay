@@ -217,6 +217,9 @@
   .status-badge.paid{ background: rgba(44,147,222,0.14); color: var(--sky-deep); }
   .status-badge.fulfilled{ background: rgba(46,125,50,0.14); color:#2E7D32; }
   .status-badge.cancelled{ background: rgba(0,94,137,0.1); color: var(--pop); }
+  .status-badge.contacted{ background: rgba(44,147,222,0.14); color: var(--sky-deep); }
+  .status-badge.confirmed{ background: rgba(46,125,50,0.14); color:#2E7D32; }
+  .status-badge.declined{ background: rgba(0,94,137,0.1); color: var(--pop); }
 </style>
 </head>
 <body>
@@ -253,6 +256,7 @@
           <a href="/birthdays/">Birthdays</a>
           <a href="/contact/">Contact</a>
           <a href="/quiz/">Personality Quiz</a>
+          <a href="/testimonials/">Share Your Story</a>
         </div>
       </div>
       <div class="nav-search">
@@ -389,6 +393,11 @@
           <div id="myOrdersList"><div class="signup-empty">No orders yet — check out the <a href="/merch/">shop</a>.</div></div>
         </div>
 
+        <div class="dash-card">
+          <div class="dash-card-head"><h3>My Coaching Requests</h3></div>
+          <div id="myCoachingList"><div class="signup-empty">No coaching requests yet. <a href="/coaching/">Book a session</a>.</div></div>
+        </div>
+
         <button class="btn btn-primary" type="button" id="editProfileBtn">Edit Profile</button>
       </div>
 
@@ -512,6 +521,7 @@
         <a href="/join/">Join OCPC</a>
         <a href="/contact/">Contact</a>
         <a href="/giving/">Giving Back</a>
+        <a href="/testimonials/">Share Your Story</a>
       </div>
       <div class="foot-col">
         <div class="foot-col-title">Stop By At</div>
@@ -736,6 +746,7 @@
 
       await loadStats(p.firstName, p.lastName, p.nickname, p.aliases);
       await loadOrders(p.email || currentUserEmail);
+      await loadCoachingRequests(p.email || currentUserEmail);
     } catch (err) {
       console.error('loadProfile failed:', err);
       dashboardMsg.style.color = 'var(--pop)';
@@ -868,6 +879,34 @@
       `).join('');
     } catch (err) {
       list.innerHTML = "<div class=\"signup-empty\">Couldn't load your orders right now.</div>";
+    }
+  }
+
+  // Same email-matched pattern as loadOrders. A request booked under a
+  // different email than the login won't show up here.
+  async function loadCoachingRequests(email){
+    const list = document.getElementById('myCoachingList');
+    if (!email) return;
+    try {
+      const q = query(collection(db, 'coachingRequests'), where('email', '==', email));
+      const snap = await getDocs(q);
+      const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (requests.length === 0){
+        list.innerHTML = '<div class="signup-empty">No coaching requests yet. <a href="/coaching/">Book a session</a>.</div>';
+        return;
+      }
+      requests.sort((a, b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0));
+      list.innerHTML = requests.map(r => `
+        <div class="mini-order-row">
+          <div>
+            <div class="mini-order-buyer">${escapeHtml(r.confirmedDate || r.preferredDate || '')}</div>
+            <div class="mini-order-meta">${escapeHtml((r.timeslots || []).join(', '))} · ${r.players || 0} player(s) <span class="status-badge ${escapeHtml(r.status || 'pending')}">${escapeHtml(r.status || 'pending')}</span></div>
+          </div>
+          <div class="mini-order-total">₱${(r.total || 0).toLocaleString()}</div>
+        </div>
+      `).join('');
+    } catch (err) {
+      list.innerHTML = "<div class=\"signup-empty\">Couldn't load your coaching requests right now.</div>";
     }
   }
 

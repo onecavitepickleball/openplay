@@ -135,7 +135,31 @@ service cloud.firestore {
         && request.resource.data.players is int && request.resource.data.players > 0
         && request.resource.data.total is number && request.resource.data.total > 0;
 
-      allow read, update, delete: if isAdmin();
+      // A signed-in player can also read their own coaching requests
+      // (matched by email, same as orders). This is what powers "My
+      // Coaching Requests" on the profile page. Status changes and
+      // deletes stay admin-only.
+      allow read: if isAdmin()
+        || (request.auth != null && request.auth.token.email == resource.data.email);
+      allow update, delete: if isAdmin();
+    }
+
+    // Public-safe coaching status mirror, keyed by the SAME doc id as its
+    // coachingRequests/{requestId} record. This is what the public
+    // /track/ page reads so a requester can check their session status
+    // without logging in. Deliberately excludes name/phone/email; only
+    // dates, timeslots, players, total, and status. Written by the
+    // coaching page on submit (create), and kept in sync by admin.html
+    // whenever status or the confirmed date changes.
+    match /coachingStatus/{requestId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.status == 'pending'
+        && request.resource.data.preferredDate is string && request.resource.data.preferredDate.size() > 0
+        && request.resource.data.timeslots is list && request.resource.data.timeslots.size() > 0
+        && request.resource.data.players is int && request.resource.data.players > 0
+        && request.resource.data.total is number && request.resource.data.total > 0;
+      allow update, delete: if isAdmin();
     }
 
     // Simple auto-incrementing counters (currently just "orders", used to
@@ -217,6 +241,21 @@ service cloud.firestore {
     match /donorBoard/{donationId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // Player-submitted testimonials for the homepage "Why We Love OCPC"
+    // carousel, from the /testimonials/ page. Public create (moderated
+    // before going live); a pending submission is only visible to admins,
+    // an approved one is visible to everyone. That's what lets the
+    // homepage carousel query approved testimonials without exposing the
+    // unmoderated queue to a public listing.
+    match /testimonials/{testimonialId} {
+      allow read: if resource.data.status == 'approved' || isAdmin();
+      allow create: if
+        request.resource.data.status == 'pending'
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
+        && request.resource.data.quote is string && request.resource.data.quote.size() > 0 && request.resource.data.quote.size() <= 280;
+      allow update, delete: if isAdmin();
     }
 
     // Site-wide settings, hand-edited from admin.html (currently just the

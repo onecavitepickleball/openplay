@@ -88,6 +88,17 @@
   }
   .track-totals-row.grand .amount{ font-family: var(--font-display); font-size:22px; color: var(--pop); }
 
+  .track-detail-row{
+    display:flex; justify-content:space-between; gap:16px; padding:10px 0;
+    border-bottom:1px solid var(--line); font-size:13.5px;
+  }
+  .track-detail-row:last-child{ border-bottom:none; }
+  .track-detail-row .k{
+    font-family: var(--font-mono); font-size:11px; text-transform:uppercase;
+    color: var(--ink-faint); flex-shrink:0;
+  }
+  .track-detail-row .v{ text-align:right; }
+
   .track-not-found{
     display:none; border: 1.5px dashed var(--line); border-radius:6px;
     padding:40px 24px; text-align:center; color: var(--ink-soft); max-width:440px; font-size:14px;
@@ -132,6 +143,7 @@
           <a href="/birthdays/">Birthdays</a>
           <a href="/contact/">Contact</a>
           <a href="/quiz/">Personality Quiz</a>
+          <a href="/testimonials/">Share Your Story</a>
         </div>
       </div>
       <div class="nav-search">
@@ -238,6 +250,31 @@
     </div>
   </div>
 
+  <div class="track-hero" style="padding-top:12px;">
+    <div class="eyebrow">OCPC Coaching</div>
+    <h1 style="font-size:clamp(32px, 5.5vw, 48px);">Track a Coaching Request.</h1>
+    <p>Enter the reference from your coaching request confirmation email to check its status.</p>
+  </div>
+
+  <div class="section reveal">
+    <form class="track-form" id="coachTrackForm">
+      <input type="text" id="coachTrackInput" placeholder="e.g. aB3xY9kLmN02pQrS" autocomplete="off">
+      <button class="btn btn-primary" type="submit">Track Request</button>
+    </form>
+    <div class="track-msg" id="coachTrackMsg"></div>
+
+    <div class="track-not-found" id="coachTrackNotFound">We couldn't find a coaching request with that reference. Double-check the link from your confirmation email, or contact us on Facebook if you need help.</div>
+
+    <div class="track-result" id="coachTrackResult">
+      <div class="track-payment-banner" id="coachResultBanner"></div>
+      <div class="track-detail-row"><span class="k">Preferred Date</span><span class="v" id="coachResultPreferredDate"></span></div>
+      <div class="track-detail-row" id="coachResultConfirmedRow" style="display:none;"><span class="k">Confirmed Date</span><span class="v" id="coachResultConfirmedDate"></span></div>
+      <div class="track-detail-row"><span class="k">Timeslot(s)</span><span class="v" id="coachResultTimeslots"></span></div>
+      <div class="track-detail-row"><span class="k">Players</span><span class="v" id="coachResultPlayers"></span></div>
+      <div class="track-detail-row"><span class="k">Total</span><span class="v" id="coachResultTotal"></span></div>
+    </div>
+  </div>
+
 </div>
 
 <footer>
@@ -286,6 +323,7 @@
         <a href="/join/">Join OCPC</a>
         <a href="/contact/">Contact</a>
         <a href="/giving/">Giving Back</a>
+        <a href="/testimonials/">Share Your Story</a>
       </div>
       <div class="foot-col">
         <div class="foot-col-title">Stop By At</div>
@@ -434,6 +472,75 @@
   if (prefill){
     trackInput.value = prefill;
     lookupOrder(normalizeOrderNumber(prefill));
+  }
+
+  const COACH_STATUS_BANNER_TEXT = {
+    pending: '⏳ Awaiting confirmation',
+    contacted: '💬 We\'ve reached out to confirm details',
+    confirmed: '✅ Confirmed',
+    declined: '✕ Request declined'
+  };
+
+  const coachTrackForm = document.getElementById('coachTrackForm');
+  const coachTrackInput = document.getElementById('coachTrackInput');
+  const coachTrackMsg = document.getElementById('coachTrackMsg');
+  const coachTrackNotFound = document.getElementById('coachTrackNotFound');
+  const coachTrackResult = document.getElementById('coachTrackResult');
+
+  async function lookupCoaching(reference){
+    coachTrackMsg.textContent = '';
+    coachTrackNotFound.style.display = 'none';
+    coachTrackResult.style.display = 'none';
+
+    if (!reference){
+      coachTrackMsg.textContent = 'Enter your reference code.';
+      return;
+    }
+
+    coachTrackMsg.textContent = 'Looking up your request…';
+    try {
+      const snap = await getDoc(doc(db, 'coachingStatus', reference));
+      coachTrackMsg.textContent = '';
+      if (!snap.exists()){
+        coachTrackNotFound.style.display = 'block';
+        return;
+      }
+      renderCoachResult(snap.data());
+    } catch (err) {
+      coachTrackMsg.textContent = 'Something went wrong looking that up. Please try again.';
+    }
+  }
+
+  function renderCoachResult(r){
+    const status = r.status || 'pending';
+    const banner = document.getElementById('coachResultBanner');
+    banner.className = `track-payment-banner ${status === 'confirmed' ? 'paid' : status === 'declined' ? 'cancelled' : 'pending'}`;
+    banner.textContent = COACH_STATUS_BANNER_TEXT[status] || COACH_STATUS_BANNER_TEXT.pending;
+
+    document.getElementById('coachResultPreferredDate').textContent = r.preferredDate || 'N/A';
+    const confirmedRow = document.getElementById('coachResultConfirmedRow');
+    if (r.confirmedDate){
+      confirmedRow.style.display = 'flex';
+      document.getElementById('coachResultConfirmedDate').textContent = r.confirmedDate;
+    } else {
+      confirmedRow.style.display = 'none';
+    }
+    document.getElementById('coachResultTimeslots').textContent = (r.timeslots || []).join(', ') || 'N/A';
+    document.getElementById('coachResultPlayers').textContent = r.players || 0;
+    document.getElementById('coachResultTotal').textContent = `₱${(r.total || 0).toLocaleString()}`;
+
+    coachTrackResult.style.display = 'block';
+  }
+
+  coachTrackForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    lookupCoaching(coachTrackInput.value.trim());
+  });
+
+  const coachPrefill = params.get('coaching');
+  if (coachPrefill){
+    coachTrackInput.value = coachPrefill;
+    lookupCoaching(coachPrefill);
   }
 </script>
 

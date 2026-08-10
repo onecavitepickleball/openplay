@@ -850,6 +850,7 @@
           <a href="/birthdays/">Birthdays</a>
           <a href="/contact/">Contact</a>
           <a href="/quiz/">Personality Quiz</a>
+          <a href="/testimonials/">Share Your Story</a>
         </div>
       </div>
 
@@ -1222,28 +1223,11 @@
       <span class="section-rule"></span>
     </div>
     <div class="testimonial-carousel" id="testimonialCarousel">
-      <div class="testimonial-slide active">
-        <img class="testimonial-avatar" src="/assets/directory/des.jpg" alt="Des" loading="lazy">
-        <div class="testimonial-quote">OCPC is very accommodating and beginner's friendly.</div>
-        <div class="testimonial-author">— Des</div>
-      </div>
-      <div class="testimonial-slide">
-        <img class="testimonial-avatar" src="/assets/directory/joe.jpg" alt="Joe" loading="lazy">
-        <div class="testimonial-quote">OCPC is more than just a club, it's a family!!! Best training ground without judgement.</div>
-        <div class="testimonial-author">— Joe</div>
-      </div>
-      <div class="testimonial-slide">
-        <img class="testimonial-avatar" src="/assets/directory/rafael.jpg" alt="Rafael" loading="lazy">
-        <div class="testimonial-quote">OCPC is the sole reason I get to play pickleball with confidence and pride.</div>
-        <div class="testimonial-author">— Raf</div>
-      </div>
-      <div class="testimonial-slide">
-        <img class="testimonial-avatar" src="/assets/directory/marvin.jpg" alt="Mj" loading="lazy">
-        <div class="testimonial-quote">OCPC is a place where I found not only a sport, but also genuine friendships and unforgettable memories.</div>
-        <div class="testimonial-author">— Mj</div>
-      </div>
       <div class="testimonial-dots" id="testimonialDots"></div>
     </div>
+    <p style="text-align:center; margin-top:24px;">
+      <a href="/testimonials/" style="font-family: var(--font-mono); font-size:12.5px; color: var(--sky-deep); text-decoration:underline;">Share your own story →</a>
+    </p>
   </div>
 
   <!-- FACEBOOK FEED -->
@@ -1311,6 +1295,7 @@
         <a href="/join/">Join OCPC</a>
         <a href="/contact/">Contact</a>
         <a href="/giving/">Giving Back</a>
+        <a href="/testimonials/">Share Your Story</a>
       </div>
       <div class="foot-col">
         <div class="foot-col-title">Stop By At</div>
@@ -1893,29 +1878,6 @@
   }
 
   loadBirthdayBanner();
-
-  // ---- Testimonials carousel ----
-  const slides = document.querySelectorAll('.testimonial-slide');
-  const dotsWrap = document.getElementById('testimonialDots');
-  let activeSlide = 0;
-
-  if (slides.length){
-    dotsWrap.innerHTML = Array.from(slides).map((_, i) =>
-      `<button class="testimonial-dot ${i === 0 ? 'active' : ''}" data-i="${i}" aria-label="Testimonial ${i + 1}"></button>`
-    ).join('');
-
-    function showSlide(i){
-      slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
-      dotsWrap.querySelectorAll('.testimonial-dot').forEach((d, idx) => d.classList.toggle('active', idx === i));
-      activeSlide = i;
-    }
-
-    dotsWrap.querySelectorAll('.testimonial-dot').forEach(dot => {
-      dot.addEventListener('click', () => showSlide(parseInt(dot.dataset.i, 10)));
-    });
-
-    setInterval(() => showSlide((activeSlide + 1) % slides.length), 6000);
-  }
 </script>
 
 <script type="module">
@@ -1923,7 +1885,7 @@
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import {
     getFirestore, doc, getDoc, deleteDoc, runTransaction, onSnapshot,
-    collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp
+    collection, addDoc, getDocs, query, where, orderBy, limit, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
@@ -2178,6 +2140,66 @@
     await loadCheerMessages(); // re-render so the delete × shows/hides
   });
   }
+
+  // ---- Testimonials carousel: player-submitted stories from /testimonials/,
+  // approved by an admin. Falls back to a few defaults if none are approved
+  // yet, so the carousel is never empty on a fresh install. ----
+  const FALLBACK_TESTIMONIALS = [
+    { name: 'Des', quote: "OCPC is very accommodating and beginner's friendly.", photoURL: '/assets/directory/des.jpg' },
+    { name: 'Joe', quote: "OCPC is more than just a club, it's a family!!! Best training ground without judgement.", photoURL: '/assets/directory/joe.jpg' },
+    { name: 'Raf', quote: 'OCPC is the sole reason I get to play pickleball with confidence and pride.', photoURL: '/assets/directory/rafael.jpg' },
+    { name: 'Mj', quote: 'OCPC is a place where I found not only a sport, but also genuine friendships and unforgettable memories.', photoURL: '/assets/directory/marvin.jpg' }
+  ];
+
+  async function loadTestimonialsCarousel(){
+    const carousel = document.getElementById('testimonialCarousel');
+    const dotsWrap = document.getElementById('testimonialDots');
+    if (!carousel || !dotsWrap) return;
+
+    let list = FALLBACK_TESTIMONIALS;
+    try {
+      const q = query(collection(db, 'testimonials'), where('status', '==', 'approved'));
+      const snap = await getDocs(q);
+      const approved = snap.docs.map(d => d.data());
+      if (approved.length) list = approved;
+    } catch (err) { /* Firestore unreachable, use fallback */ }
+
+      function esc(str){
+      const div = document.createElement('div');
+      div.textContent = String(str || '');
+      return div.innerHTML;
+    }
+
+    const slidesHtml = list.map((t, i) => `
+      <div class="testimonial-slide ${i === 0 ? 'active' : ''}">
+        <img class="testimonial-avatar" src="${t.photoURL || '/assets/directory/blank.svg'}" alt="${esc(t.name || '')}" loading="lazy">
+        <div class="testimonial-quote">${esc(t.quote || '')}</div>
+        <div class="testimonial-author">${esc(t.name || '')}</div>
+      </div>
+    `).join('');
+    carousel.insertAdjacentHTML('afterbegin', slidesHtml);
+
+    const slides = carousel.querySelectorAll('.testimonial-slide');
+    let activeSlide = 0;
+
+    dotsWrap.innerHTML = Array.from(slides).map((_, i) =>
+      `<button class="testimonial-dot ${i === 0 ? 'active' : ''}" data-i="${i}" aria-label="Testimonial ${i + 1}"></button>`
+    ).join('');
+
+    function showSlide(i){
+      slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+      dotsWrap.querySelectorAll('.testimonial-dot').forEach((d, idx) => d.classList.toggle('active', idx === i));
+      activeSlide = i;
+    }
+
+    dotsWrap.querySelectorAll('.testimonial-dot').forEach(dot => {
+      dot.addEventListener('click', () => showSlide(parseInt(dot.dataset.i, 10)));
+    });
+
+    if (slides.length > 1) setInterval(() => showSlide((activeSlide + 1) % slides.length), 6000);
+  }
+
+  loadTestimonialsCarousel();
 </script>
 
 </body>

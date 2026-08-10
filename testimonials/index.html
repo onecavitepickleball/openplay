@@ -11,47 +11,80 @@
   gtag('config', 'G-H86SSQPCJ6');
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Donor Board, One Cavite Pickleball Club</title>
-<meta name="description" content="Everyone who's given to OCPC's October fundraiser, from Supporter to Platinum Champion.">
+<title>Share Your Story, One Cavite Pickleball Club</title>
+<meta name="description" content="Tell us why you love OCPC. Your story could be featured on the homepage.">
+
+<meta property="og:title" content="Share Your Story, One Cavite Pickleball Club">
+<meta property="og:description" content="Tell us why you love OCPC. Your story could be featured on the homepage.">
+<meta property="og:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://www.onecavitepickleball.club/testimonials/">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Share Your Story, One Cavite Pickleball Club">
+<meta name="twitter:description" content="Tell us why you love OCPC. Your story could be featured on the homepage.">
+<meta name="twitter:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
+
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
 <link rel="apple-touch-icon" href="/assets/favicon-180.png">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#005E89">
-<link rel="canonical" href="https://www.onecavitepickleball.club/giving/board/">
+<link rel="canonical" href="https://www.onecavitepickleball.club/testimonials/">
 <link rel="stylesheet" href="/styles.css">
 <style>
-  .board-hero{ padding:56px 0 12px; max-width:640px; }
-  .board-hero h1{
+  .testi-hero{ padding:56px 0 12px; }
+  .testi-hero h1{
     font-family: var(--font-display);
-    font-size:clamp(38px, 6vw, 60px);
+    font-size:clamp(40px, 7vw, 64px);
     line-height:0.98;
     text-transform:uppercase;
+    max-width:640px;
   }
-  .board-hero p{ margin-top:14px; font-size:15.5px; color: var(--ink-soft); line-height:1.65; }
-  .board-hero .back-link{ display:inline-block; margin-bottom:16px; font-size:13px; color: var(--sky-deep); text-decoration:underline; }
+  .testi-hero p{ margin-top:16px; font-size:15.5px; color: var(--ink-soft); max-width:520px; line-height:1.6; }
 
-  .board-tier-section{ margin:40px 0; }
-  .board-tier-head{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
-  .board-tier-head .ic{ font-size:24px; }
-  .board-tier-head h2{ font-size:20px; text-transform:uppercase; }
-  .board-tier-head .count{ font-family: var(--font-mono); font-size:12px; color: var(--ink-faint); }
-
-  .board-names{ display:flex; flex-wrap:wrap; gap:10px; }
-  .board-name-chip{
-    background: var(--paper-dim); border:1px solid var(--line); border-radius:100px;
-    padding:10px 18px; font-size:14px; font-weight:600;
+  .testi-form{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:36px;
+    background: var(--white);
+    max-width:560px;
   }
-  .board-tier-section.tier-platinum .board-name-chip{ background: var(--navy-deep); color: var(--paper); border-color: var(--navy-deep); }
-  .board-tier-section.tier-gold .board-name-chip{ background: rgba(212,160,23,0.12); border-color: rgba(212,160,23,0.4); }
-  .board-tier-section.tier-silver .board-name-chip{ background: rgba(154,160,166,0.14); border-color: rgba(154,160,166,0.4); }
-  .board-tier-section.tier-bronze .board-name-chip{ background: rgba(181,101,29,0.1); border-color: rgba(181,101,29,0.35); }
-
-  .board-empty-state{
-    border: 1.5px dashed var(--line); border-radius:6px; padding:48px 30px; text-align:center;
-    color: var(--ink-soft); font-size:14.5px; line-height:1.6;
+  .form-row{ margin-bottom:20px; }
+  .form-row label{
+    display:block; font-family: var(--font-mono); font-size:11.5px; letter-spacing:0.08em;
+    text-transform:uppercase; color: var(--ink-faint); margin-bottom:8px;
   }
-  .board-empty-state a{ color: var(--sky-deep); text-decoration:underline; }
+  .form-row input, .form-row textarea{
+    width:100%; border: 1.5px solid var(--line); border-radius:4px; padding:12px 14px;
+    font-family: var(--font-body); font-size:14.5px; color: var(--ink); background: var(--paper);
+  }
+  .form-row input:focus, .form-row textarea:focus{ outline:none; border-color: var(--sky-deep); }
+  .form-row textarea{ min-height:110px; resize:vertical; }
+  .char-count{ font-size:11.5px; color: var(--ink-faint); text-align:right; margin-top:6px; }
+  .optional-tag{ text-transform:none; letter-spacing:0; font-family: var(--font-body); color: var(--ink-faint); }
+
+  .photo-picker{ display:flex; align-items:center; gap:16px; }
+  .photo-preview{
+    width:64px; height:64px; border-radius:50%; background: var(--paper-dim);
+    border: 1.5px solid var(--line); overflow:hidden; flex-shrink:0;
+  }
+  .photo-preview:has(img){ cursor:pointer; }
+  .photo-preview:has(img):hover{ border-color: var(--sky-deep); }
+  .photo-preview img{ width:100%; height:100%; object-fit:cover; }
+
+  .testi-msg{ font-size:13.5px; margin-top:14px; min-height:18px; color: var(--pop); }
+
+  .testi-success{ display:none; border: 1.5px dashed var(--line); border-radius:6px; padding:48px 30px; text-align:center; max-width:560px; }
+  .testi-success .icon-circle{
+    width:56px; height:56px; border-radius:50%; background: var(--navy); color: var(--paper);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 18px; font-size:24px;
+  }
+  .testi-success h3{ font-family: var(--font-display); font-size:22px; text-transform:uppercase; margin-bottom:10px; }
+  .testi-success p{ font-size:14.5px; color: var(--ink-soft); line-height:1.6; }
 </style>
 </head>
 <body>
@@ -72,9 +105,9 @@
       <a href="/">Home</a>
       <a href="/meet-the-club/">Meet the Club</a>
       <a href="/events/">Events</a>
-      <a href="/giving/" class="active">Giving Back</a>
+      <a href="/giving/">Giving Back</a>
       <div class="nav-more">
-        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="nav-more-menu">
           <a href="/merch/">Shop</a>
           <a href="/track/">Track Order</a>
@@ -88,7 +121,7 @@
           <a href="/birthdays/">Birthdays</a>
           <a href="/contact/">Contact</a>
           <a href="/quiz/">Personality Quiz</a>
-          <a href="/testimonials/">Share Your Story</a>
+          <a href="/testimonials/" class="active">Share Your Story</a>
         </div>
       </div>
       <div class="nav-search">
@@ -128,27 +161,16 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <div class="nav-account-panel" id="navAccountPanel">
-
           <div class="nav-account-promo">
-
             <span class="nav-account-promo-tag">Free</span>
-
             <h4>Join OCPC Free</h4>
-
             <p>Get on Meet the Club, birthday shoutouts, and your own player profile. Sign up in a couple minutes.</p>
-
             <a class="btn-promo" href="/join/">Join For Free</a>
-
           </div>
-
           <div class="nav-account-links">
-
             <a class="nav-account-link" href="/profile/">Sign In</a>
-
             <a class="nav-account-link" href="/join/">Join For Free</a>
-
             <a class="nav-account-link" href="/meet-the-club/">About OCPC</a>
-
           </div>
         </div>
       </div>
@@ -158,14 +180,39 @@
 
 <div class="wrap">
 
-  <div class="board-hero reveal">
-    <a class="back-link" href="/giving/">← Back to Giving Back</a>
-    <h1>Donor Board.</h1>
-    <p>Everyone who's given to this October's fundraiser, listed by tier. Thank you for making this possible.</p>
+  <div class="testi-hero">
+    <div class="eyebrow">Why We Love OCPC</div>
+    <h1>Share Your Story.</h1>
+    <p>Tell us what OCPC means to you. A few sentences is plenty. We read every submission, and yours might end up featured on the homepage.</p>
   </div>
 
-  <div id="boardSections">
-    <div class="board-empty-state">Loading the Donor Board…</div>
+  <div class="section reveal">
+    <form class="testi-form" id="testiForm">
+      <div class="form-row">
+        <label for="tPhoto">Photo <span class="optional-tag">(optional)</span></label>
+        <div class="photo-picker">
+          <div class="photo-preview" id="photoPreview" title="Click to adjust crop"></div>
+          <input type="file" id="tPhoto" accept="image/*" style="width:auto;">
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="tName">Your Name</label>
+        <input type="text" id="tName" required maxlength="60">
+      </div>
+      <div class="form-row">
+        <label for="tQuote">Your Testimonial</label>
+        <textarea id="tQuote" required maxlength="280" placeholder="OCPC is..."></textarea>
+        <div class="char-count"><span id="tQuoteCount">0</span>/280</div>
+      </div>
+      <button type="submit" class="btn btn-primary" id="testiSubmitBtn" style="width:100%; justify-content:center;">Submit Your Story</button>
+      <div class="testi-msg" id="testiMsg"></div>
+    </form>
+
+    <div class="testi-success" id="testiSuccess">
+      <div class="icon-circle">✓</div>
+      <h3>Thank You!</h3>
+      <p>We've received your story. If we feature it, you'll see it on the homepage. Thanks for being part of OCPC.</p>
+    </div>
   </div>
 
 </div>
@@ -238,11 +285,12 @@
 </footer>
 
 <script src="/script.js"></script>
+<script src="/photo-crop.js"></script>
 <script type="module" src="/nav-auth.js"></script>
 <script type="module" src="/giving-widget.js"></script>
 <script type="module">
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -254,68 +302,91 @@
   };
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const testimonialsCol = collection(db, "testimonials");
 
-  // Same shape as /giving/ and /giving/donate/. Keep these three in sync.
-  const TIERS = [
-    { key: 'platinum', label: 'Platinum Champions', icon: '🏆' },
-    { key: 'gold', label: 'Gold Patrons', icon: '🥇' },
-    { key: 'silver', label: 'Silver Supporters', icon: '🥈' },
-    { key: 'bronze', label: 'Bronze Backers', icon: '🥉' },
-    { key: 'supporter', label: 'Supporters', icon: '🤍' }
-  ];
+  const CLOUDINARY_CLOUD_NAME = "spakpfuj";
+  const CLOUDINARY_UPLOAD_PRESET = "ocpc_player_photos";
 
-  function escapeHtml(str){
-    const div = document.createElement('div');
-    div.textContent = String(str || '');
-    return div.innerHTML;
+  async function uploadPhoto(file){
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', 'testimonial-photos');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('Cloudinary upload failed');
+    const data = await res.json();
+    return data.secure_url;
   }
 
-  async function loadBoard(){
-    const container = document.getElementById('boardSections');
-    try {
-      const snap = await getDocs(collection(db, 'donorBoard'));
-      const donors = snap.docs.map(d => d.data());
+  const testiForm = document.getElementById('testiForm');
+  const testiSuccess = document.getElementById('testiSuccess');
+  const testiSubmitBtn = document.getElementById('testiSubmitBtn');
+  const testiMsg = document.getElementById('testiMsg');
+  const photoInput = document.getElementById('tPhoto');
+  const photoPreview = document.getElementById('photoPreview');
+  const tQuote = document.getElementById('tQuote');
+  const tQuoteCount = document.getElementById('tQuoteCount');
 
-      if (donors.length === 0){
-        container.innerHTML = `
-          <div class="board-empty-state">
-            No one's on the Donor Board yet. Be the first: <a href="/giving/donate/">give here</a>.
-          </div>
-        `;
-        return;
+  tQuote.addEventListener('input', () => { tQuoteCount.textContent = tQuote.value.length; });
+
+  photoInput.addEventListener('change', async () => {
+    const file = photoInput.files[0];
+    if (!file) return;
+    const cropped = await window.OCPCPhotoCrop.open(file);
+    if (!cropped){ photoInput.value = ''; return; }
+    const dt = new DataTransfer();
+    dt.items.add(cropped);
+    photoInput.files = dt.files;
+    photoPreview.innerHTML = `<img src="${URL.createObjectURL(cropped)}" alt="Photo preview">`;
+  });
+
+  photoPreview.addEventListener('click', async () => {
+    const img = photoPreview.querySelector('img');
+    if (!img) return;
+    const staged = photoInput.files[0];
+    if (!staged) return;
+    const cropped = await window.OCPCPhotoCrop.open(staged);
+    if (!cropped) return;
+    const dt = new DataTransfer();
+    dt.items.add(cropped);
+    photoInput.files = dt.files;
+    photoPreview.innerHTML = `<img src="${URL.createObjectURL(cropped)}" alt="Photo preview">`;
+  });
+
+  testiForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('tName').value.trim();
+    const quote = tQuote.value.trim();
+    if (!name || !quote) return;
+
+    testiSubmitBtn.disabled = true;
+    testiSubmitBtn.textContent = 'Submitting…';
+    testiMsg.textContent = '';
+
+    try {
+      let photoURL = '';
+      const photoFile = photoInput.files[0];
+      if (photoFile){
+        testiSubmitBtn.textContent = 'Uploading Photo…';
+        photoURL = await uploadPhoto(photoFile);
+        testiSubmitBtn.textContent = 'Submitting…';
       }
 
-      const sections = TIERS.map(t => {
-        const names = donors.filter(d => d.tier === t.key);
-        if (names.length === 0) return '';
-        return `
-          <div class="board-tier-section tier-${t.key}">
-            <div class="board-tier-head">
-              <span class="ic">${t.icon}</span>
-              <h2>${t.label}</h2>
-              <span class="count">(${names.length})</span>
-            </div>
-            <div class="board-names">
-              ${names.map(d => `<span class="board-name-chip">${escapeHtml(d.displayName)}</span>`).join('')}
-            </div>
-          </div>
-        `;
-      }).join('');
+      await setDoc(doc(testimonialsCol), {
+        name, quote, photoURL,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
 
-      container.innerHTML = sections || `
-        <div class="board-empty-state">
-          No one's on the Donor Board yet. Be the first: <a href="/giving/donate/">give here</a>.
-        </div>
-      `;
+      testiForm.style.display = 'none';
+      testiSuccess.style.display = 'block';
     } catch (err) {
-      container.innerHTML = `
-        <div class="board-empty-state">
-          Couldn't load the Donor Board right now. Try again shortly.
-        </div>
-      `;
+      testiMsg.textContent = 'Something went wrong submitting this. Please try again.';
+    } finally {
+      testiSubmitBtn.disabled = false;
+      testiSubmitBtn.textContent = 'Submit Your Story';
     }
-  }
-  loadBoard();
+  });
 </script>
 
 </body>

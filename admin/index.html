@@ -241,7 +241,15 @@
   .admin-delete:hover{ border-color: var(--pop); color: var(--pop); }
 
   .signup-empty{ font-size:12.5px; color: var(--ink-faint); padding:14px 16px; }
+  .bulk-action-bar{
+    display:flex; align-items:center; gap:16px; margin-bottom:10px; flex-wrap:wrap;
+  }
+  .bulk-select-all{
+    display:flex; align-items:center; gap:7px; font-size:12.5px; color: var(--ink-soft); cursor:pointer;
+  }
   .signup-row{ display:flex; align-items:flex-start; gap:12px; padding:16px; border-bottom: 1px solid var(--line); }
+  .signup-row-check{ margin-top:4px; flex-shrink:0; }
+  .bulk-row-check{ cursor:pointer; }
   .signup-row:last-child{ border-bottom:none; }
   .signup-photo{ width:48px; height:48px; border-radius:50%; object-fit:cover; background: var(--paper-dim); flex-shrink:0; }
   .member-row{ display:flex; align-items:center; gap:10px; }
@@ -306,6 +314,7 @@
           <a href="/birthdays/">Birthdays</a>
           <a href="/contact/">Contact</a>
           <a href="/quiz/">Personality Quiz</a>
+          <a href="/testimonials/">Share Your Story</a>
         </div>
       </div>
       <div class="nav-search">
@@ -400,6 +409,7 @@
         <button class="dash-nav-item" data-tab="fundraiser">Fundraiser</button>
         <button class="dash-nav-item" data-tab="attendance">Attendance</button>
         <button class="dash-nav-item" data-tab="members">Members <span class="dash-nav-badge" id="pendingSignupsBadge" hidden></span></button>
+        <button class="dash-nav-item" data-tab="testimonials">Testimonials <span class="dash-nav-badge" id="pendingTestimonialsBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="settings">Settings</button>
       </nav>
       <button class="dash-signout" id="signOutBtn">Sign Out</button>
@@ -564,10 +574,21 @@
           </select>
         </div>
 
+        <div class="bulk-action-bar">
+          <label class="bulk-select-all"><input type="checkbox" id="coachingSelectAll"> Select all</label>
+          <select id="coachingBulkStatus">
+            <option value="contacted">Mark Contacted</option>
+            <option value="confirmed">Mark Confirmed</option>
+            <option value="declined">Mark Declined</option>
+            <option value="pending">Mark Pending</option>
+          </select>
+          <button class="signup-btn approve" id="coachingBulkApplyBtn" type="button" disabled>Apply to Selected (0)</button>
+        </div>
+
         <div class="orders-table-wrap">
           <table class="orders-table">
             <thead>
-              <tr><th>Requested</th><th>Player</th><th>Preferred Session</th><th>Players</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr>
+              <tr><th></th><th>Requested</th><th>Player</th><th>Preferred Session</th><th>Players</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr>
             </thead>
             <tbody id="coachingTableBody"></tbody>
           </table>
@@ -708,6 +729,10 @@
         </div>
 
         <div class="dash-card-head"><h3>Pending Signups</h3></div>
+        <div class="bulk-action-bar">
+          <label class="bulk-select-all"><input type="checkbox" id="pendingSelectAll"> Select all</label>
+          <button class="signup-btn approve" id="pendingBulkApproveBtn" type="button" disabled>Approve Selected (0)</button>
+        </div>
         <div class="orders-table-wrap" style="margin-bottom:24px;">
           <div id="pendingPlayersList"><div class="signup-empty">No pending signups.</div></div>
         </div>
@@ -722,6 +747,24 @@
             <tbody id="activeMembersTableBody"></tbody>
           </table>
           <div class="signup-empty" id="activeMembersEmpty" style="display:none;">No active members yet.</div>
+        </div>
+      </section>
+
+      <!-- ============ TESTIMONIALS ============ -->
+      <section class="dash-panel" id="testimonialsPanel">
+        <div class="dash-panel-head">
+          <h1>Testimonials</h1>
+          <p>Player-submitted stories from /testimonials/. Approve to feature on the homepage carousel.</p>
+        </div>
+
+        <div class="dash-card-head"><h3>Pending Review</h3></div>
+        <div class="orders-table-wrap" style="margin-bottom:24px;">
+          <div id="pendingTestimonialsList"><div class="signup-empty">No pending testimonials.</div></div>
+        </div>
+
+        <div class="dash-card-head"><h3>Approved (shown on homepage)</h3></div>
+        <div class="orders-table-wrap">
+          <div id="approvedTestimonialsList"><div class="signup-empty">No approved testimonials yet.</div></div>
         </div>
       </section>
 
@@ -856,6 +899,7 @@
         <a href="/join/">Join OCPC</a>
         <a href="/contact/">Contact</a>
         <a href="/giving/">Giving Back</a>
+        <a href="/testimonials/">Share Your Story</a>
       </div>
       <div class="foot-col">
         <div class="foot-col-title">Stop By At</div>
@@ -1079,6 +1123,7 @@
       loadCheerWall();
       loadFundraiserSettings();
       loadDonations();
+      loadTestimonials();
       showLoggedInAs(user);
     }
   });
@@ -1413,9 +1458,45 @@
   const coachingDetailOverlay = document.getElementById('coachingDetailOverlay');
   const coachingDetailBody = document.getElementById('coachingDetailBody');
   const coachingDetailClose = document.getElementById('coachingDetailClose');
+  const coachingSelectAll = document.getElementById('coachingSelectAll');
+  const coachingBulkStatus = document.getElementById('coachingBulkStatus');
+  const coachingBulkApplyBtn = document.getElementById('coachingBulkApplyBtn');
+  coachingSelectAll.addEventListener('change', () => {
+    coachingTableBody.querySelectorAll('.bulk-row-check').forEach(c => { c.checked = coachingSelectAll.checked; });
+    const n = coachingSelectAll.checked ? coachingTableBody.querySelectorAll('.bulk-row-check').length : 0;
+    coachingBulkApplyBtn.textContent = `Apply to Selected (${n})`;
+    coachingBulkApplyBtn.disabled = n === 0;
+  });
+  coachingBulkApplyBtn.addEventListener('click', async () => {
+    const ids = Array.from(coachingTableBody.querySelectorAll('.bulk-row-check:checked')).map(c => c.dataset.id);
+    if (ids.length === 0) return;
+    const newStatus = coachingBulkStatus.value;
+    if (!confirm(`Set ${ids.length} request(s) to "${newStatus}"?`)) return;
+    coachingBulkApplyBtn.disabled = true;
+    coachingBulkApplyBtn.textContent = 'Applying…';
+    for (const id of ids){
+      const r = allCoachingRequests.find(x => x.id === id);
+      if (r) await setCoachingStatus(r, newStatus);
+    }
+    renderCoachingTable();
+  });
 
   function requestDate(r){
     return r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : null;
+  }
+
+  // Keeps the public /track/ coaching lookup in sync with a request's
+  // status and confirmed date. Mirrors syncOrderStatusDoc/syncDonorBoard,
+  // written by the coaching page on submit, kept current by admin.html.
+  async function syncCoachingStatusDoc(r){
+    await setDoc(doc(db, 'coachingStatus', r.id), {
+      preferredDate: r.preferredDate || '',
+      confirmedDate: r.confirmedDate || '',
+      timeslots: r.timeslots || [],
+      players: r.players || 0,
+      total: r.total || 0,
+      status: r.status || 'pending'
+    }, { merge: true });
   }
 
   async function loadCoachingRequests(){
@@ -1449,6 +1530,7 @@
       const d = requestDate(r);
       return `
         <tr>
+          <td><input type="checkbox" class="coaching-row-check bulk-row-check" data-id="${r.id}"></td>
           <td>${d ? isoDate(d) : '—'}</td>
           <td>
             <div class="order-row-name">${escapeHtml(r.fullName || '')}</div>
@@ -1477,15 +1559,51 @@
 
     coachingTableBody.querySelectorAll('[data-action="coaching-status"]').forEach(sel => {
       sel.addEventListener('change', async () => {
-        await updateDoc(doc(db, 'coachingRequests', sel.dataset.id), { status: sel.value });
         const r = allCoachingRequests.find(x => x.id === sel.dataset.id);
-        if (r) r.status = sel.value;
+        if (r) await setCoachingStatus(r, sel.value);
         renderCoachingTable();
       });
     });
     coachingTableBody.querySelectorAll('[data-action="coaching-view"]').forEach(btn => {
       btn.addEventListener('click', () => openCoachingDetail(btn.dataset.id));
     });
+
+    // ---- Bulk status apply ----
+    const coachingChecks = () => Array.from(coachingTableBody.querySelectorAll('.bulk-row-check'));
+    function updateCoachingBulkBtn(){
+      const n = coachingChecks().filter(c => c.checked).length;
+      coachingBulkApplyBtn.textContent = `Apply to Selected (${n})`;
+      coachingBulkApplyBtn.disabled = n === 0;
+    }
+    coachingChecks().forEach(c => c.addEventListener('change', () => {
+      coachingSelectAll.checked = coachingChecks().every(x => x.checked) && coachingChecks().length > 0;
+      updateCoachingBulkBtn();
+    }));
+    coachingSelectAll.checked = false;
+    updateCoachingBulkBtn();
+  }
+
+  // Applies a status change to one coaching request: updates Firestore,
+  // syncs the public coachingStatus mirror, and sends the confirmation
+  // email on a fresh transition into "confirmed." Shared by the row
+  // select and the bulk-apply action.
+  async function setCoachingStatus(r, newStatus){
+    const wasConfirmed = r.status === 'confirmed';
+    await updateDoc(doc(db, 'coachingRequests', r.id), { status: newStatus });
+    r.status = newStatus;
+    await syncCoachingStatusDoc(r);
+    if (!wasConfirmed && newStatus === 'confirmed' && r.email){
+      const dateLine = r.confirmedDate && r.confirmedDate !== r.preferredDate
+        ? `Confirmed date: ${r.confirmedDate} (you originally requested ${r.preferredDate})`
+        : `Confirmed date: ${r.confirmedDate || r.preferredDate || ''}`;
+      sendEmail(
+        r.email, r.fullName || 'there',
+        `Your OCPC Coaching Session is Confirmed! 🎾`,
+        `Hi ${(r.fullName || '').split(' ')[0] || 'there'}, your coaching session is confirmed.\n\n` +
+        `${dateLine}\nTimeslot(s): ${(r.timeslots || []).join(', ')}\nPlayers: ${r.players || 0}\nTotal: ${fmtPeso(r.total)}\n\n` +
+        `See you on the courts!`
+      );
+    }
   }
 
   function openCoachingDetail(id){
@@ -1526,6 +1644,7 @@
     document.getElementById('coachingDetailDeleteBtn').addEventListener('click', async () => {
       if (!confirm('Delete this coaching request permanently?')) return;
       await deleteDoc(doc(db, 'coachingRequests', id));
+      await deleteDoc(doc(db, 'coachingStatus', id)).catch(() => {});
       allCoachingRequests = allCoachingRequests.filter(x => x.id !== id);
       renderCoachingTable();
       closeCoachingDetail();
@@ -1538,6 +1657,7 @@
       try {
         await updateDoc(doc(db, 'coachingRequests', id), { confirmedDate });
         r.confirmedDate = confirmedDate;
+        await syncCoachingStatusDoc(r);
         msg.style.color = '#2E7D32';
         msg.textContent = 'Saved.';
         renderCoachingTable();
@@ -1748,6 +1868,17 @@
           const newStatus = donation.status === 'received' ? 'pending' : 'received';
           await updateDoc(doc(db, 'donations', btn.dataset.id), { status: newStatus });
           await syncDonorBoard({ ...donation, status: newStatus });
+          if (donation.status !== 'received' && newStatus === 'received' && donation.email){
+            const tierLabel = donation.tier ? DONATION_TIER_LABELS[donation.tier] || donation.tier : '';
+            sendEmail(
+              donation.email, donation.fullName || 'there',
+              `Thank You for Your OCPC Fundraiser Donation! 🤝`,
+              `Hi ${(donation.fullName || '').split(' ')[0] || 'there'}, thank you, we've received your ${fmtPeso(donation.amount)} donation` +
+              `${tierLabel ? ` (${tierLabel} tier)` : ''} to the October fundraiser.\n\n` +
+              `${!donation.anonymous ? `You'll be added to our Donor Board: ${SITE_ORIGIN}/giving/board/\n\n` : ''}` +
+              `Thank you for supporting OCPC and the community!`
+            );
+          }
           await loadDonations();
         });
       });
@@ -1761,6 +1892,74 @@
       });
     } catch (err) {
       donationsEmpty.style.display = 'block';
+    }
+  }
+
+  // ================= TESTIMONIALS =================
+  const testimonialsCol = collection(db, 'testimonials');
+  const pendingTestimonialsList = document.getElementById('pendingTestimonialsList');
+  const approvedTestimonialsList = document.getElementById('approvedTestimonialsList');
+
+  async function loadTestimonials(){
+    try {
+      const snap = await getDocs(testimonialsCol);
+      const all = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+
+      const pending = all.filter(t => t.status === 'pending');
+      const approved = all.filter(t => t.status === 'approved');
+
+      const badge = document.getElementById('pendingTestimonialsBadge');
+      badge.textContent = pending.length;
+      badge.hidden = pending.length === 0;
+
+      function row(t, isApproved){
+        return `
+          <div class="signup-row">
+            <img class="signup-photo" src="${escapeHtml(t.photoURL || '/assets/directory/blank.svg')}" alt="">
+            <div class="signup-body">
+              <div class="signup-name">${escapeHtml(t.name || '')}</div>
+              <div class="signup-meta" style="font-style:italic;">"${escapeHtml(t.quote || '')}"</div>
+              <div class="signup-actions">
+                ${isApproved
+                  ? `<button class="signup-btn reject" data-action="unapprove-testimonial" data-id="${t.id}">Unfeature</button>`
+                  : `<button class="signup-btn approve" data-action="approve-testimonial" data-id="${t.id}">Approve &amp; Feature</button>`}
+                <button class="signup-btn reject" data-action="delete-testimonial" data-id="${t.id}">Delete</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      pendingTestimonialsList.innerHTML = pending.length === 0
+        ? '<div class="signup-empty">No pending testimonials.</div>'
+        : pending.map(t => row(t, false)).join('');
+      approvedTestimonialsList.innerHTML = approved.length === 0
+        ? '<div class="signup-empty">No approved testimonials yet.</div>'
+        : approved.map(t => row(t, true)).join('');
+
+      document.querySelectorAll('[data-action="approve-testimonial"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await updateDoc(doc(db, 'testimonials', btn.dataset.id), { status: 'approved' });
+          await loadTestimonials();
+        });
+      });
+      document.querySelectorAll('[data-action="unapprove-testimonial"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await updateDoc(doc(db, 'testimonials', btn.dataset.id), { status: 'pending' });
+          await loadTestimonials();
+        });
+      });
+      document.querySelectorAll('[data-action="delete-testimonial"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this testimonial permanently?')) return;
+          await deleteDoc(doc(db, 'testimonials', btn.dataset.id));
+          await loadTestimonials();
+        });
+      });
+    } catch (err) {
+      pendingTestimonialsList.innerHTML = '<div class="signup-empty">Couldn\'t load testimonials.</div>';
     }
   }
 
@@ -2193,7 +2392,40 @@
   const memberSearch = document.getElementById('memberSearch');
   const activeMembersTableBody = document.getElementById('activeMembersTableBody');
   const activeMembersEmpty = document.getElementById('activeMembersEmpty');
+  const pendingSelectAll = document.getElementById('pendingSelectAll');
+  const pendingBulkApproveBtn = document.getElementById('pendingBulkApproveBtn');
   memberSearch.addEventListener('input', renderPlayerSignups);
+  pendingSelectAll.addEventListener('change', () => {
+    pendingPlayersList.querySelectorAll('.bulk-row-check').forEach(c => { c.checked = pendingSelectAll.checked; });
+    const n = pendingSelectAll.checked ? pendingPlayersList.querySelectorAll('.bulk-row-check').length : 0;
+    pendingBulkApproveBtn.textContent = `Approve Selected (${n})`;
+    pendingBulkApproveBtn.disabled = n === 0;
+  });
+  pendingBulkApproveBtn.addEventListener('click', async () => {
+    const ids = Array.from(pendingPlayersList.querySelectorAll('.bulk-row-check:checked')).map(c => c.dataset.id);
+    if (ids.length === 0) return;
+    if (!confirm(`Approve ${ids.length} player(s) as members?`)) return;
+    pendingBulkApproveBtn.disabled = true;
+    pendingBulkApproveBtn.textContent = 'Approving…';
+    for (const id of ids){
+      const p = allPlayers.find(pl => pl.id === id);
+      if (p) await approvePlayer(p);
+    }
+    await loadPlayers();
+  });
+
+  async function approvePlayer(p){
+    const count = lifetimeCheckins(p.firstName, p.lastName, p.nickname, p.aliases);
+    await setDoc(doc(db, 'roster', p.id), {
+      firstName: p.firstName, lastName: p.lastName,
+      photoURL: p.photoURL || '', skillRating: p.skillRating || '',
+      birthMonth: p.birthMonth, birthDay: p.birthDay,
+      nickname: p.nickname || '',
+      aliases: p.aliases || [],
+      sessionsAttended: count
+    });
+    await updateDoc(doc(db, 'players', p.id), { status: 'active', sessionsAttended: count, promotedAt: serverTimestamp() });
+  }
 
   function lifetimeCheckins(firstName, lastName, nickname, aliases){
     const keys = [`${firstName} ${lastName}`.trim().toLowerCase()];
@@ -2251,6 +2483,7 @@
           const waitedLabel = waited === null ? '' : waited === 0 ? 'Signed up today' : `Waiting ${waited} day${waited === 1 ? '' : 's'}`;
           return `
             <div class="signup-row">
+              <input type="checkbox" class="signup-row-check bulk-row-check" data-id="${p.id}">
               <img class="signup-photo" src="${escapeHtml(p.photoURL || '/assets/directory/blank.svg')}" alt="">
               <div class="signup-body">
                 <div class="signup-name signup-name-link" data-action="view-member" data-id="${p.id}">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
@@ -2305,16 +2538,7 @@
       btn.addEventListener('click', async () => {
         const p = allPlayers.find(pl => pl.id === btn.dataset.id);
         if (!p) return;
-        const count = lifetimeCheckins(p.firstName, p.lastName, p.nickname, p.aliases);
-        await setDoc(doc(db, 'roster', p.id), {
-          firstName: p.firstName, lastName: p.lastName,
-          photoURL: p.photoURL || '', skillRating: p.skillRating || '',
-          birthMonth: p.birthMonth, birthDay: p.birthDay,
-          nickname: p.nickname || '',
-          aliases: p.aliases || [],
-          sessionsAttended: count
-        });
-        await updateDoc(doc(db, 'players', p.id), { status: 'active', sessionsAttended: count, promotedAt: serverTimestamp() });
+        await approvePlayer(p);
         await loadPlayers();
       });
     });
@@ -2330,6 +2554,20 @@
     document.querySelectorAll('[data-action="view-member"]').forEach(el => {
       el.addEventListener('click', () => openMemberDetail(el.dataset.id));
     });
+
+    // ---- Bulk approve (Pending Signups) ----
+    const pendingChecks = () => Array.from(pendingPlayersList.querySelectorAll('.bulk-row-check'));
+    function updatePendingBulkBtn(){
+      const n = pendingChecks().filter(c => c.checked).length;
+      pendingBulkApproveBtn.textContent = `Approve Selected (${n})`;
+      pendingBulkApproveBtn.disabled = n === 0;
+    }
+    pendingChecks().forEach(c => c.addEventListener('change', () => {
+      pendingSelectAll.checked = pendingChecks().every(x => x.checked) && pendingChecks().length > 0;
+      updatePendingBulkBtn();
+    }));
+    pendingSelectAll.checked = false;
+    updatePendingBulkBtn();
   }
 
   // ================= MEMBER DETAIL =================
