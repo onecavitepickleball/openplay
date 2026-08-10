@@ -34,11 +34,11 @@
     display:block; font-family: var(--font-mono); font-size:11px; letter-spacing:0.08em;
     text-transform:uppercase; color: var(--ink-faint); margin-bottom:6px;
   }
-  .form-row input, .form-row textarea{
+  .form-row input, .form-row textarea, .form-row select{
     width:100%; border: 1.5px solid var(--line); border-radius:4px; padding:11px 13px;
     font-family: var(--font-body); font-size:14px; color: var(--ink); background: var(--white);
   }
-  .form-row input:focus, .form-row textarea:focus{ outline:none; border-color: var(--sky-deep); }
+  .form-row input:focus, .form-row textarea:focus, .form-row select:focus{ outline:none; border-color: var(--sky-deep); }
   .form-row textarea{ min-height:110px; resize:vertical; }
   .admin-msg{ font-size:12.5px; margin-top:8px; min-height:16px; }
   .form-row-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
@@ -379,8 +379,8 @@
 
 <div id="adminLoginView" class="wrap">
   <div class="admin-login-wrap">
-    <h1>Admin</h1>
-    <div class="sub">OCPC officers only.</div>
+    <h1>Staff</h1>
+    <div class="sub">OCPC officers, coaches, and court managers.</div>
     <form id="adminLoginForm">
       <div class="form-row">
         <label for="adminEmail">Email</label>
@@ -402,7 +402,7 @@
       <div class="dash-brand">
         <span class="logo-chip"><img src="/assets/logo.png" alt=""></span>
         <div>
-          <div class="dash-brand-title">OCPC Admin</div>
+          <div class="dash-brand-title">OCPC Staff</div>
           <div class="dash-brand-sub" id="loggedInAs"></div>
         </div>
       </div>
@@ -411,6 +411,7 @@
         <button class="dash-nav-item" data-tab="orders">Orders <span class="dash-nav-badge" id="pendingOrdersBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="schedule">Schedule</button>
         <button class="dash-nav-item" data-tab="coaching">Coaching <span class="dash-nav-badge" id="pendingCoachingBadge" hidden></span></button>
+        <button class="dash-nav-item" data-tab="mycoaching">My Coaching Requests</button>
         <button class="dash-nav-item" data-tab="discounts">Discounts</button>
         <button class="dash-nav-item" data-tab="fundraiser">Fundraiser</button>
         <button class="dash-nav-item" data-tab="attendance">Attendance</button>
@@ -428,6 +429,15 @@
         <div class="dash-panel-head">
           <h1>Overview</h1>
           <p>Store and club performance at a glance.</p>
+        </div>
+
+        <div class="dash-card" id="attendanceAlertsCard" style="display:none;">
+          <div class="dash-card-head">
+            <h3>Attendance Alerts</h3>
+            <button class="dash-link-btn" type="button" data-goto-tab="members">Review signups →</button>
+          </div>
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:-8px 0 12px;">Names logged 3+ times in Attendance with no player account yet. Worth inviting to join.</p>
+          <div id="attendanceAlertsList"></div>
         </div>
 
         <div class="stat-grid">
@@ -599,6 +609,17 @@
             <tbody id="coachingTableBody"></tbody>
           </table>
           <div class="signup-empty" id="coachingEmpty" style="display:none;">No coaching requests match your filters.</div>
+        </div>
+      </section>
+
+      <!-- ============ MY COACHING REQUESTS (Coach role) ============ -->
+      <section class="dash-panel" id="mycoachingPanel">
+        <div class="dash-panel-head">
+          <h1>My Coaching Requests</h1>
+          <p>Sessions assigned to you. Payment details aren't shown here.</p>
+        </div>
+        <div class="orders-table-wrap">
+          <div id="myCoachingAssignmentsList"><div class="signup-empty">No coaching requests assigned to you yet.</div></div>
         </div>
       </section>
 
@@ -934,7 +955,7 @@
 <script type="module">
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, updateDoc, getDocs, getDoc, deleteDoc, doc, setDoc, serverTimestamp, runTransaction
+    getFirestore, collection, addDoc, updateDoc, getDocs, getDoc, deleteDoc, doc, setDoc, serverTimestamp, runTransaction, query, where
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -950,6 +971,7 @@
   };
 
   const SUPER_ADMIN_EMAILS = ["ocpc.pickleball@gmail.com", "jamescastillo37@gmail.com"];
+  const ROLE_LABELS = { admin: 'Admin', coach: 'Coach', court_manager: 'Court Manager' };
 
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db = getFirestore(app);
@@ -1092,6 +1114,9 @@
     tab.addEventListener('click', () => goToTab(tab.dataset.tab));
   });
   document.getElementById('viewAllOrdersBtn').addEventListener('click', () => goToTab('orders'));
+  document.querySelectorAll('[data-goto-tab]').forEach(btn => {
+    btn.addEventListener('click', () => goToTab(btn.dataset.gotoTab));
+  });
 
   // ================= AUTH =================
   const loginView = document.getElementById('adminLoginView');
@@ -1100,36 +1125,66 @@
   const loginError = document.getElementById('adminLoginError');
   const signOutBtn = document.getElementById('signOutBtn');
 
-  async function checkIsAdmin(user){
-    if (!user) return false;
-    if (SUPER_ADMIN_EMAILS.includes(user.email)) return true;
+  // Returns 'admin' | 'coach' | 'court_manager' | null. Super admins are
+  // always 'admin' regardless of what's stored on their player doc.
+  async function getStaffRole(user){
+    if (!user) return null;
+    if (SUPER_ADMIN_EMAILS.includes(user.email)) return 'admin';
     try {
       const snap = await getDoc(doc(db, 'players', user.uid));
-      return snap.exists() && snap.data().role === 'admin';
+      const role = snap.exists() ? snap.data().role : null;
+      return role === 'admin' || role === 'coach' || role === 'court_manager' ? role : null;
     } catch (err) {
-      return false;
+      return null;
+    }
+  }
+
+  // Coach and Court Manager get a cut-down dashboard: only their relevant
+  // nav tab is shown, and it's opened automatically. Full admins see
+  // everything as before (minus the "My Coaching Requests" tab, which only
+  // makes sense for a Coach viewing their own assignments).
+  function applyStaffRoleUI(role){
+    const tabs = document.querySelectorAll('.dash-nav-item');
+    if (role === 'coach'){
+      tabs.forEach(t => { t.style.display = t.dataset.tab === 'mycoaching' ? '' : 'none'; });
+      goToTab('mycoaching');
+    } else if (role === 'court_manager'){
+      tabs.forEach(t => { t.style.display = t.dataset.tab === 'attendance' ? '' : 'none'; });
+      goToTab('attendance');
+    } else {
+      tabs.forEach(t => { t.style.display = t.dataset.tab === 'mycoaching' ? 'none' : ''; });
+      goToTab('overview');
     }
   }
 
   onAuthStateChanged(auth, async (user) => {
-    isAdmin = await checkIsAdmin(user);
-    loginView.style.display = isAdmin ? 'none' : 'block';
-    panelView.style.display = isAdmin ? 'block' : 'none';
-    if (!isAdmin && user){
-      loginError.textContent = 'This account is not an OCPC admin.';
+    const role = await getStaffRole(user);
+    isAdmin = role === 'admin';
+    const hasStaffAccess = !!role;
+    loginView.style.display = hasStaffAccess ? 'none' : 'block';
+    panelView.style.display = hasStaffAccess ? 'block' : 'none';
+    if (!hasStaffAccess && user){
+      loginError.textContent = 'This account does not have staff access.';
     }
-    if (isAdmin){
-      loadAttendance();
-      loadPlayers();
-      loadOrders();
-      loadSchedule();
-      loadDiscounts();
-      loadCoachingRequests();
-      loadAnnounceSettings();
-      loadCheerWall();
-      loadFundraiserSettings();
-      loadDonations();
-      loadTestimonials();
+    if (hasStaffAccess){
+      applyStaffRoleUI(role);
+      if (isAdmin){
+        loadAttendance();
+        loadPlayers();
+        loadOrders();
+        loadSchedule();
+        loadDiscounts();
+        loadCoachingRequests();
+        loadAnnounceSettings();
+        loadCheerWall();
+        loadFundraiserSettings();
+        loadDonations();
+        loadTestimonials();
+      } else if (role === 'coach'){
+        loadMyCoachingAssignments(user.uid);
+      } else if (role === 'court_manager'){
+        loadAttendance();
+      }
       showLoggedInAs(user);
     }
   });
@@ -1505,10 +1560,100 @@
     }, { merge: true });
   }
 
+  // Coach-safe mirror for the assigned Coach's limited dashboard view.
+  // Deliberately excludes coachingCost/courtFees/total/paymentMethod/
+  // paymentRef/paymentProofURL. Deleted entirely when unassigned, since
+  // the assigned Coach's read access is granted via this doc's own
+  // assignedCoach field.
+  async function syncCoachingAssignmentDoc(r){
+    if (!r.assignedCoach){
+      await deleteDoc(doc(db, 'coachingAssignments', r.id)).catch(() => {});
+      return;
+    }
+    await setDoc(doc(db, 'coachingAssignments', r.id), {
+      fullName: r.fullName || '',
+      contactNumber: r.contactNumber || '',
+      email: r.email || '',
+      preferredDate: r.preferredDate || '',
+      confirmedDate: r.confirmedDate || '',
+      timeslots: r.timeslots || [],
+      players: r.players || 0,
+      notes: r.notes || '',
+      status: r.status || 'pending',
+      assignedCoach: r.assignedCoach
+    });
+  }
+
   async function loadCoachingRequests(){
     const snap = await getDocs(coachingCol);
     allCoachingRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderCoachingTable();
+  }
+
+  const COACHING_STATUS_LABELS = { pending: 'Pending', contacted: 'Contacted', confirmed: 'Confirmed', declined: 'Declined' };
+
+  // Coach role's limited view: reads only the coach-safe coachingAssignments
+  // mirror (no payment fields exist on that doc at all), filtered to this
+  // coach's own uid. Status/date edits write to both the mirror and the
+  // real coachingRequests doc, matching what firestore.rules allows a
+  // Coach to touch (status + confirmedDate only, on their own assignment).
+  async function loadMyCoachingAssignments(uid){
+    const list = document.getElementById('myCoachingAssignmentsList');
+    try {
+      const q = query(collection(db, 'coachingAssignments'), where('assignedCoach', '==', uid));
+      const snap = await getDocs(q);
+      const assignments = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.confirmedDate || a.preferredDate || '').localeCompare(b.confirmedDate || b.preferredDate || ''));
+
+      list.innerHTML = assignments.length === 0
+        ? '<div class="signup-empty">No coaching requests assigned to you yet.</div>'
+        : assignments.map(a => `
+            <div class="signup-row">
+              <div class="signup-body">
+                <div class="signup-name">${escapeHtml(a.fullName || '')}</div>
+                <div class="signup-meta">${escapeHtml(a.contactNumber || '')}${a.email ? ' · ' + escapeHtml(a.email) : ''}</div>
+                <div class="signup-meta">Preferred: ${escapeHtml(a.preferredDate || 'N/A')} · ${escapeHtml((a.timeslots || []).join(', '))} · ${a.players || 0} player(s)</div>
+                ${a.notes ? `<div class="signup-meta" style="font-style:italic;">"${escapeHtml(a.notes)}"</div>` : ''}
+                <div class="form-row" style="margin-top:10px; max-width:320px;">
+                  <label for="coachDate-${a.id}">Confirmed Date</label>
+                  <input type="date" id="coachDate-${a.id}" value="${escapeHtml(a.confirmedDate || a.preferredDate || '')}">
+                </div>
+                <div class="form-row" style="max-width:220px;">
+                  <label for="coachStatus-${a.id}">Status</label>
+                  <select id="coachStatus-${a.id}">
+                    ${Object.entries(COACHING_STATUS_LABELS).map(([val, label]) =>
+                      `<option value="${val}" ${a.status === val ? 'selected' : ''}>${label}</option>`).join('')}
+                  </select>
+                </div>
+                <button class="signup-btn approve" data-action="coach-save-assignment" data-id="${a.id}">Save</button>
+                <div class="admin-msg" id="coachAssignmentMsg-${a.id}"></div>
+              </div>
+            </div>
+          `).join('');
+
+      list.querySelectorAll('[data-action="coach-save-assignment"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const reqId = btn.dataset.id;
+          const status = document.getElementById(`coachStatus-${reqId}`).value;
+          const confirmedDate = document.getElementById(`coachDate-${reqId}`).value;
+          const msg = document.getElementById(`coachAssignmentMsg-${reqId}`);
+          msg.style.color = '';
+          msg.textContent = 'Saving…';
+          try {
+            await updateDoc(doc(db, 'coachingRequests', reqId), { status, confirmedDate });
+            await updateDoc(doc(db, 'coachingAssignments', reqId), { status, confirmedDate });
+            msg.style.color = '#2E7D32';
+            msg.textContent = 'Saved.';
+          } catch (err) {
+            msg.style.color = 'var(--pop)';
+            msg.textContent = 'Something went wrong. Try again.';
+          }
+        });
+      });
+    } catch (err) {
+      list.innerHTML = '<div class="signup-empty">Couldn\'t load your assigned coaching requests.</div>';
+    }
   }
 
   function filteredCoachingRequests(){
@@ -1598,6 +1743,7 @@
     await updateDoc(doc(db, 'coachingRequests', r.id), { status: newStatus });
     r.status = newStatus;
     await syncCoachingStatusDoc(r);
+    await syncCoachingAssignmentDoc(r);
     if (!wasConfirmed && newStatus === 'confirmed' && r.email){
       const dateLine = r.confirmedDate && r.confirmedDate !== r.preferredDate
         ? `Confirmed date: ${r.confirmedDate} (you originally requested ${r.preferredDate})`
@@ -1628,6 +1774,17 @@
         <button type="button" class="signup-btn approve" id="coachingConfirmedDateSaveBtn" style="margin-top:8px;">Save Confirmed Date</button>
         <div class="admin-msg" id="coachingConfirmedDateMsg"></div>
       </div>
+      <div class="form-row">
+        <label for="coachingAssignedCoachSelect">Assigned Coach <span class="optional-tag">(the Coach only sees requests assigned to them, and never sees payment info)</span></label>
+        <select id="coachingAssignedCoachSelect">
+          <option value="">Unassigned</option>
+          ${allPlayers.filter(p => p.role === 'coach').map(p =>
+            `<option value="${p.id}" ${r.assignedCoach === p.id ? 'selected' : ''}>${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</option>`
+          ).join('')}
+        </select>
+        <button type="button" class="signup-btn approve" id="coachingAssignCoachSaveBtn" style="margin-top:8px;">Save Assigned Coach</button>
+        <div class="admin-msg" id="coachingAssignCoachMsg"></div>
+      </div>
       <div class="order-detail-row"><span class="k">Players</span><span class="v">${r.players || 0}</span></div>
       <div class="order-detail-row"><span class="k">Coaching Cost</span><span class="v">${fmtPeso(r.coachingCost)}</span></div>
       <div class="order-detail-row"><span class="k">Court Fees</span><span class="v">${fmtPeso(r.courtFees)}</span></div>
@@ -1651,6 +1808,7 @@
       if (!confirm('Delete this coaching request permanently?')) return;
       await deleteDoc(doc(db, 'coachingRequests', id));
       await deleteDoc(doc(db, 'coachingStatus', id)).catch(() => {});
+      await deleteDoc(doc(db, 'coachingAssignments', id)).catch(() => {});
       allCoachingRequests = allCoachingRequests.filter(x => x.id !== id);
       renderCoachingTable();
       closeCoachingDetail();
@@ -1664,12 +1822,29 @@
         await updateDoc(doc(db, 'coachingRequests', id), { confirmedDate });
         r.confirmedDate = confirmedDate;
         await syncCoachingStatusDoc(r);
+        await syncCoachingAssignmentDoc(r);
         msg.style.color = '#2E7D32';
         msg.textContent = 'Saved.';
         renderCoachingTable();
       } catch (err) {
         msg.style.color = 'var(--pop)';
         msg.textContent = 'Something went wrong — try again.';
+      }
+    });
+    document.getElementById('coachingAssignCoachSaveBtn').addEventListener('click', async () => {
+      const assignedCoach = document.getElementById('coachingAssignedCoachSelect').value;
+      const msg = document.getElementById('coachingAssignCoachMsg');
+      msg.style.color = '';
+      msg.textContent = 'Saving…';
+      try {
+        await updateDoc(doc(db, 'coachingRequests', id), { assignedCoach });
+        r.assignedCoach = assignedCoach;
+        await syncCoachingAssignmentDoc(r);
+        msg.style.color = '#2E7D32';
+        msg.textContent = assignedCoach ? 'Saved.' : 'Unassigned.';
+      } catch (err) {
+        msg.style.color = 'var(--pop)';
+        msg.textContent = 'Something went wrong. Try again.';
       }
     });
     coachingDetailOverlay.classList.add('open');
@@ -2164,6 +2339,46 @@
     renderOrdersChart();
     renderTopProducts();
     renderRecentOrders();
+    renderAttendanceAlerts();
+  }
+
+  // Flags names logged 3+ times in attendance that don't match ANY
+  // player doc (pending or active), i.e. people showing up regularly
+  // who've never signed up at all, so an admin can invite them. A name
+  // that already has a pending signup with 3+ check-ins is surfaced
+  // instead by the existing "eligible" badge in Pending Signups.
+  function renderAttendanceAlerts(){
+    const card = document.getElementById('attendanceAlertsCard');
+    const list = document.getElementById('attendanceAlertsList');
+    if (typeof allRecords === 'undefined' || typeof allPlayers === 'undefined') return;
+
+    const counts = {};
+    allRecords.forEach(r => {
+      (r.names || []).forEach(n => {
+        const key = String(n).trim().toLowerCase();
+        if (!key) return;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+    });
+
+    const knownKeys = new Set();
+    allPlayers.forEach(p => {
+      knownKeys.add(`${p.firstName || ''} ${p.lastName || ''}`.trim().toLowerCase());
+      if (p.nickname) knownKeys.add(p.nickname.trim().toLowerCase());
+      (p.aliases || []).forEach(a => { if (a) knownKeys.add(a.trim().toLowerCase()); });
+    });
+
+    const unmatched = Object.entries(counts)
+      .filter(([key, count]) => count >= MIN_CHECKINS_FOR_MEMBERSHIP && !knownKeys.has(key))
+      .sort((a, b) => b[1] - a[1]);
+
+    card.style.display = unmatched.length === 0 ? 'none' : 'block';
+    list.innerHTML = unmatched.map(([key, count]) => `
+      <div class="mini-order-row">
+        <span>${escapeHtml(toTitleCase(key))}</span>
+        <span>${count} check-ins</span>
+      </div>
+    `).join('');
   }
 
   function renderOrdersChart(){
@@ -2357,6 +2572,7 @@
     renderAdminList();
     renderPlayerSignups();
     loadKnownNames();
+    if (isAdmin) renderAttendanceAlerts();
   }
 
   function renderAdminList(){
@@ -2517,10 +2733,9 @@
 
     activeMembersTableBody.innerHTML = activeFiltered.map(p => {
       const isProtected = SUPER_ADMIN_EMAILS.includes(p.email);
-      const isPlayerAdmin = p.role === 'admin' || isProtected;
       const roleBadge = isProtected
         ? '<span class="signup-count eligible">Protected</span>'
-        : isPlayerAdmin ? '<span class="signup-count eligible">Admin</span>' : '—';
+        : ROLE_LABELS[p.role] ? `<span class="signup-count eligible">${ROLE_LABELS[p.role]}</span>` : '—';
       return `
         <tr>
           <td>
@@ -2585,7 +2800,7 @@
     const p = allPlayers.find(pl => pl.id === id);
     if (!p) return;
     const isProtected = SUPER_ADMIN_EMAILS.includes(p.email);
-    const isPlayerAdmin = p.role === 'admin' || isProtected;
+    const roleLabel = isProtected ? 'Admin' : (ROLE_LABELS[p.role] || '');
     const memberOrders = allOrders.filter(o => o.email && p.email && o.email.toLowerCase() === p.email.toLowerCase());
     const memberCoaching = allCoachingRequests.filter(r => r.email && p.email && r.email.toLowerCase() === p.email.toLowerCase());
 
@@ -2594,7 +2809,7 @@
         <img id="memberDetailPhoto" src="${escapeHtml(p.photoURL || '/assets/directory/blank.svg')}" alt="">
         <div>
           <div class="order-row-name" style="font-size:16px;">${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</div>
-          <div class="order-row-sub">${escapeHtml(p.status || '')}${isPlayerAdmin ? ' · Admin' : ''}${isProtected ? ' · Protected' : ''}</div>
+          <div class="order-row-sub">${escapeHtml(p.status || '')}${roleLabel ? ' · ' + roleLabel : ''}${isProtected ? ' · Protected' : ''}</div>
         </div>
       </div>
       <div class="form-row" style="margin-top:14px;">
@@ -2644,8 +2859,18 @@
 
       ${p.status === 'active' && !isProtected ? `
         <div class="member-detail-section-title">Membership</div>
+        <div class="form-row">
+          <label for="memberRoleSelect">Role <span class="optional-tag">(Coach and Court Manager get a limited staff dashboard. Coach sees only their assigned coaching requests with no payment info, Court Manager can only log/view attendance)</span></label>
+          <select id="memberRoleSelect">
+            <option value="" ${!p.role ? 'selected' : ''}>Member (no staff access)</option>
+            <option value="coach" ${p.role === 'coach' ? 'selected' : ''}>Coach</option>
+            <option value="court_manager" ${p.role === 'court_manager' ? 'selected' : ''}>Court Manager</option>
+            <option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Admin</option>
+          </select>
+          <button class="signup-btn approve" id="memberRoleSaveBtn" type="button" style="margin-top:8px;">Save Role</button>
+          <div class="admin-msg" id="memberRoleMsg"></div>
+        </div>
         <div class="signup-actions" style="margin-bottom:4px;">
-          <button class="signup-btn ${isPlayerAdmin ? 'reject' : 'approve'}" id="memberToggleRoleBtn" type="button">${isPlayerAdmin ? 'Remove Admin' : 'Make Admin'}</button>
           <button class="signup-btn reject" id="memberRevokeBtn" type="button">Revoke Membership</button>
         </div>
       ` : ''}
@@ -2721,17 +2946,25 @@
       }
     });
 
-    const toggleRoleBtn = document.getElementById('memberToggleRoleBtn');
-    if (toggleRoleBtn){
-      toggleRoleBtn.addEventListener('click', async () => {
-        const makingAdmin = !isPlayerAdmin;
-        const msg = makingAdmin
-          ? 'Give this player admin access? They will be able to record attendance and manage all player signups.'
-          : 'Remove admin access from this player?';
-        if (!confirm(msg)) return;
-        await updateDoc(doc(db, 'players', id), { role: makingAdmin ? 'admin' : 'member' });
-        closeMemberDetail();
-        await loadPlayers();
+    const roleSaveBtn = document.getElementById('memberRoleSaveBtn');
+    if (roleSaveBtn){
+      roleSaveBtn.addEventListener('click', async () => {
+        const newRole = document.getElementById('memberRoleSelect').value;
+        const roleMsg = document.getElementById('memberRoleMsg');
+        const label = newRole ? (ROLE_LABELS[newRole] || newRole) : 'Member (no staff access)';
+        if (!confirm(`Set this player's role to "${label}"?`)) return;
+        roleMsg.style.color = '';
+        roleMsg.textContent = 'Saving…';
+        try {
+          await updateDoc(doc(db, 'players', id), { role: newRole || null });
+          p.role = newRole || null;
+          roleMsg.style.color = '#2E7D32';
+          roleMsg.textContent = 'Saved.';
+          renderPlayerSignups();
+        } catch (err) {
+          roleMsg.style.color = 'var(--pop)';
+          roleMsg.textContent = 'Something went wrong. Try again.';
+        }
       });
     }
 

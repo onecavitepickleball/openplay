@@ -22,11 +22,20 @@ service cloud.firestore {
       );
     }
 
+    // Limited-scope staff roles, distinct from full admin: a Coach can only
+    // see/update their own assigned coaching requests (never payment info),
+    // a Court Manager can only log/view attendance. Neither can touch
+    // anything else an admin can.
+    function hasRole(role) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/players/$(request.auth.uid)).data.role == role;
+    }
+
     // Existing open-play attendance log. Public can read (leaderboard/spotlight
-    // widgets need this), only admins can write.
+    // widgets need this); admins and Court Managers can write.
     match /attendance/{sessionId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || hasRole('court_manager');
     }
 
     // Full player membership records — PII (address/phone/email) lives here.
@@ -137,11 +146,38 @@ service cloud.firestore {
 
       // A signed-in player can also read their own coaching requests
       // (matched by email, same as orders). This is what powers "My
-      // Coaching Requests" on the profile page. Status changes and
-      // deletes stay admin-only.
+      // Coaching Requests" on the profile page.
       allow read: if isAdmin()
         || (request.auth != null && request.auth.token.email == resource.data.email);
-      allow update, delete: if isAdmin();
+      // The Coach assigned to a request can update ONLY its status and
+      // confirmed date (from their limited dashboard view), never the
+      // payment fields. Everything else, including reassigning a coach
+      // or deleting, stays admin-only.
+      allow update: if isAdmin() || (
+        request.auth != null && request.auth.uid == resource.data.assignedCoach
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'confirmedDate'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Coach-safe mirror of an assigned coaching request, keyed by the SAME
+    // doc id as its coachingRequests/{requestId} record. This is what a
+    // Coach's limited dashboard view reads. Deliberately excludes
+    // coachingCost/courtFees/total/paymentMethod/paymentRef/paymentProofURL,
+    // so a Coach account can never see what a player paid, only who/when/
+    // how many players. Written by admin.html on assignment and on any
+    // status/date change; a Coach can update ONLY status/confirmedDate on
+    // their own assigned mirror doc, mirroring the coachingRequests rule
+    // above (both docs get written together from the same UI action).
+    match /coachingAssignments/{requestId} {
+      allow read: if isAdmin()
+        || (request.auth != null && request.auth.uid == resource.data.assignedCoach);
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (
+        request.auth != null && request.auth.uid == resource.data.assignedCoach
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'confirmedDate'])
+      );
+      allow delete: if isAdmin();
     }
 
     // Public-safe coaching status mirror, keyed by the SAME doc id as its
