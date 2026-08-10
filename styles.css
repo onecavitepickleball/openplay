@@ -25,6 +25,23 @@
   --maxw: 1120px;
 }
 
+/* Dark mode: backgrounds and text invert, brand accents (navy/sky/pop)
+   stay put since they already read as intentional "dark" surfaces even
+   in light mode (e.g. the footer). Toggled via #themeToggle in script.js,
+   which sets data-theme on <html> and persists the choice to localStorage;
+   an inline snippet in <head> applies it before first paint. */
+:root[data-theme="dark"]{
+  --paper:      #0E1B26;
+  --paper-dim:  #16232F;
+  --ink:        #F0EEE8;
+  --ink-soft:   rgba(240,238,232,0.72);
+  --ink-faint:  rgba(240,238,232,0.45);
+  --line:       rgba(240,238,232,0.14);
+  --line-soft:  rgba(240,238,232,0.08);
+  --white:      #16232F;
+  --sky-deep:   #5FBBFF;
+}
+
 *{ box-sizing:border-box; margin:0; padding:0; }
 html{ scroll-behavior:smooth; }
 
@@ -109,7 +126,7 @@ a{ color:inherit; }
   background: var(--paper-dim);
 }
 .nav-links a.active{
-  color: var(--navy);
+  color: var(--sky-deep);
   background: rgba(0,94,137,0.08);
 }
 .nav-links a.nav-highlight{
@@ -142,7 +159,7 @@ a{ color:inherit; }
   transition: color .15s ease, background .15s ease;
 }
 .nav-more-btn:hover{ color: var(--ink); background: var(--paper-dim); }
-.nav-more-btn.active{ color: var(--navy); background: rgba(0,94,137,0.08); }
+.nav-more-btn.active{ color: var(--sky-deep); background: rgba(0,94,137,0.08); }
 .nav-more-btn svg{ width:11px; height:11px; transition: transform .15s ease; flex-shrink:0; }
 .nav-more.open .nav-more-btn svg{ transform: rotate(180deg); }
 .nav-more-menu{
@@ -238,6 +255,11 @@ a{ color:inherit; }
   .nav-brand span{ display:none; }
   .nav-brand .logo-chip img{ width:38px; }
 }
+
+/* ---- Dark mode toggle ---- */
+.nav-theme-btn .theme-icon-moon{ display:none; }
+:root[data-theme="dark"] .nav-theme-btn .theme-icon-sun{ display:none; }
+:root[data-theme="dark"] .nav-theme-btn .theme-icon-moon{ display:block; }
 
 /* ================= NAV WIDGETS (search / notifications / account) ================= */
 .nav-icon-btn{
@@ -387,7 +409,7 @@ a.nav-search-result:hover{ background: var(--paper-dim); }
   padding:0 4px;
   border-radius:100px;
   background: var(--pop);
-  color: var(--white);
+  color:#FFFFFF;
   border:1.5px solid var(--white);
   font-family: var(--font-mono);
   font-weight:700;
@@ -442,7 +464,7 @@ a.nav-search-result:hover{ background: var(--paper-dim); }
   cursor:pointer;
   padding:2px 0;
 }
-.nav-notif-clear:hover{ color: var(--navy); }
+.nav-notif-clear:hover{ color: var(--sky-deep); }
 .nav-notif-item{
   display:flex;
   align-items:center;
@@ -465,7 +487,7 @@ a.nav-notif-item-link{
   width:32px; height:32px;
   border-radius:50%;
   background: rgba(0,94,137,0.1);
-  color: var(--navy);
+  color: var(--sky-deep);
   display:flex; align-items:center; justify-content:center;
   flex-shrink:0;
   font-size:15px;
@@ -628,7 +650,7 @@ a.nav-account-link{
   white-space:normal;
   transition: color .15s ease;
 }
-a.nav-account-link:hover{ color: var(--navy); }
+a.nav-account-link:hover{ color: var(--sky-deep); }
 a.nav-account-link.is-signout{ color: var(--pop-deep); }
 a.nav-account-link.is-signout:hover{ color: var(--pop); }
 
@@ -658,7 +680,7 @@ a.nav-shop svg{ width:17px; height:17px; display:block; }
   padding:0 4px;
   border-radius:100px;
   background: var(--pop);
-  color: var(--white);
+  color:#FFFFFF;
   border:1.5px solid var(--white);
   font-family: var(--font-mono);
   font-weight:700;
@@ -709,7 +731,7 @@ a.nav-shop svg{ width:17px; height:17px; display:block; }
 .btn:active{ transform: translateY(1px); }
 .btn-primary{
   background: var(--pop);
-  color: var(--white);
+  color:#FFFFFF;
 }
 .btn-primary:hover{ background: var(--pop-deep); }
 .btn-ghost{
@@ -729,7 +751,7 @@ a.nav-shop svg{ width:17px; height:17px; display:block; }
   background: var(--sky);
   color: var(--navy-deep);
 }
-.btn-sky:hover{ background: var(--sky-deep); color: var(--white); }
+.btn-sky:hover{ background: var(--sky-deep); color:#FFFFFF; }
 
 .btn-outline-light{
   background: transparent;
@@ -1116,7 +1138,7 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
   width:52px; height:52px;
   border-radius:50%;
   background: var(--sky-deep);
-  color: var(--white);
+  color:#FFFFFF;
   display:flex; align-items:center; justify-content:center;
   font-size:26px;
   margin-bottom:16px;
@@ -1131,15 +1153,15 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
   font-size:11.5px;
   letter-spacing:0.05em;
   text-transform:uppercase;
-  border: 1.5px solid var(--navy);
+  border: 1.5px solid var(--sky-deep);
   border-radius:4px;
   padding:0 18px;
   background:none;
-  color: var(--navy);
+  color: var(--sky-deep);
   cursor:pointer;
   white-space:nowrap;
 }
-.order-modal .discount-apply-btn:hover{ background: var(--navy); color: var(--white); }
+.order-modal .discount-apply-btn:hover{ background: var(--sky-deep); color:#FFFFFF; }
 .order-modal .discount-apply-btn:disabled{ opacity:0.6; cursor:default; }
 .order-modal .discount-msg{ font-size:12px; margin-top:8px; min-height:15px; }
 .order-modal .discount-msg.success{ color:#2E7D32; }

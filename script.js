@@ -1,5 +1,18 @@
 // Shared across all pages: mobile nav toggle, "More" dropdown, scroll-reveal animations
 
+// ---- Dark mode toggle ---- (the actual light/dark decision on load
+// happens in a tiny inline script in <head>, before first paint, so
+// there's no flash. This just wires the button to flip and persist it)
+const themeToggleBtn = document.getElementById('themeToggle');
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', () => {
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('ocpc-theme', next); } catch (err) { /* localStorage unavailable */ }
+  });
+}
+
 // ---- PWA service worker registration ----
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

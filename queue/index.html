@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('ocpc-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
 <script>
@@ -251,9 +252,9 @@
     cursor:pointer;
   }
   .btn-autofill{ background: var(--sky); color: var(--navy-deep); font-weight:700; }
-  .btn-autofill:hover{ background: var(--sky-deep); color: var(--white); }
+  .btn-autofill:hover{ background: var(--sky-deep); color:#FFFFFF; }
   .btn-autofill:disabled{ background: var(--paper-dim); color: var(--ink-faint); cursor:not-allowed; }
-  .btn-start{ background: var(--pop); color: var(--white); font-weight:700; }
+  .btn-start{ background: var(--pop); color:#FFFFFF; font-weight:700; }
   .btn-start:hover{ background: var(--pop-deep); }
   .btn-start:disabled{ background: var(--paper-dim); color: var(--ink-faint); cursor:not-allowed; }
   .btn-finish{ background: var(--navy); color: var(--paper); font-weight:700; }
@@ -284,7 +285,7 @@
     border:none;
     cursor:pointer;
   }
-  .score-save{ background: var(--pop); color: var(--white); font-weight:700; }
+  .score-save{ background: var(--pop); color:#FFFFFF; font-weight:700; }
   .score-skip{ background: transparent; border: 1.5px solid var(--line) !important; color: var(--ink-soft); }
   .score-cancel{ background:none; border:none; color: var(--ink-faint); font-size:11px; text-decoration:underline; cursor:pointer; padding:2px; }
 
@@ -480,6 +481,11 @@
           <a href="/testimonials/">Share Your Story</a>
         </div>
       </div>
+      <button class="nav-icon-btn nav-theme-btn" id="themeToggle" aria-label="Toggle dark mode">
+          <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-linecap="round"/></svg>
+          <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
       <div class="nav-search">
         <button class="nav-icon-btn nav-search-btn" aria-label="Search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round"/></svg>
