@@ -415,6 +415,7 @@
         <button class="dash-nav-item" data-tab="discounts">Discounts</button>
         <button class="dash-nav-item" data-tab="fundraiser">Fundraiser</button>
         <button class="dash-nav-item" data-tab="attendance">Attendance</button>
+        <button class="dash-nav-item" data-tab="ladder">Ladder <span class="dash-nav-badge" id="pendingLadderBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="members">Members <span class="dash-nav-badge" id="pendingSignupsBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="testimonials">Testimonials <span class="dash-nav-badge" id="pendingTestimonialsBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="settings">Settings</button>
@@ -756,6 +757,24 @@
       </section>
 
       <!-- ============ MEMBERS ============ -->
+      <!-- ============ LADDER ============ -->
+      <section class="dash-panel" id="ladderPanel">
+        <div class="dash-panel-head">
+          <h1>Ladder</h1>
+          <p>Confirm reported results before they count on the public ladder standings.</p>
+        </div>
+
+        <div class="dash-card-head"><h3>Awaiting Confirmation</h3></div>
+        <div class="orders-table-wrap" style="margin-bottom:24px;">
+          <div id="ladderConfirmList"><div class="signup-empty">Nothing waiting on confirmation.</div></div>
+        </div>
+
+        <div class="dash-card-head"><h3>All Challenges</h3></div>
+        <div class="orders-table-wrap">
+          <div id="ladderAllList"><div class="signup-empty">No challenges yet.</div></div>
+        </div>
+      </section>
+
       <section class="dash-panel" id="membersPanel">
         <div class="dash-panel-head">
           <h1>Members</h1>
@@ -1178,7 +1197,7 @@
     const showAttendance = roles.includes('court_manager');
     tabs.forEach(t => {
       if (t.dataset.tab === 'mycoaching') t.style.display = showMyCoaching ? '' : 'none';
-      else if (t.dataset.tab === 'attendance') t.style.display = showAttendance ? '' : 'none';
+      else if (t.dataset.tab === 'attendance' || t.dataset.tab === 'ladder') t.style.display = showAttendance ? '' : 'none';
       else t.style.display = 'none';
     });
     goToTab(showMyCoaching ? 'mycoaching' : 'attendance');
@@ -1197,6 +1216,7 @@
       applyStaffRoleUI(roles);
       if (isAdmin){
         loadAttendance();
+        loadLadderChallenges();
         loadPlayers();
         loadOrders();
         loadSchedule();
@@ -1209,7 +1229,7 @@
         loadTestimonials();
       } else {
         if (roles.includes('coach')) loadMyCoachingAssignments(user.uid);
-        if (roles.includes('court_manager')) loadAttendance();
+        if (roles.includes('court_manager')){ loadAttendance(); loadLadderChallenges(); }
       }
       showLoggedInAs(user);
     }
@@ -2672,6 +2692,96 @@
       await loadSelfCheckins();
     } catch (err) {
       alert('Something went wrong updating this request. Try again.');
+    }
+  }
+
+  // ================= LADDER =================
+  const ladderConfirmList = document.getElementById('ladderConfirmList');
+  const ladderAllList = document.getElementById('ladderAllList');
+  const pendingLadderBadge = document.getElementById('pendingLadderBadge');
+  let allLadderChallenges = [];
+
+  async function loadLadderChallenges(){
+    if (!ladderConfirmList) return;
+    try {
+      const snap = await getDocs(collection(db, 'ladderChallenges'));
+      allLadderChallenges = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      renderLadderConfirmList();
+      renderLadderAllList();
+    } catch (err) {
+      ladderConfirmList.innerHTML = '<div class="signup-empty">Couldn\'t load ladder challenges.</div>';
+    }
+  }
+
+  function renderLadderConfirmList(){
+    const awaiting = allLadderChallenges.filter(c => c.status === 'awaiting_confirmation');
+    if (pendingLadderBadge){
+      pendingLadderBadge.hidden = awaiting.length === 0;
+      pendingLadderBadge.textContent = awaiting.length;
+    }
+    if (!awaiting.length){
+      ladderConfirmList.innerHTML = '<div class="signup-empty">Nothing waiting on confirmation.</div>';
+      return;
+    }
+    ladderConfirmList.innerHTML = awaiting.map(c => {
+      const reportedWinnerName = c.reportedWinnerUid === c.challengerUid ? c.challengerName : c.opponentName;
+      return `
+        <div class="admin-row">
+          <div>
+            <div class="admin-row-date">${escapeHtml(c.challengerName)} vs ${escapeHtml(c.opponentName)}</div>
+            <div class="admin-row-names">Reported winner: ${escapeHtml(reportedWinnerName)}</div>
+          </div>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="signup-btn approve" data-action="confirm-ladder" data-id="${c.id}">Confirm</button>
+            <button class="signup-btn reject" data-action="reject-ladder" data-id="${c.id}">Reject</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    ladderConfirmList.querySelectorAll('[data-action="confirm-ladder"]').forEach(btn => {
+      btn.addEventListener('click', () => confirmLadderResult(btn.dataset.id));
+    });
+    ladderConfirmList.querySelectorAll('[data-action="reject-ladder"]').forEach(btn => {
+      btn.addEventListener('click', () => rejectLadderResult(btn.dataset.id));
+    });
+  }
+
+  function renderLadderAllList(){
+    if (!allLadderChallenges.length){
+      ladderAllList.innerHTML = '<div class="signup-empty">No challenges yet.</div>';
+      return;
+    }
+    ladderAllList.innerHTML = allLadderChallenges.slice(0, 40).map(c => `
+      <div class="admin-row">
+        <div>
+          <div class="admin-row-date">${escapeHtml(c.challengerName)} vs ${escapeHtml(c.opponentName)}</div>
+          <div class="admin-row-names">${escapeHtml(c.status)}${c.winnerUid ? ` &middot; winner: ${escapeHtml(c.winnerUid === c.challengerUid ? c.challengerName : c.opponentName)}` : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function confirmLadderResult(id){
+    const c = allLadderChallenges.find(x => x.id === id);
+    if (!c || !c.reportedWinnerUid) return;
+    try {
+      await updateDoc(doc(db, 'ladderChallenges', id), {
+        status: 'completed', winnerUid: c.reportedWinnerUid, resolvedAt: serverTimestamp()
+      });
+      await loadLadderChallenges();
+    } catch (err) {
+      alert('Something went wrong confirming this result. Try again.');
+    }
+  }
+
+  async function rejectLadderResult(id){
+    try {
+      await updateDoc(doc(db, 'ladderChallenges', id), { status: 'accepted', reportedWinnerUid: null, resolvedAt: serverTimestamp() });
+      await loadLadderChallenges();
+    } catch (err) {
+      alert('Something went wrong rejecting this result. Try again.');
     }
   }
 

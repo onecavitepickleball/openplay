@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('ocpc-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-H86SSQPCJ6');
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ladder — One Cavite Pickleball Club</title>
+<meta name="description" content="OCPC's open challenge ladder. Any active player who's shown up recently can challenge any other, and climb the standings one match at a time.">
+
+<meta property="og:title" content="Ladder — One Cavite Pickleball Club">
+<meta property="og:description" content="OCPC's open challenge ladder. Any active player who's shown up recently can challenge any other.">
+<meta property="og:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://www.onecavitepickleball.club/ladder/">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ladder — One Cavite Pickleball Club">
+<meta name="twitter:description" content="OCPC's open challenge ladder. Any active player who's shown up recently can challenge any other.">
+<meta name="twitter:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#005E89">
+<link rel="canonical" href="https://www.onecavitepickleball.club/ladder/">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .ladder-hero{ padding:56px 0 12px; }
+  .ladder-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(44px, 8vw, 76px);
+    line-height:0.95;
+    text-transform:uppercase;
+    max-width:640px;
+  }
+  .ladder-hero p{
+    margin-top:16px; font-size:16px; color: var(--ink-soft);
+    max-width:560px; line-height:1.6;
+  }
+
+  .ladder-table-wrap{ border: 1.5px solid var(--line); border-radius:6px; overflow:hidden; }
+  table.ladder-table{ width:100%; border-collapse:collapse; }
+  .ladder-table th{
+    text-align:left; font-family: var(--font-mono); font-size:11px; letter-spacing:0.08em;
+    text-transform:uppercase; color: var(--ink-faint); padding:14px 16px; border-bottom: 1.5px solid var(--line);
+  }
+  .ladder-table td{ padding:14px 16px; border-bottom: 1px solid var(--line); font-size:14.5px; }
+  .ladder-table tr:last-child td{ border-bottom:none; }
+  .ladder-table tr:hover td{ background: var(--paper-dim); }
+  .ladder-rank{ font-family: var(--font-display); font-size:18px; color: var(--sky-deep); width:50px; }
+  .ladder-record-win{ color:#2E7D32; font-weight:700; }
+  .ladder-record-loss{ color: var(--pop); font-weight:700; }
+
+  .ladder-card{
+    border: 1.5px solid var(--line); border-radius:6px; padding:28px; background: var(--white);
+  }
+  .ladder-card h3{ font-family: var(--font-display); font-size:20px; text-transform:uppercase; margin-bottom:14px; }
+  .ladder-card select, .ladder-card input{
+    width:100%; border: 1.5px solid var(--line); border-radius:4px; padding:11px 14px;
+    font-family: var(--font-body); font-size:14.5px; color: var(--ink); background: var(--paper); margin-bottom:14px;
+  }
+  .ladder-msg{ font-size:13.5px; margin-top:10px; min-height:16px; color: var(--pop); }
+
+  .challenge-item{
+    border: 1.5px solid var(--line); border-radius:6px; padding:16px 18px; margin-bottom:10px;
+  }
+  .challenge-item .ci-title{ font-size:14.5px; font-weight:700; margin-bottom:4px; }
+  .challenge-item .ci-meta{
+    font-family: var(--font-mono); font-size:11px; letter-spacing:0.05em; text-transform:uppercase;
+    color: var(--ink-faint); margin-bottom:10px;
+  }
+  .challenge-item .ci-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+  .empty-state{
+    border: 1.5px dashed var(--line); border-radius:6px; padding:48px 30px; text-align:center;
+  }
+  .empty-state p{ font-size:14.5px; color: var(--ink-soft); max-width:420px; margin:0 auto; line-height:1.6; }
+
+  @media (max-width: 780px){
+    .ladder-grid{ grid-template-columns:1fr !important; }
+  }
+</style>
+</head>
+<body>
+<div class="announce-bar" style="display:none;">
+  <div class="announce-track"></div>
+</div>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="logo-chip"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <div class="nav-mobile-actions">
+      <button class="nav-icon-btn nav-music-btn nav-music-btn-mobile js-music-toggle" aria-label="Mute music">
+        <svg class="music-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke-linecap="round"/></svg>
+        <svg class="music-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><line x1="23" y1="9" x2="17" y2="15" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke-linecap="round"/></svg>
+      </button>
+      <button class="nav-toggle" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/meet-the-club/">Meet the Club</a>
+      <a href="/events/">Events</a>
+      <a href="/giving/">Giving Back</a>
+      <div class="nav-more">
+        <button class="nav-more-btn active">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="/merch/">Shop</a>
+          <a href="/track/">Track Order</a>
+          <a href="/gear/">Gear Picks</a>
+          <a href="/gallery/">Gallery</a>
+          <a href="/queue/">Queue</a>
+          <a href="/leaderboard/">Leaderboard</a>
+          <a href="/ladder/" class="active">Ladder</a>
+          <a href="/coaching/">Coaching</a>
+          <a href="/rules/">Rules &amp; Etiquette</a>
+          <a href="/featured-courts/">Featured Courts</a>
+          <a href="/birthdays/">Birthdays</a>
+          <a href="/contact/">Contact</a>
+          <a href="/quiz/">Personality Quiz</a>
+          <a href="/testimonials/">Share Your Story</a>
+        </div>
+      </div>
+      <button class="nav-icon-btn nav-theme-btn" id="themeToggle" aria-label="Toggle dark mode">
+          <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-linecap="round"/></svg>
+          <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      <button class="nav-icon-btn nav-music-btn nav-music-btn-desktop js-music-toggle" aria-label="Mute music">
+          <svg class="music-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke-linecap="round"/></svg>
+          <svg class="music-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><line x1="23" y1="9" x2="17" y2="15" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke-linecap="round"/></svg>
+        </button>
+        <audio id="ocpcThemeAudio" src="/assets/ocpc-theme-song.mp3" loop muted autoplay preload="auto"></audio>
+
+      <div class="nav-search">
+        <button class="nav-icon-btn nav-search-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round"/></svg>
+        </button>
+        <form class="nav-search-form" id="navSearchForm" autocomplete="off">
+          <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search the site…" aria-label="Search the site">
+        </form>
+        <div class="nav-search-results" id="navSearchResults"></div>
+      </div>
+
+      <div class="nav-notif">
+        <button class="nav-icon-btn nav-notif-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="nav-notif-dot" id="navNotifDot" hidden></span>
+        </button>
+        <div class="nav-notif-panel">
+          <div class="nav-notif-head">
+            <span>Notifications</span>
+            <button class="nav-notif-clear" id="navNotifClear" hidden>Clear all</button>
+          </div>
+          <div class="nav-notif-list" id="navNotifList">
+            <div class="nav-notif-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <a href="/cart/" class="nav-shop" aria-label="Cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16l-1.4 12.2A2 2 0 0 1 16.6 22H7.4a2 2 0 0 1-2-1.8L4 8Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8V6a4 4 0 0 1 8 0v2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="nav-cart-badge" id="navCartBadge" hidden>0</span>
+      </a>
+
+      <div class="nav-account">
+        <button class="nav-account-btn" id="navAccountBtn">
+          <span id="navAccountLabel">Join OCPC</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="nav-account-panel" id="navAccountPanel">
+
+          <div class="nav-account-promo">
+
+            <span class="nav-account-promo-tag">Free</span>
+
+            <h4>Join OCPC Free</h4>
+
+            <p>Get on Meet the Club, birthday shoutouts, and your own player profile — sign up in a couple minutes.</p>
+
+            <a class="btn-promo" href="/join/">Join For Free</a>
+
+          </div>
+
+          <div class="nav-account-links">
+
+            <a class="nav-account-link" href="/profile/">Sign In</a>
+
+            <a class="nav-account-link" href="/join/">Join For Free</a>
+
+            <a class="nav-account-link" href="/meet-the-club/">About OCPC</a>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="ladder-hero">
+    <div class="eyebrow">Open Challenge</div>
+    <h1>Ladder.</h1>
+    <p>Any active player who's shown up in the last 4 weeks can challenge any other. Win, and it counts toward your record below: no rank restrictions, just find someone with a fighting chance and go.</p>
+  </div>
+
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">Standings</span>
+      <h2>Ladder Standings</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="ladder-table-wrap">
+      <table class="ladder-table">
+        <thead><tr><th>Rank</th><th>Player</th><th>Record</th><th>Win Rate</th></tr></thead>
+        <tbody id="ladderStandingsBody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="ladderEmpty" style="display:none; margin-top:16px;">
+      <p>No completed matches yet, be the first to issue a challenge below.</p>
+    </div>
+  </div>
+
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">Play</span>
+      <h2>Challenge / My Matches</h2>
+      <span class="section-rule"></span>
+    </div>
+
+    <div id="ladderLoggedOut" class="empty-state" style="display:none;">
+      <p>Sign in to issue or respond to challenges. <a href="/profile/" style="color:var(--sky-deep);">Sign in here</a>.</p>
+    </div>
+
+    <div id="ladderNotEligible" class="empty-state" style="display:none;">
+      <p>You'll be eligible to challenge once you've shown up to an open play session in the last 4 weeks. Check the leaderboard to see recent attendance.</p>
+    </div>
+
+    <div id="ladderEligibleArea" style="display:none;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;" class="ladder-grid">
+        <div class="ladder-card">
+          <h3>Issue a Challenge</h3>
+          <select id="opponentSelect"></select>
+          <button class="btn btn-primary" id="challengeSubmitBtn" type="button" style="width:100%; justify-content:center;">Send Challenge</button>
+          <div class="ladder-msg" id="challengeMsg"></div>
+        </div>
+        <div class="ladder-card">
+          <h3>My Matches</h3>
+          <div id="myChallengesList"><p style="font-size:13.5px; color:var(--ink-soft);">No challenges yet.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <span class="foot-logo"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+        <div>
+          <div class="foot-brand-name">One Cavite Pickleball Club</div>
+          <div class="foot-brand-tagline">SM City Rosario · See you on the courts!</div>
+        </div>
+      </div>
+      <div class="foot-social">
+        <a class="foot-social-icon" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" aria-label="Facebook">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M13.5 21v-7.5h2.5l.5-3h-3V8.5c0-.9.3-1.5 1.6-1.5H16V4.3C15.7 4.3 14.8 4 13.7 4 11.4 4 9.9 5.4 9.9 8.1v2.4H7.4v3h2.5V21h3.6z"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="foot-columns">
+      <div class="foot-col">
+        <div class="foot-col-title">Club</div>
+        <a href="/">Home</a>
+        <a href="/meet-the-club/">Meet the Club</a>
+        <a href="/events/">Events</a>
+        <a href="/birthdays/">Birthdays</a>
+        <a href="/gallery/">Gallery</a>
+        <a href="/quiz/">Personality Quiz</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Play</div>
+        <a href="/queue/">Queue</a>
+        <a href="/leaderboard/">Leaderboard</a>
+        <a href="/ladder/">Ladder</a>
+        <a href="/featured-courts/">Featured Courts</a>
+        <a href="/coaching/">Coaching</a>
+        <a href="/rules/">Rules &amp; Etiquette</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Shop</div>
+        <a href="/merch/">Shop</a>
+        <a href="/track/">Track Order</a>
+        <a href="/gear/">Gear Picks</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Support</div>
+        <a href="/join/">Join OCPC</a>
+        <a href="/contact/">Contact</a>
+        <a href="/giving/">Giving Back</a>
+        <a href="/testimonials/">Share Your Story</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Stop By At</div>
+        <p class="foot-address">SM City Rosario,<br>Cavite</p>
+      </div>
+    </div>
+
+    <div class="foot-bottom">
+      <p class="foot-copyright">© <span class="foot-year">2026</span> One Cavite Pickleball Club. All rights reserved.</p>
+      <div class="foot-legal">
+        <a href="/privacy-policy/">Privacy Policy</a>
+        <a href="/accessibility/">Accessibility Help</a>
+        <a href="/privacy-notice/">Privacy Notice</a>
+        <a href="/terms/">Terms &amp; Conditions</a>
+        <a href="/social-media-policy/">Social Media Policy</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="/script.js"></script>
+<script src="/music-player.js"></script>
+<script type="module" src="/nav-auth.js"></script>
+<script type="module" src="/giving-widget.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  }
+  function toTitleCase(str){
+    return String(str || '').replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+  function firstWord(str){
+    return String(str || '').trim().split(/\s+/)[0] || '';
+  }
+  function isoDate(d){ return d.toISOString().slice(0, 10); }
+  function cutoffDate(){
+    const d = new Date();
+    d.setDate(d.getDate() - 28);
+    return isoDate(d);
+  }
+
+  let aliasMap = {};
+  async function loadRosterAliases(){
+    try {
+      const snap = await getDocs(collection(db, 'roster'));
+      const map = {};
+      snap.docs.forEach(d => {
+        const p = d.data();
+        const canonical = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
+        if (!canonical) return;
+        const key = canonical.toLowerCase();
+        map[key] = canonical;
+        if (p.nickname && p.nickname.trim()) map[p.nickname.trim().toLowerCase()] = canonical;
+        (p.aliases || []).forEach(a => { if (a && a.trim()) map[a.trim().toLowerCase()] = canonical; });
+      });
+      aliasMap = map;
+    } catch (err) { /* roster unreachable */ }
+  }
+  function normalizeName(raw){
+    const clean = String(raw || '').trim();
+    return aliasMap[clean.toLowerCase()] || clean;
+  }
+
+  let eligibleNames = new Set();
+  async function loadEligibleNames(){
+    const snap = await getDocs(collection(db, 'attendance'));
+    const cutoff = cutoffDate();
+    const set = new Set();
+    snap.docs.forEach(d => {
+      const r = d.data();
+      if (typeof r.date !== 'string' || r.date < cutoff) return;
+      (r.names || []).forEach(n => {
+        const raw = String(n).trim();
+        if (raw) set.add(normalizeName(raw).toLowerCase());
+      });
+    });
+    eligibleNames = set;
+  }
+
+  let activePlayers = [];
+  async function loadActivePlayers(){
+    const snap = await getDocs(query(collection(db, 'players'), where('status', '==', 'active')));
+    activePlayers = snap.docs.map(d => {
+      const p = d.data();
+      const name = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
+      return { uid: d.id, name };
+    }).filter(p => p.name && eligibleNames.has(p.name.toLowerCase()));
+  }
+
+  let allChallenges = [];
+  async function loadChallenges(){
+    const snap = await getDocs(collection(db, 'ladderChallenges'));
+    allChallenges = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  function renderStandings(){
+    const tally = {};
+    activePlayers.forEach(p => { tally[p.uid] = { name: p.name, wins: 0, losses: 0 }; });
+    allChallenges.filter(c => c.status === 'completed' && c.winnerUid).forEach(c => {
+      const loserUid = c.winnerUid === c.challengerUid ? c.opponentUid : c.challengerUid;
+      if (tally[c.winnerUid]) tally[c.winnerUid].wins++;
+      if (tally[loserUid]) tally[loserUid].losses++;
+    });
+    const ranked = Object.values(tally)
+      .filter(t => t.wins + t.losses > 0)
+      .sort((a, b) => (b.wins - b.losses) - (a.wins - a.losses) || b.wins - a.wins || a.name.localeCompare(b.name));
+
+    const tbody = document.getElementById('ladderStandingsBody');
+    const empty = document.getElementById('ladderEmpty');
+    if (!ranked.length){
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    tbody.innerHTML = ranked.map((t, i) => {
+      const total = t.wins + t.losses;
+      const rate = total ? Math.round((t.wins / total) * 100) : 0;
+      return `
+        <tr>
+          <td class="ladder-rank">${i + 1}</td>
+          <td>${escapeHtml(t.name)}</td>
+          <td><span class="ladder-record-win">${t.wins}W</span> &ndash; <span class="ladder-record-loss">${t.losses}L</span></td>
+          <td>${rate}%</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  const opponentSelect = document.getElementById('opponentSelect');
+  const challengeMsg = document.getElementById('challengeMsg');
+  const myChallengesList = document.getElementById('myChallengesList');
+
+  let currentUid = null;
+  let currentName = '';
+
+  function renderOpponentSelect(){
+    opponentSelect.innerHTML = activePlayers
+      .filter(p => p.uid !== currentUid)
+      .map(p => `<option value="${p.uid}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`)
+      .join('');
+  }
+
+  function statusLabel(status){
+    return {
+      pending: 'Pending',
+      accepted: 'Accepted, play it out',
+      declined: 'Declined',
+      awaiting_confirmation: 'Awaiting admin confirmation',
+      completed: 'Completed',
+      cancelled: 'Cancelled'
+    }[status] || status;
+  }
+
+  function renderMyChallenges(){
+    const mine = allChallenges.filter(c => c.challengerUid === currentUid || c.opponentUid === currentUid)
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+    if (!mine.length){
+      myChallengesList.innerHTML = '<p style="font-size:13.5px; color:var(--ink-soft);">No challenges yet.</p>';
+      return;
+    }
+
+    myChallengesList.innerHTML = mine.map(c => {
+      const isChallenger = c.challengerUid === currentUid;
+      const otherName = isChallenger ? c.opponentName : c.challengerName;
+      let actions = '';
+
+      if (c.status === 'pending' && !isChallenger){
+        actions = `
+          <button class="signup-btn approve" data-action="accept" data-id="${c.id}">Accept</button>
+          <button class="signup-btn reject" data-action="decline" data-id="${c.id}">Decline</button>
+        `;
+      } else if (c.status === 'pending' && isChallenger){
+        actions = `<button class="signup-btn reject" data-action="cancel" data-id="${c.id}">Cancel</button>`;
+      } else if (c.status === 'accepted'){
+        actions = `
+          <button class="signup-btn approve" data-action="report-win" data-id="${c.id}">I Won</button>
+          <button class="signup-btn reject" data-action="report-loss" data-id="${c.id}">${escapeHtml(otherName)} Won</button>
+        `;
+      }
+
+      return `
+        <div class="challenge-item">
+          <div class="ci-title">${isChallenger ? 'You challenged' : 'Challenge from'} ${escapeHtml(otherName)}</div>
+          <div class="ci-meta">${statusLabel(c.status)}</div>
+          ${actions ? `<div class="ci-actions">${actions}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    myChallengesList.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => handleChallengeAction(btn.dataset.action, btn.dataset.id));
+    });
+  }
+
+  async function handleChallengeAction(action, id){
+    const c = allChallenges.find(x => x.id === id);
+    if (!c) return;
+    try {
+      if (action === 'accept'){
+        await updateDoc(doc(db, 'ladderChallenges', id), { status: 'accepted', resolvedAt: serverTimestamp() });
+      } else if (action === 'decline'){
+        await updateDoc(doc(db, 'ladderChallenges', id), { status: 'declined', resolvedAt: serverTimestamp() });
+      } else if (action === 'cancel'){
+        await updateDoc(doc(db, 'ladderChallenges', id), { status: 'cancelled', resolvedAt: serverTimestamp() });
+      } else if (action === 'report-win' || action === 'report-loss'){
+        const winnerUid = action === 'report-win' ? currentUid : (c.challengerUid === currentUid ? c.opponentUid : c.challengerUid);
+        await updateDoc(doc(db, 'ladderChallenges', id), {
+          status: 'awaiting_confirmation', reportedWinnerUid: winnerUid, reportedBy: currentUid
+        });
+      }
+      await refreshAll();
+    } catch (err) {
+      alert('Something went wrong. Try again.');
+    }
+  }
+
+  document.getElementById('challengeSubmitBtn').addEventListener('click', async () => {
+    const opt = opponentSelect.selectedOptions[0];
+    if (!opt){
+      challengeMsg.style.color = 'var(--pop)';
+      challengeMsg.textContent = 'Pick an opponent first.';
+      return;
+    }
+    try {
+      await addDoc(collection(db, 'ladderChallenges'), {
+        challengerUid: currentUid,
+        challengerName: currentName,
+        opponentUid: opt.value,
+        opponentName: opt.dataset.name,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      challengeMsg.style.color = 'var(--sky-deep)';
+      challengeMsg.textContent = `Challenge sent to ${opt.dataset.name}!`;
+      await refreshAll();
+    } catch (err) {
+      challengeMsg.style.color = 'var(--pop)';
+      challengeMsg.textContent = 'Something went wrong. Try again.';
+    }
+  });
+
+  async function refreshAll(){
+    await loadChallenges();
+    renderStandings();
+    if (currentUid) renderMyChallenges();
+  }
+
+  async function init(){
+    await loadRosterAliases();
+    await loadEligibleNames();
+    await loadActivePlayers();
+    await loadChallenges();
+    renderStandings();
+  }
+  init();
+
+  onAuthStateChanged(auth, async (user) => {
+    const loggedOut = document.getElementById('ladderLoggedOut');
+    const notEligible = document.getElementById('ladderNotEligible');
+    const eligibleArea = document.getElementById('ladderEligibleArea');
+
+    if (!user){
+      loggedOut.style.display = 'block';
+      notEligible.style.display = 'none';
+      eligibleArea.style.display = 'none';
+      return;
+    }
+
+    const snap = await getDoc(doc(db, 'players', user.uid));
+    if (!snap.exists() || snap.data().status !== 'active'){
+      loggedOut.style.display = 'none';
+      notEligible.style.display = 'block';
+      eligibleArea.style.display = 'none';
+      return;
+    }
+
+    const p = snap.data();
+    const name = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
+    currentUid = user.uid;
+    currentName = name;
+
+    if (!eligibleNames.has(name.toLowerCase())){
+      loggedOut.style.display = 'none';
+      notEligible.style.display = 'block';
+      eligibleArea.style.display = 'none';
+      return;
+    }
+
+    loggedOut.style.display = 'none';
+    notEligible.style.display = 'none';
+    eligibleArea.style.display = 'block';
+    renderOpponentSelect();
+    renderMyChallenges();
+  });
+</script>
+
+</body>
+</html>

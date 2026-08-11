@@ -64,6 +64,46 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || hasRole('court_manager');
     }
 
+    // Open challenge ladder. Any signed-in member can issue a challenge;
+    // read is public so ladder standings can be computed from completed
+    // challenges without logging in. Only the challenger can create their
+    // own pending challenge; only the opponent can accept/decline it; once
+    // accepted, either participant can report a result, which requires
+    // admin/Court Manager confirmation before it counts (same abuse
+    // safeguard as self-check-in) so a player can't just declare themself
+    // the winner.
+    match /ladderChallenges/{challengeId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.challengerUid
+        && request.resource.data.opponentUid != request.resource.data.challengerUid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.challengerName is string && request.resource.data.challengerName.size() > 0
+        && request.resource.data.opponentName is string && request.resource.data.opponentName.size() > 0;
+
+      allow update: if isAdmin() || hasRole('court_manager') || (
+        request.auth != null && (
+          // Opponent accepts or declines a pending challenge.
+          (request.auth.uid == resource.data.opponentUid
+            && resource.data.status == 'pending'
+            && request.resource.data.status in ['accepted', 'declined']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvedAt']))
+          // Either participant reports a result on an accepted challenge.
+          || ((request.auth.uid == resource.data.challengerUid || request.auth.uid == resource.data.opponentUid)
+            && resource.data.status == 'accepted'
+            && request.resource.data.status == 'awaiting_confirmation'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reportedWinnerUid', 'reportedBy']))
+          // The challenger can cancel their own still-pending challenge.
+          || (request.auth.uid == resource.data.challengerUid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'cancelled'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvedAt']))
+        )
+      );
+
+      allow delete: if isAdmin() || hasRole('court_manager');
+    }
+
     // Full player membership records — PII (address/phone/email) lives here.
     // Document ID == the player's Firebase Auth UID, created at signup
     // (join.html creates the auth account first, then this doc).
