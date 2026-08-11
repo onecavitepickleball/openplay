@@ -717,6 +717,12 @@
           <p id="attFormSub">One entry per open play session. Add attendees below.</p>
         </div>
 
+        <div class="dash-card" style="max-width:280px; text-align:center;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:10px;">Self Check-In QR</div>
+          <img src="/assets/checkin-qr.png" alt="QR code linking to the OCPC self check-in page" style="width:100%; height:auto; border-radius:6px; border:1.5px solid var(--line);">
+          <p style="font-size:12px; color:var(--ink-soft); margin-top:10px;">Display or print this at the courts. Players scan it, confirm the date, and it lands here for approval.</p>
+        </div>
+
         <div class="dash-card" style="max-width:560px;">
           <form id="attendanceForm">
             <div class="form-row">
@@ -733,6 +739,11 @@
             <button class="dash-signout" type="button" id="attCancelBtn" style="display:none; margin-top:10px; color:var(--ink-soft); border-color:var(--line);">Cancel Edit</button>
             <div class="admin-msg" id="attendanceMsg"></div>
           </form>
+        </div>
+
+        <div class="dash-card-head"><h3>Self Check-In Requests</h3></div>
+        <div class="orders-table-wrap" style="margin-bottom:24px;">
+          <div id="selfCheckinList"><div class="signup-empty">No pending self check-ins.</div></div>
         </div>
 
         <div class="panel-toolbar">
@@ -2588,6 +2599,80 @@
     renderPlayerSignups();
     loadKnownNames();
     if (isAdmin) renderAttendanceAlerts();
+    loadSelfCheckins();
+  }
+
+  // ================= SELF CHECK-IN (QR) REQUESTS =================
+  const selfCheckinList = document.getElementById('selfCheckinList');
+
+  async function loadSelfCheckins(){
+    if (!selfCheckinList) return;
+    try {
+      const snap = await getDocs(query(collection(db, 'selfCheckins'), where('status', '==', 'pending')));
+      const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      renderSelfCheckinList(requests);
+    } catch (err) {
+      selfCheckinList.innerHTML = '<div class="signup-empty">Couldn\'t load self check-ins.</div>';
+    }
+  }
+
+  function renderSelfCheckinList(requests){
+    if (!requests.length){
+      selfCheckinList.innerHTML = '<div class="signup-empty">No pending self check-ins.</div>';
+      return;
+    }
+    selfCheckinList.innerHTML = requests.map(r => `
+      <div class="admin-row">
+        <div>
+          <div class="admin-row-date">${escapeHtml(r.date)}</div>
+          <div class="admin-row-names">${escapeHtml(r.name)}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="signup-btn approve" data-action="approve-checkin" data-id="${r.id}">Approve</button>
+          <button class="signup-btn reject" data-action="reject-checkin" data-id="${r.id}">Reject</button>
+        </div>
+      </div>
+    `).join('');
+
+    selfCheckinList.querySelectorAll('[data-action="approve-checkin"]').forEach(btn => {
+      btn.addEventListener('click', () => approveSelfCheckin(btn.dataset.id, requests));
+    });
+    selfCheckinList.querySelectorAll('[data-action="reject-checkin"]').forEach(btn => {
+      btn.addEventListener('click', () => resolveSelfCheckin(btn.dataset.id, 'rejected'));
+    });
+  }
+
+  async function approveSelfCheckin(id, requests){
+    const req = requests.find(r => r.id === id);
+    if (!req) return;
+    try {
+      const existing = allRecords.find(r => r.date === req.date);
+      const normalized = req.name.trim().toLowerCase();
+      if (existing){
+        const alreadyHasName = (existing.names || []).some(n => String(n).trim().toLowerCase() === normalized);
+        if (!alreadyHasName){
+          await updateDoc(doc(db, 'attendance', existing.id), { names: [...(existing.names || []), req.name] });
+        }
+      } else {
+        await addDoc(attendanceCol, { date: req.date, names: [req.name], createdAt: serverTimestamp() });
+      }
+      await resolveSelfCheckin(id, 'approved');
+      await loadAttendance();
+    } catch (err) {
+      alert('Something went wrong approving this check-in. Try again.');
+    }
+  }
+
+  async function resolveSelfCheckin(id, status){
+    try {
+      await updateDoc(doc(db, 'selfCheckins', id), {
+        status, resolvedBy: auth.currentUser ? auth.currentUser.uid : null, resolvedAt: serverTimestamp()
+      });
+      await loadSelfCheckins();
+    } catch (err) {
+      alert('Something went wrong updating this request. Try again.');
+    }
   }
 
   function renderAdminList(){

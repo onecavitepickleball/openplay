@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('ocpc-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-H86SSQPCJ6');
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self Check-In — One Cavite Pickleball Club</title>
+<meta name="description" content="Scan and self check-in for an OCPC open play session. Requires an OCPC account; an admin confirms your attendance shortly after.">
+<meta name="robots" content="noindex, follow">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#005E89">
+<link rel="canonical" href="https://www.onecavitepickleball.club/check-in/">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .checkin-hero{ padding:56px 0 12px; text-align:center; }
+  .checkin-hero h1{
+    font-family: var(--font-display);
+    font-size:clamp(40px, 7vw, 64px);
+    line-height:0.98;
+    text-transform:uppercase;
+  }
+  .checkin-hero p{
+    margin:16px auto 0; font-size:15.5px; color: var(--ink-soft);
+    max-width:440px; line-height:1.6;
+  }
+
+  .checkin-card{
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    padding:36px;
+    background: var(--white);
+    max-width:440px;
+    margin:32px auto 0;
+    text-align:center;
+  }
+  .checkin-card .icon-circle{
+    width:56px; height:56px; border-radius:50%;
+    background: var(--navy); color: var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 18px; font-size:24px;
+  }
+  .checkin-card.is-success .icon-circle{ background: #2E7D32; }
+  .checkin-card.is-error .icon-circle{ background: var(--pop); }
+  .checkin-card h3{
+    font-family: var(--font-display);
+    font-size:22px; text-transform:uppercase; margin-bottom:10px;
+  }
+  .checkin-card p{ font-size:14.5px; color: var(--ink-soft); line-height:1.6; margin-bottom:18px; }
+  .checkin-card p:last-child{ margin-bottom:0; }
+
+  .form-row{ margin-bottom:20px; text-align:left; }
+  .form-row label{
+    display:block; font-family: var(--font-mono); font-size:11.5px; letter-spacing:0.08em;
+    text-transform:uppercase; color: var(--ink-faint); margin-bottom:8px;
+  }
+  .form-row input{
+    width:100%; border: 1.5px solid var(--line); border-radius:4px; padding:12px 14px;
+    font-family: var(--font-body); font-size:14.5px; color: var(--ink); background: var(--paper);
+  }
+  .form-row input:focus{ outline:none; border-color: var(--sky-deep); }
+
+  .checkin-msg{ font-size:13.5px; margin-top:14px; min-height:18px; color: var(--pop); }
+</style>
+</head>
+<body>
+<div class="announce-bar" style="display:none;">
+  <div class="announce-track"></div>
+</div>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="logo-chip"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <div class="nav-mobile-actions">
+      <button class="nav-icon-btn nav-music-btn nav-music-btn-mobile js-music-toggle" aria-label="Mute music">
+        <svg class="music-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke-linecap="round"/></svg>
+        <svg class="music-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><line x1="23" y1="9" x2="17" y2="15" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke-linecap="round"/></svg>
+      </button>
+      <button class="nav-toggle" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/meet-the-club/">Meet the Club</a>
+      <a href="/events/">Events</a>
+      <a href="/giving/">Giving Back</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="/merch/">Shop</a>
+          <a href="/track/">Track Order</a>
+          <a href="/gear/">Gear Picks</a>
+          <a href="/gallery/">Gallery</a>
+          <a href="/queue/">Queue</a>
+          <a href="/leaderboard/">Leaderboard</a>
+          <a href="/coaching/">Coaching</a>
+          <a href="/rules/">Rules &amp; Etiquette</a>
+          <a href="/featured-courts/">Featured Courts</a>
+          <a href="/birthdays/">Birthdays</a>
+          <a href="/contact/">Contact</a>
+          <a href="/quiz/">Personality Quiz</a>
+          <a href="/testimonials/">Share Your Story</a>
+        </div>
+      </div>
+      <button class="nav-icon-btn nav-theme-btn" id="themeToggle" aria-label="Toggle dark mode">
+          <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-linecap="round"/></svg>
+          <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      <button class="nav-icon-btn nav-music-btn nav-music-btn-desktop js-music-toggle" aria-label="Mute music">
+          <svg class="music-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke-linecap="round"/></svg>
+          <svg class="music-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><line x1="23" y1="9" x2="17" y2="15" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke-linecap="round"/></svg>
+        </button>
+        <audio id="ocpcThemeAudio" src="/assets/ocpc-theme-song.mp3" loop muted autoplay preload="auto"></audio>
+
+      <div class="nav-search">
+        <button class="nav-icon-btn nav-search-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round"/></svg>
+        </button>
+        <form class="nav-search-form" id="navSearchForm" autocomplete="off">
+          <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search the site…" aria-label="Search the site">
+        </form>
+        <div class="nav-search-results" id="navSearchResults"></div>
+      </div>
+
+      <div class="nav-notif">
+        <button class="nav-icon-btn nav-notif-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="nav-notif-dot" id="navNotifDot" hidden></span>
+        </button>
+        <div class="nav-notif-panel">
+          <div class="nav-notif-head">
+            <span>Notifications</span>
+            <button class="nav-notif-clear" id="navNotifClear" hidden>Clear all</button>
+          </div>
+          <div class="nav-notif-list" id="navNotifList">
+            <div class="nav-notif-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <a href="/cart/" class="nav-shop" aria-label="Cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16l-1.4 12.2A2 2 0 0 1 16.6 22H7.4a2 2 0 0 1-2-1.8L4 8Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8V6a4 4 0 0 1 8 0v2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="nav-cart-badge" id="navCartBadge" hidden>0</span>
+      </a>
+
+      <div class="nav-account">
+        <button class="nav-account-btn" id="navAccountBtn">
+          <span id="navAccountLabel">Join OCPC</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="nav-account-panel" id="navAccountPanel">
+
+          <div class="nav-account-promo">
+
+            <span class="nav-account-promo-tag">Free</span>
+
+            <h4>Join OCPC Free</h4>
+
+            <p>Get on Meet the Club, birthday shoutouts, and your own player profile — sign up in a couple minutes.</p>
+
+            <a class="btn-promo" href="/join/">Join For Free</a>
+
+          </div>
+
+          <div class="nav-account-links">
+
+            <a class="nav-account-link" href="/profile/">Sign In</a>
+
+            <a class="nav-account-link" href="/join/">Join For Free</a>
+
+            <a class="nav-account-link" href="/meet-the-club/">About OCPC</a>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="checkin-hero">
+    <div class="eyebrow">Open Play</div>
+    <h1>Self Check-In.</h1>
+    <p>Scanned the QR code at the courts? Confirm you're here and an admin or Court Manager will mark you present shortly.</p>
+  </div>
+
+  <div id="loggedOutCard" class="checkin-card" style="display:none;">
+    <div class="icon-circle">
+      <svg viewBox="0 0 24 24" fill="none" width="24" height="24"><circle cx="12" cy="8" r="4" stroke="#F5F3EE" stroke-width="2"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke="#F5F3EE" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <h3>Sign In First</h3>
+    <p>Self check-in needs an OCPC account so we know who to mark present.</p>
+    <a class="btn btn-primary" href="/profile/">Sign In</a>
+  </div>
+
+  <div id="pendingMemberCard" class="checkin-card" style="display:none;">
+    <div class="icon-circle">
+      <svg viewBox="0 0 24 24" fill="none" width="24" height="24"><path d="M12 8v4l3 3" stroke="#F5F3EE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#F5F3EE" stroke-width="2"/></svg>
+    </div>
+    <h3>Membership Pending</h3>
+    <p>Your signup is still waiting on admin approval. Once you're an active member, you'll be able to self check-in here.</p>
+  </div>
+
+  <div id="checkinFormCard" class="checkin-card" style="display:none;">
+    <div class="icon-circle">
+      <svg viewBox="0 0 24 24" fill="none" width="24" height="24"><path d="M9 12l2 2 4-4" stroke="#F5F3EE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#F5F3EE" stroke-width="2"/></svg>
+    </div>
+    <h3 id="checkinGreeting">Confirm Attendance</h3>
+    <p>Pick the date of the session you're at. This goes to an admin or Court Manager to confirm before it's added to the official attendance log.</p>
+    <div class="form-row">
+      <label for="checkinDate">Session Date</label>
+      <input type="date" id="checkinDate" required>
+    </div>
+    <button class="btn btn-primary" id="checkinSubmitBtn" type="button" style="width:100%;">Check In</button>
+    <div class="checkin-msg" id="checkinMsg"></div>
+  </div>
+
+  <div id="checkinSuccessCard" class="checkin-card is-success" style="display:none;">
+    <div class="icon-circle">
+      <svg viewBox="0 0 24 24" fill="none" width="24" height="24"><path d="M5 13l4 4L19 7" stroke="#F5F3EE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h3>Submitted!</h3>
+    <p id="checkinSuccessMsg">You're checked in. An admin or Court Manager will confirm your attendance shortly.</p>
+    <a class="btn btn-ghost" href="/profile/">Back to Profile</a>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <span class="foot-logo"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+        <div>
+          <div class="foot-brand-name">One Cavite Pickleball Club</div>
+          <div class="foot-brand-tagline">SM City Rosario · See you on the courts!</div>
+        </div>
+      </div>
+      <div class="foot-social">
+        <a class="foot-social-icon" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" aria-label="Facebook">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M13.5 21v-7.5h2.5l.5-3h-3V8.5c0-.9.3-1.5 1.6-1.5H16V4.3C15.7 4.3 14.8 4 13.7 4 11.4 4 9.9 5.4 9.9 8.1v2.4H7.4v3h2.5V21h3.6z"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="foot-columns">
+      <div class="foot-col">
+        <div class="foot-col-title">Club</div>
+        <a href="/">Home</a>
+        <a href="/meet-the-club/">Meet the Club</a>
+        <a href="/events/">Events</a>
+        <a href="/birthdays/">Birthdays</a>
+        <a href="/gallery/">Gallery</a>
+        <a href="/quiz/">Personality Quiz</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Play</div>
+        <a href="/queue/">Queue</a>
+        <a href="/leaderboard/">Leaderboard</a>
+        <a href="/featured-courts/">Featured Courts</a>
+        <a href="/coaching/">Coaching</a>
+        <a href="/rules/">Rules &amp; Etiquette</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Shop</div>
+        <a href="/merch/">Shop</a>
+        <a href="/track/">Track Order</a>
+        <a href="/gear/">Gear Picks</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Support</div>
+        <a href="/join/">Join OCPC</a>
+        <a href="/contact/">Contact</a>
+        <a href="/giving/">Giving Back</a>
+        <a href="/testimonials/">Share Your Story</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Stop By At</div>
+        <p class="foot-address">SM City Rosario,<br>Cavite</p>
+      </div>
+    </div>
+
+    <div class="foot-bottom">
+      <p class="foot-copyright">© <span class="foot-year">2026</span> One Cavite Pickleball Club. All rights reserved.</p>
+      <div class="foot-legal">
+        <a href="/privacy-policy/">Privacy Policy</a>
+        <a href="/accessibility/">Accessibility Help</a>
+        <a href="/privacy-notice/">Privacy Notice</a>
+        <a href="/terms/">Terms &amp; Conditions</a>
+        <a href="/social-media-policy/">Social Media Policy</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="/script.js"></script>
+<script src="/music-player.js"></script>
+<script type="module" src="/nav-auth.js"></script>
+<script type="module" src="/giving-widget.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const loggedOutCard = document.getElementById('loggedOutCard');
+  const pendingMemberCard = document.getElementById('pendingMemberCard');
+  const checkinFormCard = document.getElementById('checkinFormCard');
+  const checkinSuccessCard = document.getElementById('checkinSuccessCard');
+  const checkinDate = document.getElementById('checkinDate');
+  const checkinSubmitBtn = document.getElementById('checkinSubmitBtn');
+  const checkinMsg = document.getElementById('checkinMsg');
+  const checkinGreeting = document.getElementById('checkinGreeting');
+  const checkinSuccessMsg = document.getElementById('checkinSuccessMsg');
+
+  function showOnly(el){
+    [loggedOutCard, pendingMemberCard, checkinFormCard, checkinSuccessCard].forEach(c => {
+      c.style.display = c === el ? 'block' : 'none';
+    });
+  }
+
+  function todayISO(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function normalizeName(s){
+    return String(s).trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  let currentUid = null;
+  let currentName = '';
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user){
+      showOnly(loggedOutCard);
+      return;
+    }
+    try {
+      const snap = await getDoc(doc(db, 'players', user.uid));
+      if (!snap.exists() || snap.data().status !== 'active'){
+        showOnly(pendingMemberCard);
+        return;
+      }
+      const p = snap.data();
+      currentUid = user.uid;
+      currentName = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+      checkinGreeting.textContent = `Confirm Attendance, ${p.firstName || 'there'}`;
+      checkinDate.value = todayISO();
+      showOnly(checkinFormCard);
+    } catch (err) {
+      showOnly(loggedOutCard);
+    }
+  });
+
+  checkinSubmitBtn.addEventListener('click', async () => {
+    const date = checkinDate.value;
+    checkinMsg.style.color = '';
+    if (!date){
+      checkinMsg.style.color = 'var(--pop)';
+      checkinMsg.textContent = 'Pick a date first.';
+      return;
+    }
+    checkinSubmitBtn.disabled = true;
+    checkinMsg.textContent = 'Checking…';
+
+    try {
+      // Already in the real attendance log for that date?
+      const attSnap = await getDocs(query(collection(db, 'attendance'), where('date', '==', date)));
+      const target = normalizeName(currentName);
+      const alreadyLogged = attSnap.docs.some(d =>
+        (d.data().names || []).some(n => normalizeName(n) === target)
+      );
+      if (alreadyLogged){
+        checkinMsg.textContent = '';
+        checkinSuccessMsg.textContent = `You're already logged in the attendance for ${date}.`;
+        showOnly(checkinSuccessCard);
+        return;
+      }
+
+      // Already have a pending or approved self-check-in for that date?
+      const selfSnap = await getDocs(query(
+        collection(db, 'selfCheckins'),
+        where('uid', '==', currentUid),
+        where('date', '==', date)
+      ));
+      const alreadyRequested = selfSnap.docs.some(d => d.data().status !== 'rejected');
+      if (alreadyRequested){
+        checkinMsg.textContent = '';
+        checkinSuccessMsg.textContent = `You've already checked in for ${date}, no need to do it again.`;
+        showOnly(checkinSuccessCard);
+        return;
+      }
+
+      await addDoc(collection(db, 'selfCheckins'), {
+        uid: currentUid,
+        name: currentName,
+        date,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      checkinMsg.textContent = '';
+      checkinSuccessMsg.textContent = `You're checked in for ${date}. An admin or Court Manager will confirm it shortly.`;
+      showOnly(checkinSuccessCard);
+    } catch (err) {
+      checkinMsg.style.color = 'var(--pop)';
+      checkinMsg.textContent = 'Something went wrong. Try again.';
+    } finally {
+      checkinSubmitBtn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

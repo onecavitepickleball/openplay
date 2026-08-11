@@ -47,6 +47,23 @@ service cloud.firestore {
       allow write: if isAdmin() || hasRole('court_manager');
     }
 
+    // Self-service QR check-in requests. A signed-in player can submit their
+    // own pending request for a given date (never pre-approved, never for
+    // someone else); only admins and Court Managers can read the queue,
+    // approve/reject a request, or remove one. Approving copies the name
+    // into the real attendance/{sessionId} doc from admin.html, so this
+    // collection is a holding queue, not the attendance record itself.
+    match /selfCheckins/{requestId} {
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.date is string && request.resource.data.date.size() > 0
+        && request.resource.data.name is string && request.resource.data.name.size() > 0;
+      allow read: if isAdmin() || hasRole('court_manager')
+        || (request.auth != null && request.auth.uid == resource.data.uid);
+      allow update, delete: if isAdmin() || hasRole('court_manager');
+    }
+
     // Full player membership records — PII (address/phone/email) lives here.
     // Document ID == the player's Firebase Auth UID, created at signup
     // (join.html creates the auth account first, then this doc).
