@@ -15,10 +15,20 @@ service cloud.firestore {
       return email == "ocpc.pickleball@gmail.com" || email == "jamescastillo37@gmail.com";
     }
 
+    // A player can hold more than one staff role at once (e.g. Coach AND
+    // Court Manager). roles is the source of truth going forward; the
+    // legacy single "role" string (from before multi-role support) is
+    // still honored as a one-item list, so nothing already assigned
+    // breaks.
+    function getRoles(uid) {
+      let data = get(/databases/$(database)/documents/players/$(uid)).data;
+      return data.roles is list ? data.roles : (data.role is string ? [data.role] : []);
+    }
+
     function isAdmin() {
       return request.auth != null && (
         isSuperAdminEmail(request.auth.token.email)
-        || get(/databases/$(database)/documents/players/$(request.auth.uid)).data.role == 'admin'
+        || ('admin' in getRoles(request.auth.uid))
       );
     }
 
@@ -27,8 +37,7 @@ service cloud.firestore {
     // a Court Manager can only log/view attendance. Neither can touch
     // anything else an admin can.
     function hasRole(role) {
-      return request.auth != null
-        && get(/databases/$(database)/documents/players/$(request.auth.uid)).data.role == role;
+      return request.auth != null && (role in getRoles(request.auth.uid));
     }
 
     // Existing open-play attendance log. Public can read (leaderboard/spotlight
@@ -66,7 +75,7 @@ service cloud.firestore {
         request.auth != null && request.auth.uid == playerId
         && request.resource.data.status == resource.data.status
         && request.resource.data.sessionsAttended == resource.data.sessionsAttended
-        && request.resource.data.role == resource.data.role
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'roles'])
       );
 
       allow delete: if isAdmin()

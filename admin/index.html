@@ -973,6 +973,15 @@
   const SUPER_ADMIN_EMAILS = ["ocpc.pickleball@gmail.com", "jamescastillo37@gmail.com"];
   const ROLE_LABELS = { admin: 'Admin', coach: 'Coach', court_manager: 'Court Manager' };
 
+  // A player can hold more than one staff role. roles[] is the source of
+  // truth; a legacy single "role" string (from before multi-role support)
+  // is read as a one-item list so nothing already assigned breaks.
+  function getPlayerRoles(p){
+    if (Array.isArray(p.roles)) return p.roles;
+    if (p.role) return [p.role];
+    return [];
+  }
+
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
@@ -1127,47 +1136,54 @@
 
   // Returns 'admin' | 'coach' | 'court_manager' | null. Super admins are
   // always 'admin' regardless of what's stored on their player doc.
-  async function getStaffRole(user){
-    if (!user) return null;
-    if (SUPER_ADMIN_EMAILS.includes(user.email)) return 'admin';
+  // Returns every staff role this account holds (a player can have more
+  // than one, e.g. Coach + Court Manager). Super admins are always
+  // ['admin'] regardless of what's stored on their player doc.
+  async function getStaffRoles(user){
+    if (!user) return [];
+    if (SUPER_ADMIN_EMAILS.includes(user.email)) return ['admin'];
     try {
       const snap = await getDoc(doc(db, 'players', user.uid));
-      const role = snap.exists() ? snap.data().role : null;
-      return role === 'admin' || role === 'coach' || role === 'court_manager' ? role : null;
+      if (!snap.exists()) return [];
+      return getPlayerRoles(snap.data()).filter(r => r === 'admin' || r === 'coach' || r === 'court_manager');
     } catch (err) {
-      return null;
+      return [];
     }
   }
 
-  // Coach and Court Manager get a cut-down dashboard: only their relevant
-  // nav tab is shown, and it's opened automatically. Full admins see
-  // everything as before (minus the "My Coaching Requests" tab, which only
-  // makes sense for a Coach viewing their own assignments).
-  function applyStaffRoleUI(role){
+  // Coach and Court Manager get a cut-down dashboard: only the nav tab(s)
+  // for roles they actually hold are shown (both, if they hold both), and
+  // one is opened automatically. A full admin sees everything as before
+  // (minus "My Coaching Requests", which only makes sense for a Coach
+  // viewing their own assignments) regardless of any other roles held.
+  function applyStaffRoleUI(roles){
     const tabs = document.querySelectorAll('.dash-nav-item');
-    if (role === 'coach'){
-      tabs.forEach(t => { t.style.display = t.dataset.tab === 'mycoaching' ? '' : 'none'; });
-      goToTab('mycoaching');
-    } else if (role === 'court_manager'){
-      tabs.forEach(t => { t.style.display = t.dataset.tab === 'attendance' ? '' : 'none'; });
-      goToTab('attendance');
-    } else {
+    if (roles.includes('admin')){
       tabs.forEach(t => { t.style.display = t.dataset.tab === 'mycoaching' ? 'none' : ''; });
       goToTab('overview');
+      return;
     }
+    const showMyCoaching = roles.includes('coach');
+    const showAttendance = roles.includes('court_manager');
+    tabs.forEach(t => {
+      if (t.dataset.tab === 'mycoaching') t.style.display = showMyCoaching ? '' : 'none';
+      else if (t.dataset.tab === 'attendance') t.style.display = showAttendance ? '' : 'none';
+      else t.style.display = 'none';
+    });
+    goToTab(showMyCoaching ? 'mycoaching' : 'attendance');
   }
 
   onAuthStateChanged(auth, async (user) => {
-    const role = await getStaffRole(user);
-    isAdmin = role === 'admin';
-    const hasStaffAccess = !!role;
+    const roles = await getStaffRoles(user);
+    isAdmin = roles.includes('admin');
+    const hasStaffAccess = roles.length > 0;
     loginView.style.display = hasStaffAccess ? 'none' : 'block';
     panelView.style.display = hasStaffAccess ? 'block' : 'none';
     if (!hasStaffAccess && user){
       loginError.textContent = 'This account does not have staff access.';
     }
     if (hasStaffAccess){
-      applyStaffRoleUI(role);
+      applyStaffRoleUI(roles);
       if (isAdmin){
         loadAttendance();
         loadPlayers();
@@ -1180,10 +1196,9 @@
         loadFundraiserSettings();
         loadDonations();
         loadTestimonials();
-      } else if (role === 'coach'){
-        loadMyCoachingAssignments(user.uid);
-      } else if (role === 'court_manager'){
-        loadAttendance();
+      } else {
+        if (roles.includes('coach')) loadMyCoachingAssignments(user.uid);
+        if (roles.includes('court_manager')) loadAttendance();
       }
       showLoggedInAs(user);
     }
@@ -1250,7 +1265,7 @@
     const rows = [['First Name', 'Last Name', 'Status', 'Role', 'Email', 'Phone', 'Address', 'Skill Rating', 'Birth Month', 'Birth Day', 'Birth Year', 'Sessions Attended']];
     allPlayers.forEach(p => {
       rows.push([
-        toTitleCase(p.firstName || ''), toTitleCase(p.lastName || ''), p.status || '', p.role || 'member',
+        toTitleCase(p.firstName || ''), toTitleCase(p.lastName || ''), p.status || '', getPlayerRoles(p).join('; ') || 'member',
         p.email || '', p.phone || '', p.address || '', p.skillRating || '',
         p.birthMonth || '', p.birthDay || '', p.birthYear || '', p.sessionsAttended || 0
       ]);
@@ -1778,7 +1793,7 @@
         <label for="coachingAssignedCoachSelect">Assigned Coach <span class="optional-tag">(the Coach only sees requests assigned to them, and never sees payment info)</span></label>
         <select id="coachingAssignedCoachSelect">
           <option value="">Unassigned</option>
-          ${allPlayers.filter(p => p.role === 'coach').map(p =>
+          ${allPlayers.filter(p => getPlayerRoles(p).includes('coach')).map(p =>
             `<option value="${p.id}" ${r.assignedCoach === p.id ? 'selected' : ''}>${escapeHtml(toTitleCase(p.firstName))} ${escapeHtml(toTitleCase(p.lastName))}</option>`
           ).join('')}
         </select>
@@ -2681,7 +2696,7 @@
       .sort((a, b) => (playerJoinedDate(a)?.getTime() || 0) - (playerJoinedDate(b)?.getTime() || 0));
     function memberRank(p){
       if (SUPER_ADMIN_EMAILS.includes(p.email)) return 0;
-      if (p.role === 'admin') return 1;
+      if (getPlayerRoles(p).includes('admin')) return 1;
       return 2;
     }
     const active = allPlayers.filter(p => p.status === 'active')
@@ -2733,9 +2748,10 @@
 
     activeMembersTableBody.innerHTML = activeFiltered.map(p => {
       const isProtected = SUPER_ADMIN_EMAILS.includes(p.email);
+      const roleNames = getPlayerRoles(p).map(r => ROLE_LABELS[r]).filter(Boolean);
       const roleBadge = isProtected
         ? '<span class="signup-count eligible">Protected</span>'
-        : ROLE_LABELS[p.role] ? `<span class="signup-count eligible">${ROLE_LABELS[p.role]}</span>` : '—';
+        : roleNames.length ? `<span class="signup-count eligible">${roleNames.join(', ')}</span>` : '—';
       return `
         <tr>
           <td>
@@ -2800,7 +2816,8 @@
     const p = allPlayers.find(pl => pl.id === id);
     if (!p) return;
     const isProtected = SUPER_ADMIN_EMAILS.includes(p.email);
-    const roleLabel = isProtected ? 'Admin' : (ROLE_LABELS[p.role] || '');
+    const currentRoles = getPlayerRoles(p);
+    const roleLabel = isProtected ? 'Admin' : currentRoles.map(r => ROLE_LABELS[r]).filter(Boolean).join(', ');
     const memberOrders = allOrders.filter(o => o.email && p.email && o.email.toLowerCase() === p.email.toLowerCase());
     const memberCoaching = allCoachingRequests.filter(r => r.email && p.email && r.email.toLowerCase() === p.email.toLowerCase());
 
@@ -2860,14 +2877,11 @@
       ${p.status === 'active' && !isProtected ? `
         <div class="member-detail-section-title">Membership</div>
         <div class="form-row">
-          <label for="memberRoleSelect">Role <span class="optional-tag">(Coach and Court Manager get a limited staff dashboard. Coach sees only their assigned coaching requests with no payment info, Court Manager can only log/view attendance)</span></label>
-          <select id="memberRoleSelect">
-            <option value="" ${!p.role ? 'selected' : ''}>Member (no staff access)</option>
-            <option value="coach" ${p.role === 'coach' ? 'selected' : ''}>Coach</option>
-            <option value="court_manager" ${p.role === 'court_manager' ? 'selected' : ''}>Court Manager</option>
-            <option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Admin</option>
-          </select>
-          <button class="signup-btn approve" id="memberRoleSaveBtn" type="button" style="margin-top:8px;">Save Role</button>
+          <label>Roles <span class="optional-tag">(check all that apply. Coach and Court Manager each unlock a limited staff dashboard: Coach sees only their assigned coaching requests with no payment info, Court Manager can only log/view attendance. Admin gets full access regardless of the other two)</span></label>
+          <label class="settings-check" style="margin-bottom:8px;"><input type="checkbox" class="memberRoleCheck" value="coach" ${currentRoles.includes('coach') ? 'checked' : ''}> <span>Coach</span></label>
+          <label class="settings-check" style="margin-bottom:8px;"><input type="checkbox" class="memberRoleCheck" value="court_manager" ${currentRoles.includes('court_manager') ? 'checked' : ''}> <span>Court Manager</span></label>
+          <label class="settings-check" style="margin-bottom:8px;"><input type="checkbox" class="memberRoleCheck" value="admin" ${currentRoles.includes('admin') ? 'checked' : ''}> <span>Admin</span></label>
+          <button class="signup-btn approve" id="memberRoleSaveBtn" type="button" style="margin-top:4px;">Save Roles</button>
           <div class="admin-msg" id="memberRoleMsg"></div>
         </div>
         <div class="signup-actions" style="margin-bottom:4px;">
@@ -2949,15 +2963,22 @@
     const roleSaveBtn = document.getElementById('memberRoleSaveBtn');
     if (roleSaveBtn){
       roleSaveBtn.addEventListener('click', async () => {
-        const newRole = document.getElementById('memberRoleSelect').value;
+        const newRoles = Array.from(document.querySelectorAll('.memberRoleCheck:checked')).map(c => c.value);
         const roleMsg = document.getElementById('memberRoleMsg');
-        const label = newRole ? (ROLE_LABELS[newRole] || newRole) : 'Member (no staff access)';
-        if (!confirm(`Set this player's role to "${label}"?`)) return;
+        const label = newRoles.length ? newRoles.map(r => ROLE_LABELS[r]).join(', ') : 'Member (no staff access)';
+        if (!confirm(`Set this player's roles to "${label}"?`)) return;
         roleMsg.style.color = '';
         roleMsg.textContent = 'Saving…';
         try {
-          await updateDoc(doc(db, 'players', id), { role: newRole || null });
-          p.role = newRole || null;
+          // Keep the legacy single "role" field in sync too (admin wins,
+          // else whichever's first) so any code that hasn't been updated
+          // to read roles[] still sees something sensible.
+          await updateDoc(doc(db, 'players', id), {
+            roles: newRoles,
+            role: newRoles.includes('admin') ? 'admin' : (newRoles[0] || null)
+          });
+          p.roles = newRoles;
+          p.role = newRoles.includes('admin') ? 'admin' : (newRoles[0] || null);
           roleMsg.style.color = '#2E7D32';
           roleMsg.textContent = 'Saved.';
           renderPlayerSignups();
