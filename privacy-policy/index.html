@@ -143,6 +143,11 @@
           <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-linecap="round"/></svg>
           <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+      <button class="nav-icon-btn nav-music-btn" id="musicToggle" aria-label="Mute music">
+          <svg class="music-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke-linecap="round"/></svg>
+          <svg class="music-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><line x1="23" y1="9" x2="17" y2="15" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke-linecap="round"/></svg>
+        </button>
+        <audio id="ocpcThemeAudio" src="/assets/ocpc-theme-song.mp3" loop muted autoplay preload="auto"></audio>
 
       <div class="nav-search">
         <button class="nav-icon-btn nav-search-btn" aria-label="Search">
@@ -330,6 +335,7 @@
 </footer>
 
 <script src="/script.js"></script>
+<script src="/music-player.js"></script>
 <script type="module" src="/nav-auth.js"></script>
 <script type="module" src="/giving-widget.js"></script>
 

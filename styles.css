@@ -261,6 +261,11 @@ a{ color:inherit; }
 :root[data-theme="dark"] .nav-theme-btn .theme-icon-sun{ display:none; }
 :root[data-theme="dark"] .nav-theme-btn .theme-icon-moon{ display:block; }
 
+/* ---- Music toggle ---- */
+.nav-music-btn .music-icon-off{ display:none; }
+.nav-music-btn.is-muted .music-icon-on{ display:none; }
+.nav-music-btn.is-muted .music-icon-off{ display:block; }
+
 /* ================= NAV WIDGETS (search / notifications / account) ================= */
 .nav-icon-btn{
   width:38px;
