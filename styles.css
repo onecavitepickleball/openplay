@@ -192,6 +192,12 @@ a{ color:inherit; }
 }
 .nav-more-menu a:hover{ background: var(--paper-dim); color: var(--ink); }
 
+.nav-mobile-actions{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  flex-shrink:0;
+}
 .nav-toggle{
   display:none;
   background:none;
