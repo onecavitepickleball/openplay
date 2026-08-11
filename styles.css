@@ -103,7 +103,7 @@ a{ color:inherit; }
 .nav-links{
   display:flex;
   align-items:center;
-  gap:4px;
+  gap:3px;
   flex-wrap:wrap;
   justify-content:flex-end;
 }
@@ -115,7 +115,7 @@ a{ color:inherit; }
   text-transform:uppercase;
   text-decoration:none;
   color: var(--ink-soft);
-  padding:9px 14px;
+  padding:9px 11px;
   border-radius:100px;
   border-bottom:none;
   transition: color .15s ease, background .15s ease;
