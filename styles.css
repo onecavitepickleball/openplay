@@ -266,6 +266,16 @@ a{ color:inherit; }
 .nav-music-btn.is-muted .music-icon-on{ display:none; }
 .nav-music-btn.is-muted .music-icon-off{ display:block; }
 
+/* The desktop instance lives inside the collapsible .nav-links menu; on
+   mobile that's hidden behind the hamburger, so a second instance sits
+   directly in the always-visible header bar instead. Only one is shown
+   at a time per breakpoint. */
+.nav-icon-btn.nav-music-btn-mobile{ display:none; }
+@media (max-width: 900px){
+  .nav-icon-btn.nav-music-btn-desktop{ display:none; }
+  .nav-icon-btn.nav-music-btn-mobile{ display:flex; }
+}
+
 /* ================= NAV WIDGETS (search / notifications / account) ================= */
 .nav-icon-btn{
   width:38px;

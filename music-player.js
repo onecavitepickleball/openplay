@@ -9,7 +9,7 @@
   var SAVE_INTERVAL_MS = 1000;
 
   var audio = document.getElementById('ocpcThemeAudio');
-  var btn = document.getElementById('musicToggle');
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.js-music-toggle'));
   if (!audio) return;
 
   function getStoredMuted() {
@@ -26,47 +26,72 @@
     try { localStorage.setItem(TIME_KEY, String(audio.currentTime)); } catch (e) {}
   }
   function reflectMuted(muted) {
-    if (!btn) return;
-    btn.classList.toggle('is-muted', muted);
-    btn.setAttribute('aria-label', muted ? 'Unmute music' : 'Mute music');
+    btns.forEach(function (btn) {
+      btn.classList.toggle('is-muted', muted);
+      btn.setAttribute('aria-label', muted ? 'Unmute music' : 'Mute music');
+    });
+  }
+  function isInsideAnyButton(target) {
+    return btns.some(function (btn) { return btn.contains(target); });
   }
 
-  var userWantsSound = !getStoredMuted();
-
-  try { audio.currentTime = getStoredTime(); } catch (e) {}
-  audio.muted = true;
-  reflectMuted(true);
-
-  var playAttempt = audio.play();
-  if (playAttempt && playAttempt.catch) playAttempt.catch(function () {});
-
-  // Browsers block unmuted autoplay until the visitor interacts with the
-  // page. Audio is already playing muted, so the first tap/click/keypress
-  // anywhere just flips the mute flag; that's allowed without needing a
-  // dedicated "click to play" prompt.
   var hasAutoUnmuted = false;
+  function detachGestureListeners() {
+    ['pointerdown', 'keydown', 'touchstart'].forEach(function (evt) {
+      // Must match the capture:true used when attaching, below.
+      document.removeEventListener(evt, unmuteOnFirstGesture, true);
+    });
+  }
+  // Capture phase, not bubble: several nav widgets (search, notifications,
+  // account panel, mobile menu) call stopPropagation() on their own
+  // click/pointerdown handlers, which would otherwise stop this listener
+  // from ever seeing the event if it were attached on the bubble phase.
   function unmuteOnFirstGesture(e) {
     if (hasAutoUnmuted) return;
-    if (btn && e.target && btn.contains(e.target)) return; // let the button's own click handler manage this
+    if (e.target && isInsideAnyButton(e.target)) return; // the buttons' own click handlers manage this
     hasAutoUnmuted = true;
     if (audio.muted) {
       audio.muted = false;
       reflectMuted(false);
+      audio.play().catch(function () {});
     }
     detachGestureListeners();
   }
-  function detachGestureListeners() {
+  function armGestureUnmute() {
     ['pointerdown', 'keydown', 'touchstart'].forEach(function (evt) {
-      document.removeEventListener(evt, unmuteOnFirstGesture);
-    });
-  }
-  if (userWantsSound) {
-    ['pointerdown', 'keydown', 'touchstart'].forEach(function (evt) {
-      document.addEventListener(evt, unmuteOnFirstGesture, { passive: true });
+      document.addEventListener(evt, unmuteOnFirstGesture, { capture: true, passive: true });
     });
   }
 
-  if (btn) {
+  var userWantsSound = !getStoredMuted();
+  try { audio.currentTime = getStoredTime(); } catch (e) {}
+
+  if (userWantsSound) {
+    // Try playing WITH sound first. A browser that already considers this
+    // origin "engaged" (the visitor unmuted it earlier this same session)
+    // will often allow this immediately, so most page-to-page navigations
+    // never need a fresh gesture at all.
+    audio.muted = false;
+    reflectMuted(false);
+    var directAttempt = audio.play();
+    if (directAttempt && directAttempt.catch) {
+      directAttempt.catch(function () {
+        // Blocked, most likely because this is the first page of the visit.
+        // Fall back to muted autoplay, which every browser allows
+        // unconditionally, then unmute on the first interaction anywhere.
+        audio.muted = true;
+        reflectMuted(true);
+        audio.play().catch(function () {});
+        armGestureUnmute();
+      });
+    }
+  } else {
+    audio.muted = true;
+    reflectMuted(true);
+    audio.play().catch(function () {});
+  }
+
+  btns.forEach(function (btn) {
     btn.addEventListener('click', function () {
       var nowMuted = !audio.muted;
       audio.muted = nowMuted;
@@ -76,7 +101,7 @@
       hasAutoUnmuted = true;
       detachGestureListeners();
     });
-  }
+  });
 
   setInterval(function () {
     if (!audio.paused) saveTime();
