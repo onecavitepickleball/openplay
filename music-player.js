@@ -2,7 +2,8 @@
 // classic multi-page site, not an SPA, so audio can't literally survive a
 // navigation) but playback resumes from the last known timestamp instead of
 // restarting, and mute preference carries over via localStorage, so it
-// reads as continuous even though it technically isn't.
+// reads as continuous even though it technically isn't. Muted always means
+// paused, not just silent, so the mute button doubles as a real stop.
 (function () {
   var TIME_KEY = 'ocpc-music-time';
   var MUTED_KEY = 'ocpc-music-muted';
@@ -50,11 +51,10 @@
     if (hasAutoUnmuted) return;
     if (e.target && isInsideAnyButton(e.target)) return; // the buttons' own click handlers manage this
     hasAutoUnmuted = true;
-    if (audio.muted) {
-      audio.muted = false;
-      reflectMuted(false);
-      audio.play().catch(function () {});
-    }
+    audio.muted = false;
+    reflectMuted(false);
+    setStoredMuted(false);
+    audio.play().catch(function () {});
     detachGestureListeners();
   }
   function armGestureUnmute() {
@@ -65,39 +65,40 @@
 
   var userWantsSound = !getStoredMuted();
   try { audio.currentTime = getStoredTime(); } catch (e) {}
+  audio.muted = false;
+  reflectMuted(!userWantsSound);
 
   if (userWantsSound) {
     // Try playing WITH sound first. A browser that already considers this
     // origin "engaged" (the visitor unmuted it earlier this same session)
     // will often allow this immediately, so most page-to-page navigations
     // never need a fresh gesture at all.
-    audio.muted = false;
-    reflectMuted(false);
     var directAttempt = audio.play();
     if (directAttempt && directAttempt.catch) {
       directAttempt.catch(function () {
         // Blocked, most likely because this is the first page of the visit.
-        // Fall back to muted autoplay, which every browser allows
-        // unconditionally, then unmute on the first interaction anywhere.
-        audio.muted = true;
-        reflectMuted(true);
-        audio.play().catch(function () {});
+        // Stay paused (not muted-and-playing) until the first interaction
+        // anywhere, then unmute and start for real.
         armGestureUnmute();
       });
     }
-  } else {
-    audio.muted = true;
-    reflectMuted(true);
-    audio.play().catch(function () {});
   }
+  // If the visitor previously muted, stay fully paused; no autoplay attempt
+  // at all until they explicitly hit the button again.
 
   btns.forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var nowMuted = !audio.muted;
-      audio.muted = nowMuted;
+      // Toggle off of the button's current visible state, not audio.muted;
+      // pause/play is the real on/off switch, muted is left permanently
+      // false so a stray unmute elsewhere can't un-pause it by accident.
+      var nowMuted = !btn.classList.contains('is-muted');
       setStoredMuted(nowMuted);
       reflectMuted(nowMuted);
-      if (!nowMuted && audio.paused) audio.play().catch(function () {});
+      if (nowMuted) {
+        audio.pause();
+      } else {
+        audio.play().catch(function () {});
+      }
       hasAutoUnmuted = true;
       detachGestureListeners();
     });
