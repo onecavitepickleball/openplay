@@ -833,6 +833,29 @@
         </div>
 
         <div class="dash-card" style="max-width:560px;">
+          <div class="dash-card-head"><h3>Push Notification</h3></div>
+          <p style="font-size:13px; color:var(--ink-soft); margin:-8px 0 18px; line-height:1.6;">
+            Sends to every member who's enabled notifications on their profile. Needs the Blaze plan and a deployed Cloud Function; see project setup notes if this errors out.
+          </p>
+          <form id="pushForm">
+            <div class="form-row">
+              <label for="pushTitle">Title</label>
+              <input type="text" id="pushTitle" placeholder="e.g. Open play starts in 1 hour!" required>
+            </div>
+            <div class="form-row">
+              <label for="pushBody">Message</label>
+              <textarea id="pushBody" rows="2" placeholder="e.g. SM City Rosario, 3:30 PM. See you on the courts." required></textarea>
+            </div>
+            <div class="form-row">
+              <label for="pushUrl">Link <span class="optional-tag">(optional, defaults to homepage)</span></label>
+              <input type="text" id="pushUrl" placeholder="/events/">
+            </div>
+            <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Send Push Notification</button>
+            <div class="admin-msg" id="pushMsg"></div>
+          </form>
+        </div>
+
+        <div class="dash-card" style="max-width:560px;">
           <div class="dash-card-head"><h3>Scrolling Announce Bar</h3></div>
           <p style="font-size:13px; color:var(--ink-soft); margin:-8px 0 18px; line-height:1.6;">
             The scrolling strip at the top of every page. Turn it off between announcements — no code changes needed.
@@ -1921,6 +1944,31 @@
         announceLinkUrl.value = s.linkUrl || '';
       }
     } catch (err) { /* leave defaults blank */ }
+  }
+
+  const pushForm = document.getElementById('pushForm');
+  const pushMsg = document.getElementById('pushMsg');
+  if (pushForm){
+    pushForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('pushTitle').value.trim();
+      const body = document.getElementById('pushBody').value.trim();
+      const url = document.getElementById('pushUrl').value.trim() || '/';
+      pushMsg.style.color = '';
+      pushMsg.textContent = 'Sending…';
+      try {
+        const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-functions.js');
+        const functions = getFunctions(app);
+        const sendPush = httpsCallable(functions, 'sendPush');
+        const result = await sendPush({ title, body, url });
+        pushMsg.style.color = '#2E7D32';
+        pushMsg.textContent = `Sent to ${result.data.sent} device(s).${result.data.failed ? ` ${result.data.failed} failed.` : ''}`;
+        pushForm.reset();
+      } catch (err) {
+        pushMsg.style.color = 'var(--pop)';
+        pushMsg.textContent = 'Something went wrong sending this. Make sure the Cloud Function is deployed.';
+      }
+    });
   }
 
   announceForm.addEventListener('submit', async (e) => {

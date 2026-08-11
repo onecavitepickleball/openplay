@@ -400,6 +400,13 @@
           <p id="projectionText"></p>
         </div>
 
+        <div class="dash-card" id="pushOptInCard" style="display:none;">
+          <div class="dash-card-head"><h3>Notifications</h3></div>
+          <p style="font-size:13.5px; color:var(--ink-soft); margin-bottom:12px;">Get open play reminders and merch drops sent straight to your device.</p>
+          <button class="btn btn-ghost" id="pushOptInBtn" type="button">Enable Notifications</button>
+          <div class="profile-msg" id="pushOptInMsg"></div>
+        </div>
+
         <div class="dash-card">
           <div class="dash-card-head"><h3>Attendance — Last 8 Weeks</h3></div>
           <div class="mini-chart" id="attendanceChart"></div>
@@ -562,6 +569,7 @@
 <script src="/script.js"></script>
 <script src="/music-player.js"></script>
 <script src="/photo-crop.js"></script>
+<script src="/push-notifications.js"></script>
 <script type="module" src="/nav-auth.js"></script>
 <script type="module" src="/giving-widget.js"></script>
 <script type="module">
@@ -765,6 +773,42 @@
       await loadStats(p.firstName, p.lastName, p.nickname, p.aliases);
       await loadOrders(p.email || currentUserEmail);
       await loadCoachingRequests(p.email || currentUserEmail);
+
+      const pushCard = document.getElementById('pushOptInCard');
+      const pushBtn = document.getElementById('pushOptInBtn');
+      const pushMsg = document.getElementById('pushOptInMsg');
+      if (pushCard && 'Notification' in window){
+        pushCard.style.display = 'block';
+        if (Notification.permission === 'granted' && (p.fcmTokens || []).length){
+          pushBtn.textContent = 'Notifications Enabled';
+          pushBtn.disabled = true;
+        } else if (Notification.permission === 'denied'){
+          pushBtn.textContent = 'Blocked in Browser Settings';
+          pushBtn.disabled = true;
+        } else {
+          pushBtn.textContent = 'Enable Notifications';
+          pushBtn.disabled = false;
+          pushBtn.onclick = async () => {
+            pushBtn.disabled = true;
+            pushMsg.style.color = '';
+            pushMsg.textContent = 'Requesting permission…';
+            const result = await window.OCPCPush.subscribe(app, db, uid);
+            if (result.ok){
+              pushMsg.style.color = '#2E7D32';
+              pushMsg.textContent = 'Notifications enabled!';
+              pushBtn.textContent = 'Notifications Enabled';
+            } else {
+              pushBtn.disabled = false;
+              pushMsg.style.color = 'var(--pop)';
+              pushMsg.textContent = result.reason === 'denied'
+                ? 'Permission denied. Enable notifications in your browser settings to try again.'
+                : result.reason === 'not_configured'
+                ? 'Notifications aren\'t set up yet, check back soon.'
+                : 'Something went wrong. Try again.';
+            }
+          };
+        }
+      }
     } catch (err) {
       console.error('loadProfile failed:', err);
       dashboardMsg.style.color = 'var(--pop)';
