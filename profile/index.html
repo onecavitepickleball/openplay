@@ -754,23 +754,7 @@
     dashboardView.style.display = 'block';
   });
 
-  if (location.search.includes('previewcard')){
-    loginView.style.display = 'none';
-    profileView.style.display = 'block';
-    dashboardView.style.display = 'block';
-    editFormView.style.display = 'none';
-    currentUid = 'debug';
-    document.getElementById('profileNameDisplay').textContent = 'James Castillo';
-    setTimeout(() => {
-      renderLoyaltyCard(
-        Array.from({ length: 6 }).map((_, i) => ({ date: `2026-08-0${i + 1}`, names: ['James Castillo'] })),
-        ['james castillo']
-      );
-    }, 0);
-  }
-
   onAuthStateChanged(auth, async (user) => {
-    if (location.search.includes('previewcard')) return;
     if (!user || user.email === ADMIN_ONLY_EMAIL){
       loginView.style.display = 'block';
       profileView.style.display = 'none';
