@@ -752,20 +752,12 @@
     editFormView.style.display = 'none';
     currentUid = 'debug';
     document.getElementById('profileNameDisplay').textContent = 'James Castillo';
-    const dbg = document.createElement('pre');
-    dbg.id = 'previewDebug';
-    dbg.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:99999; background:#fee; color:#900; padding:8px; font-size:11px; white-space:pre-wrap; max-height:40vh; overflow:auto;';
-    document.body.prepend(dbg);
-    try {
-      dbg.textContent += 'calling renderLoyaltyCard...\n';
+    setTimeout(() => {
       renderLoyaltyCard(
         Array.from({ length: 6 }).map((_, i) => ({ date: `2026-08-0${i + 1}`, names: ['James Castillo'] })),
         ['james castillo']
       );
-      dbg.textContent += 'done. wrapDisplay=' + document.getElementById('loyaltyWrap').style.display + ' gridLen=' + document.getElementById('stampGrid').innerHTML.length;
-    } catch (e) {
-      dbg.textContent += 'ERROR: ' + e.message + '\n' + e.stack;
-    }
+    }, 0);
   }
 
   onAuthStateChanged(auth, async (user) => {
