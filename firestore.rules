@@ -360,6 +360,23 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Loyalty card reward claims. A player files a claim when their card
+    // completes a 10-stamp cycle (one per attendance session, tracked
+    // client-side on the profile page); it starts pending and only counts
+    // once an admin or Court Manager confirms it was actually redeemed at
+    // the courts, same pending-then-approved shape as selfCheckins and
+    // ladderChallenges, so a player can't just mark their own reward used.
+    match /loyaltyRedemptions/{redemptionId} {
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.cycleNumber is int && request.resource.data.cycleNumber > 0
+        && request.resource.data.name is string && request.resource.data.name.size() > 0;
+      allow read: if isAdmin() || hasRole('court_manager')
+        || (request.auth != null && request.auth.uid == resource.data.uid);
+      allow update, delete: if isAdmin() || hasRole('court_manager');
+    }
+
     // Site-wide settings, hand-edited from admin.html (currently just the
     // scrolling announce bar shown at the top of every page). Public read
     // so every page can render it without logging in; admin-only write.

@@ -414,7 +414,7 @@
         <button class="dash-nav-item" data-tab="mycoaching">My Coaching Requests</button>
         <button class="dash-nav-item" data-tab="discounts">Discounts</button>
         <button class="dash-nav-item" data-tab="fundraiser">Fundraiser</button>
-        <button class="dash-nav-item" data-tab="attendance">Attendance</button>
+        <button class="dash-nav-item" data-tab="attendance">Attendance <span class="dash-nav-badge" id="pendingLoyaltyBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="ladder">Ladder <span class="dash-nav-badge" id="pendingLadderBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="members">Members <span class="dash-nav-badge" id="pendingSignupsBadge" hidden></span></button>
         <button class="dash-nav-item" data-tab="testimonials">Testimonials <span class="dash-nav-badge" id="pendingTestimonialsBadge" hidden></span></button>
@@ -745,6 +745,11 @@
         <div class="dash-card-head"><h3>Self Check-In Requests</h3></div>
         <div class="orders-table-wrap" style="margin-bottom:24px;">
           <div id="selfCheckinList"><div class="signup-empty">No pending self check-ins.</div></div>
+        </div>
+
+        <div class="dash-card-head"><h3>Loyalty Card Redemptions</h3></div>
+        <div class="orders-table-wrap" style="margin-bottom:24px;">
+          <div id="loyaltyRedemptionList"><div class="signup-empty">No pending redemptions.</div></div>
         </div>
 
         <div class="panel-toolbar">
@@ -2668,6 +2673,7 @@
     loadKnownNames();
     if (isAdmin) renderAttendanceAlerts();
     loadSelfCheckins();
+    loadLoyaltyRedemptions();
   }
 
   // ================= SELF CHECK-IN (QR) REQUESTS =================
@@ -2740,6 +2746,63 @@
       await loadSelfCheckins();
     } catch (err) {
       alert('Something went wrong updating this request. Try again.');
+    }
+  }
+
+  // ================= LOYALTY CARD REDEMPTIONS =================
+  const loyaltyRedemptionList = document.getElementById('loyaltyRedemptionList');
+  const pendingLoyaltyBadge = document.getElementById('pendingLoyaltyBadge');
+
+  async function loadLoyaltyRedemptions(){
+    if (!loyaltyRedemptionList) return;
+    try {
+      const snap = await getDocs(query(collection(db, 'loyaltyRedemptions'), where('status', '==', 'pending')));
+      const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      renderLoyaltyRedemptionList(requests);
+      if (pendingLoyaltyBadge){
+        pendingLoyaltyBadge.hidden = requests.length === 0;
+        pendingLoyaltyBadge.textContent = requests.length;
+      }
+    } catch (err) {
+      loyaltyRedemptionList.innerHTML = '<div class="signup-empty">Couldn\'t load redemptions.</div>';
+    }
+  }
+
+  function renderLoyaltyRedemptionList(requests){
+    if (!requests.length){
+      loyaltyRedemptionList.innerHTML = '<div class="signup-empty">No pending redemptions.</div>';
+      return;
+    }
+    loyaltyRedemptionList.innerHTML = requests.map(r => `
+      <div class="admin-row">
+        <div>
+          <div class="admin-row-date">${escapeHtml(r.name)}</div>
+          <div class="admin-row-names">Cycle ${escapeHtml(String(r.cycleNumber))}, 10 stamps earned</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="signup-btn approve" data-action="fulfill-loyalty" data-id="${r.id}">Mark Redeemed</button>
+          <button class="signup-btn reject" data-action="reject-loyalty" data-id="${r.id}">Reject</button>
+        </div>
+      </div>
+    `).join('');
+
+    loyaltyRedemptionList.querySelectorAll('[data-action="fulfill-loyalty"]').forEach(btn => {
+      btn.addEventListener('click', () => resolveLoyaltyRedemption(btn.dataset.id, 'fulfilled'));
+    });
+    loyaltyRedemptionList.querySelectorAll('[data-action="reject-loyalty"]').forEach(btn => {
+      btn.addEventListener('click', () => resolveLoyaltyRedemption(btn.dataset.id, 'rejected'));
+    });
+  }
+
+  async function resolveLoyaltyRedemption(id, status){
+    try {
+      await updateDoc(doc(db, 'loyaltyRedemptions', id), {
+        status, resolvedBy: auth.currentUser ? auth.currentUser.uid : null, resolvedAt: serverTimestamp()
+      });
+      await loadLoyaltyRedemptions();
+    } catch (err) {
+      alert('Something went wrong updating this redemption. Try again.');
     }
   }
 

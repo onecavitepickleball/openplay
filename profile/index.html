@@ -298,6 +298,13 @@
     font-size:9.5px; letter-spacing:0.04em; text-transform:uppercase; color: var(--sky-deep);
   }
   .loyalty-reward.is-earned{ color:#2E7D32; font-weight:700; }
+  .loyalty-claim-btn{
+    margin-left:6px; font-family: var(--font-mono); font-size:9.5px; letter-spacing:0.04em;
+    text-transform:uppercase; color:#fff; background:#2E7D32; border:none; border-radius:20px;
+    padding:5px 12px; cursor:pointer;
+  }
+  .loyalty-claim-btn:disabled{ opacity:0.6; cursor:default; }
+  .loyalty-claim-btn:hover:not(:disabled){ background:#256428; }
   .loyalty-flip-hint{
     text-align:center; font-family: var(--font-mono); font-size:10.5px;
     color: var(--ink-faint); margin-top:8px; letter-spacing:0.03em;
@@ -709,7 +716,7 @@
 <script type="module" src="/giving-widget.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, updateDoc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, updateDoc, setDoc, collection, getDocs, query, where, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail
   } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
@@ -1005,17 +1012,23 @@
     } catch (err) { console.error('loadStats failed:', err); }
   }
 
-  const PICKLEBALL_STAMP_SVG = `
+  const PADDLE_STAMP_SVG = `
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-      <circle cx="12" cy="12" r="9"/>
-      <circle cx="9" cy="8.5" r="1.1" fill="currentColor" stroke="none"/>
-      <circle cx="15.5" cy="9" r="1.1" fill="currentColor" stroke="none"/>
-      <circle cx="8" cy="14" r="1.1" fill="currentColor" stroke="none"/>
-      <circle cx="13" cy="15.5" r="1.1" fill="currentColor" stroke="none"/>
-      <circle cx="17" cy="13.5" r="1.1" fill="currentColor" stroke="none"/>
+      <ellipse cx="12" cy="9" rx="6.5" ry="8"/>
+      <circle cx="9.5" cy="6" r="0.6" fill="currentColor" stroke="none"/>
+      <circle cx="12.5" cy="5.3" r="0.6" fill="currentColor" stroke="none"/>
+      <circle cx="15" cy="6.5" r="0.6" fill="currentColor" stroke="none"/>
+      <circle cx="8.3" cy="9" r="0.6" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="8.6" r="0.6" fill="currentColor" stroke="none"/>
+      <circle cx="15.7" cy="9.3" r="0.6" fill="currentColor" stroke="none"/>
+      <circle cx="9" cy="12" r="0.6" fill="currentColor" stroke="none"/>
+      <circle cx="12.3" cy="11.8" r="0.6" fill="currentColor" stroke="none"/>
+      <circle cx="15.2" cy="12.3" r="0.6" fill="currentColor" stroke="none"/>
+      <line x1="12" y1="17" x2="12" y2="22.5"/>
     </svg>
   `;
   const STAMP_ROTATIONS = [-7, 5, -4, 8, -9, 3, -5, 6, -3, 7];
+  const LOYALTY_START_DATE = '2026-08-01';
 
   function renderLoyaltyCard(allRecords, keys){
     const wrap = document.getElementById('loyaltyWrap');
@@ -1025,10 +1038,11 @@
 
     // Every date this player's name (or an alias) shows up in an
     // attendance doc counts as one stamp, oldest first, so the card
-    // fills in the order sessions actually happened.
+    // fills in the order sessions actually happened. Sessions before the
+    // loyalty program's launch don't retroactively count.
     const dates = [];
     allRecords.forEach(r => {
-      if (typeof r.date !== 'string') return;
+      if (typeof r.date !== 'string' || r.date < LOYALTY_START_DATE) return;
       if ((r.names || []).some(n => keys.includes(String(n).trim().toLowerCase()))) dates.push(r.date);
     });
     dates.sort();
@@ -1053,7 +1067,7 @@
       if (filled){
         return `
           <div class="stamp-slot filled">
-            <div class="stamp-circle" style="--stamp-rot:${rot}deg;">${PICKLEBALL_STAMP_SVG}</div>
+            <div class="stamp-circle" style="--stamp-rot:${rot}deg;">${PADDLE_STAMP_SVG}</div>
             <div class="stamp-date">${escapeHtml(formatStampDate(cycleDates[i]))}</div>
           </div>
         `;
@@ -1067,14 +1081,69 @@
     }).join('');
 
     if (posInCycle >= 10){
-      reward.className = 'loyalty-reward is-earned';
-      reward.textContent = '🎉 Free open play earned! See an officer to redeem.';
+      renderLoyaltyClaim(reward, total / 10);
     } else {
       reward.className = 'loyalty-reward';
       reward.textContent = `${10 - posInCycle} more stamp${10 - posInCycle === 1 ? '' : 's'} to a free open play`;
     }
 
     wrap.style.display = total > 0 ? 'block' : 'none';
+  }
+
+  // A completed 10-stamp cycle isn't auto-redeemed, the player taps a
+  // button to file a claim, which lands in the admin dashboard for
+  // confirmation before it counts as used (same pending-then-approved
+  // pattern as self check-in and ladder results).
+  async function renderLoyaltyClaim(reward, cycleNumber){
+    if (!currentUid) return;
+    reward.className = 'loyalty-reward is-earned';
+    reward.textContent = 'Checking reward status…';
+
+    let existing = null;
+    try {
+      const q = query(
+        collection(db, 'loyaltyRedemptions'),
+        where('uid', '==', currentUid),
+        where('cycleNumber', '==', cycleNumber)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) existing = snap.docs[0].data();
+    } catch (err) {
+      console.error('loyalty redemption lookup failed:', err);
+    }
+
+    if (existing && existing.status === 'fulfilled'){
+      reward.textContent = '✅ Redeemed, enjoy your free open play!';
+      return;
+    }
+    if (existing && existing.status === 'pending'){
+      reward.textContent = '📨 Claim submitted. An officer will confirm it at the courts.';
+      return;
+    }
+
+    reward.innerHTML = `🎉 Free open play earned! <button type="button" class="loyalty-claim-btn" id="loyaltyClaimBtn">Claim it</button>`;
+    const btn = document.getElementById('loyaltyClaimBtn');
+    if (btn){
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        btn.disabled = true;
+        btn.textContent = 'Submitting…';
+        try {
+          await addDoc(collection(db, 'loyaltyRedemptions'), {
+            uid: currentUid,
+            name: document.getElementById('profileNameDisplay').textContent.trim(),
+            cycleNumber,
+            status: 'pending',
+            createdAt: serverTimestamp()
+          });
+          reward.textContent = '📨 Claim submitted. An officer will confirm it at the courts.';
+        } catch (err) {
+          console.error('loyalty claim submit failed:', err);
+          btn.disabled = false;
+          btn.textContent = 'Claim it';
+        }
+      });
+    }
   }
 
   const loyaltyCard = document.getElementById('loyaltyCard');
