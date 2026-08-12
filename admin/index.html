@@ -271,6 +271,15 @@
   .signup-btn.approve:hover{ background: var(--sky-deep); color:#FFFFFF; }
   .signup-btn.reject:hover{ border-color: var(--pop); color: var(--pop); }
 
+  .month-filter-list{ display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 14px; }
+  .month-filter-btn{
+    font-family: var(--font-mono); font-size:11px; letter-spacing:0.03em; text-transform:uppercase;
+    border: 1.5px solid var(--line); border-radius:20px; padding:6px 13px;
+    background:none; cursor:pointer; color: var(--ink-soft); font-weight:700;
+  }
+  .month-filter-btn:hover{ border-color: var(--sky-deep); color: var(--sky-deep); }
+  .month-filter-btn.active{ background: var(--sky-deep); border-color: var(--sky-deep); color:#FFFFFF; }
+
   .att-chip-list{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
   .att-chip{
     display:inline-flex; align-items:center; gap:6px;
@@ -752,11 +761,17 @@
           <div id="loyaltyRedemptionList"><div class="signup-empty">No pending redemptions.</div></div>
         </div>
 
+        <div class="dash-card-head"><h3>Archived Loyalty Cards</h3></div>
+        <div class="orders-table-wrap" style="margin-bottom:24px;">
+          <div id="loyaltyArchivedList"><div class="signup-empty">No archived cards.</div></div>
+        </div>
+
         <div class="panel-toolbar">
           <button class="signup-btn" id="exportAttendanceBtn" type="button">Export CSV</button>
         </div>
         <div class="orders-table-wrap">
-          <div class="admin-list-label" style="padding:14px 16px 0;">Recent Entries</div>
+          <div class="admin-list-label" style="padding:14px 16px 0;" id="adminListLabel">Recent Entries (Last 4 Weeks)</div>
+          <div class="month-filter-list" id="monthFilterList"></div>
           <div id="adminList"></div>
         </div>
       </section>
@@ -2674,6 +2689,7 @@
     if (isAdmin) renderAttendanceAlerts();
     loadSelfCheckins();
     loadLoyaltyRedemptions();
+    loadLoyaltyArchivedRedemptions();
   }
 
   // ================= SELF CHECK-IN (QR) REQUESTS =================
@@ -2806,6 +2822,60 @@
     }
   }
 
+  // A player can archive their own fulfilled card from the profile page
+  // (hides the greyed-out used card from their view); this is where an
+  // admin can undo that if it was archived by mistake.
+  const loyaltyArchivedList = document.getElementById('loyaltyArchivedList');
+
+  async function loadLoyaltyArchivedRedemptions(){
+    if (!loyaltyArchivedList) return;
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'loyaltyRedemptions'),
+        where('status', '==', 'fulfilled'),
+        where('archived', '==', true)
+      ));
+      const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      renderLoyaltyArchivedList(requests);
+    } catch (err) {
+      loyaltyArchivedList.innerHTML = '<div class="signup-empty">Couldn\'t load archived cards.</div>';
+    }
+  }
+
+  function renderLoyaltyArchivedList(requests){
+    if (!requests.length){
+      loyaltyArchivedList.innerHTML = '<div class="signup-empty">No archived cards.</div>';
+      return;
+    }
+    loyaltyArchivedList.innerHTML = requests.map(r => `
+      <div class="admin-row">
+        <div>
+          <div class="admin-row-date">${escapeHtml(r.name)}</div>
+          <div class="admin-row-names">Cycle ${escapeHtml(String(r.cycleNumber))}, redeemed and archived</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="signup-btn approve" data-action="unarchive-loyalty" data-id="${r.id}">Unarchive</button>
+        </div>
+      </div>
+    `).join('');
+
+    loyaltyArchivedList.querySelectorAll('[data-action="unarchive-loyalty"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Unarchiving…';
+        try {
+          await updateDoc(doc(db, 'loyaltyRedemptions', btn.dataset.id), { archived: false });
+          await loadLoyaltyArchivedRedemptions();
+        } catch (err) {
+          alert('Something went wrong unarchiving this card. Try again.');
+          btn.disabled = false;
+          btn.textContent = 'Unarchive';
+        }
+      });
+    });
+  }
+
   // ================= LADDER =================
   const ladderConfirmList = document.getElementById('ladderConfirmList');
   const ladderAllList = document.getElementById('ladderAllList');
@@ -2896,8 +2966,64 @@
     }
   }
 
+  // Attendance can pile up fast, so anything older than the current
+  // 4-week window (the same rolling window the leaderboard uses) is
+  // tucked behind a month picker instead of cluttering the default view.
+  let attendanceViewMonth = 'recent';
+  const monthFilterList = document.getElementById('monthFilterList');
+  const adminListLabel = document.getElementById('adminListLabel');
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function attendanceCutoffDate(){
+    const d = new Date();
+    d.setDate(d.getDate() - 28);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function renderMonthFilters(){
+    if (!monthFilterList) return;
+    const cutoff = attendanceCutoffDate();
+    const months = new Set();
+    allRecords.forEach(r => {
+      if (typeof r.date !== 'string' || r.date.length < 7) return;
+      if (r.date >= cutoff) return; // already covered by the "Recent" button
+      months.add(r.date.slice(0, 7));
+    });
+    const sortedMonths = Array.from(months).sort((a, b) => b.localeCompare(a));
+
+    const buttons = [`<button type="button" class="month-filter-btn${attendanceViewMonth === 'recent' ? ' active' : ''}" data-month="recent">Last 4 Weeks</button>`]
+      .concat(sortedMonths.map(m => {
+        const [y, mo] = m.split('-');
+        const label = `${MONTH_NAMES[parseInt(mo, 10) - 1]} ${y}`;
+        return `<button type="button" class="month-filter-btn${attendanceViewMonth === m ? ' active' : ''}" data-month="${m}">${label}</button>`;
+      }));
+    monthFilterList.innerHTML = buttons.join('');
+
+    monthFilterList.querySelectorAll('.month-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        attendanceViewMonth = btn.dataset.month;
+        renderAdminList();
+      });
+    });
+  }
+
   function renderAdminList(){
-    const recent = [...allRecords].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 20);
+    renderMonthFilters();
+    const cutoff = attendanceCutoffDate();
+    let filtered;
+    if (attendanceViewMonth === 'recent'){
+      filtered = allRecords.filter(r => typeof r.date === 'string' && r.date >= cutoff);
+      if (adminListLabel) adminListLabel.textContent = 'Recent Entries (Last 4 Weeks)';
+    } else {
+      filtered = allRecords.filter(r => typeof r.date === 'string' && r.date.slice(0, 7) === attendanceViewMonth);
+      const [y, mo] = attendanceViewMonth.split('-');
+      if (adminListLabel) adminListLabel.textContent = `${MONTH_NAMES[parseInt(mo, 10) - 1]} ${y} Entries`;
+    }
+    const recent = filtered.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    if (!recent.length){
+      adminList.innerHTML = '<div class="signup-empty">No attendance entries in this period.</div>';
+      return;
+    }
     adminList.innerHTML = recent.map(r => `
       <div class="admin-row">
         <div>

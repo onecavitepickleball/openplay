@@ -83,12 +83,22 @@
     text-align:center; font-family: var(--font-mono); font-size:10.5px;
     color: var(--ink-faint); margin-top:8px; letter-spacing:0.03em;
   }
-  .loyalty-used-list{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
-  .loyalty-used-card{ display:flex; align-items:center; gap:10px; background: var(--paper-dim); border-radius:10px; padding:8px 10px; }
-  .loyalty-used-thumb{ width:44px; height:auto; border-radius:6px; flex-shrink:0; filter: grayscale(1) brightness(0.9); opacity:0.7; }
-  .loyalty-used-info{ flex:1; min-width:0; }
-  .loyalty-used-label{ font-size:12.5px; font-weight:700; color: var(--ink-soft); }
-  .loyalty-used-status{ font-size:11px; color: var(--ink-faint); margin-top:1px; }
+  .loyalty-used-list{ display:flex; flex-direction:column; gap:20px; margin-top:20px; }
+  .loyalty-used-card-wrap{ max-width:440px; }
+  .loyalty-used-card-inner{
+    position:relative; width:100%; aspect-ratio: 858 / 575; border-radius:16px;
+    overflow:hidden; box-shadow: 0 10px 24px rgba(11,36,54,0.2);
+    filter: grayscale(1) brightness(0.88);
+  }
+  .loyalty-used-card-inner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .loyalty-used-ribbon{
+    position:absolute; top:16px; right:-38px; width:160px; text-align:center;
+    background: var(--pop); color:#fff; font-family: var(--font-mono); font-size:11px;
+    font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:5px 0;
+    transform:rotate(38deg); box-shadow:0 2px 6px rgba(0,0,0,0.25);
+  }
+  .loyalty-used-actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; }
+  .loyalty-used-caption{ font-size:12px; color: var(--ink-soft); font-weight:700; }
   .loyalty-archive-btn{
     font-family: var(--font-mono); font-size:10px; letter-spacing:0.03em; text-transform:uppercase;
     color: var(--ink-soft); background: var(--white); border:1px solid var(--line); border-radius:20px;
@@ -207,15 +217,17 @@
     const usedList = document.getElementById('loyaltyUsedCards');
     const wrap = document.getElementById('loyaltyWrap');
 
-    const completedCycles = Math.floor(totalStamps / 10);
-    let posInCycle = totalStamps === 0 ? 0 : (totalStamps % 10 === 0 ? 10 : totalStamps % 10);
-    let activeCycleNumber = posInCycle === 10 ? completedCycles : completedCycles + 1;
-
-    const boundaryRedemption = posInCycle === 10 ? redemptions[activeCycleNumber] : null;
-    if (boundaryRedemption && boundaryRedemption.status === 'fulfilled'){
-      activeCycleNumber += 1;
-      posInCycle = 0;
+    // Same "lowest not-yet-fulfilled cycle" logic as the real profile
+    // page: a completed-but-unclaimed (or claimed-but-unconfirmed) card
+    // keeps showing here no matter how many more stamps come in behind
+    // it, exactly like a real stamp card that isn't replaced until it's
+    // actually redeemed.
+    let activeCycleNumber = 1;
+    while (redemptions[activeCycleNumber] && redemptions[activeCycleNumber].status === 'fulfilled'){
+      activeCycleNumber++;
     }
+    const stampsBeforeActive = (activeCycleNumber - 1) * 10;
+    const posInCycle = Math.max(0, Math.min(10, totalStamps - stampsBeforeActive));
 
     const dates = Array.from({ length: totalStamps }).map((_, i) => {
       const d = i + 1;
@@ -223,7 +235,7 @@
       const dd = ((d - 1) % 28) + 1;
       return `2026-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
     });
-    const cycleDates = posInCycle > 0 ? dates.slice(totalStamps - posInCycle, totalStamps) : [];
+    const cycleDates = posInCycle > 0 ? dates.slice(stampsBeforeActive, stampsBeforeActive + posInCycle) : [];
 
     grid.innerHTML = STAMP_POSITIONS.map((pos, i) => {
       if (i >= cycleDates.length) return '';
@@ -246,7 +258,7 @@
         reward.textContent = 'Redeemed, enjoy your free Open Play!';
         fulfillBtn.disabled = true;
       } else if (existing && existing.status === 'pending'){
-        reward.textContent = 'Claim submitted, awaiting officer confirmation';
+        reward.textContent = 'Claim submitted, awaiting admin confirmation';
         fulfillBtn.disabled = false;
       } else {
         const confettiKey = 'demo-confetti-' + activeCycleNumber;
@@ -274,26 +286,28 @@
     }
 
     const usedCycleNumbers = [];
-    for (let i = 1; i <= completedCycles; i++){
-      if (i === activeCycleNumber) continue;
+    for (let i = 1; i < activeCycleNumber; i++){
       const r = redemptions[i];
-      if (r && r.status === 'fulfilled' && !r.archived) usedCycleNumbers.push(i);
+      if (r && !r.archived) usedCycleNumbers.push(i);
     }
     usedList.innerHTML = usedCycleNumbers.map(n => `
-      <div class="loyalty-used-card" data-cycle="${n}">
-        <img class="loyalty-used-thumb" src="/assets/loyalty-card-front.png" alt="">
-        <div class="loyalty-used-info">
-          <div class="loyalty-used-label">Cycle ${n} card</div>
-          <div class="loyalty-used-status">Redeemed, all 10 stamps used</div>
+      <div class="loyalty-used-card-wrap" data-cycle="${n}">
+        <div class="loyalty-used-card-inner">
+          <img src="/assets/loyalty-card-back.png" alt="Used loyalty card, cycle ${n}">
+          <div class="loyalty-used-ribbon">Redeemed</div>
         </div>
-        <button type="button" class="loyalty-archive-btn" data-cycle="${n}">Archive</button>
+        <div class="loyalty-used-actions">
+          <span class="loyalty-used-caption">Cycle ${n} card, all 10 stamps used</span>
+          <button type="button" class="loyalty-archive-btn" data-cycle="${n}">Archive</button>
+        </div>
       </div>
     `).join('');
     usedList.querySelectorAll('.loyalty-archive-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const n = parseInt(btn.dataset.cycle, 10);
+        if (!confirm('Archive this loyalty card? It\'ll be hidden from your profile. Ask an admin if you ever need it restored.')) return;
         redemptions[n].archived = true;
-        say('Cycle ' + n + ' archived and hidden from the list.');
+        say('Cycle ' + n + ' archived and hidden from the list. An admin could unarchive it from the admin dashboard.');
         render();
       });
     });
