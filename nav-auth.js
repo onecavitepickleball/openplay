@@ -77,6 +77,7 @@ function renderAccountPill(user, firstName){
       </div>
       <div class="nav-account-links">
         <a class="nav-account-link" href="/profile/">My Profile</a>
+        <a class="nav-account-link" href="/check-in/">Self Check-In</a>
         <a class="nav-account-link" href="/leaderboard/">Leaderboard</a>
         <a class="nav-account-link is-signout" href="#" id="navSignOutBtn">Sign Out</a>
       </div>
