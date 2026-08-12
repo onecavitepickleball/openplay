@@ -196,13 +196,13 @@
   /* ---- Loyalty card ---- */
   .loyalty-wrap{
     perspective: 1400px;
-    max-width:400px;
+    max-width:440px;
     margin:0 0 24px;
   }
   .loyalty-card{
     position:relative;
     width:100%;
-    aspect-ratio: 1.9 / 1;
+    aspect-ratio: 1.72 / 1;
     cursor:pointer;
     transform-style: preserve-3d;
     transition: transform 0.7s cubic-bezier(.4,.2,.2,1);
@@ -217,60 +217,86 @@
     box-shadow: 0 14px 34px rgba(11,36,54,0.28);
     overflow:hidden;
   }
+
+  /* Front: navy diagonal field, angled accent bands, big headline, ball
+     graphic bleeding off the bottom-right corner. */
   .loyalty-front{
     background:
-      radial-gradient(circle at 88% 82%, rgba(255,255,255,0.08), transparent 40%),
-      linear-gradient(135deg, var(--navy-deep) 0%, var(--navy) 55%, var(--sky-deep) 100%);
+      linear-gradient(115deg, transparent 0%, transparent 58%, rgba(94,151,220,0.35) 58%, rgba(94,151,220,0.35) 63%, transparent 63%),
+      linear-gradient(115deg, transparent 0%, transparent 70%, rgba(94,151,220,0.22) 70%, rgba(94,151,220,0.22) 76%, transparent 76%),
+      radial-gradient(circle at 92% 88%, rgba(255,255,255,0.10), transparent 42%),
+      linear-gradient(150deg, #0a1f38 0%, #0e2c52 45%, #1b4a86 100%);
     color: var(--paper);
-    padding:22px 24px;
+    padding:16px 20px;
     display:flex; flex-direction:column; justify-content:space-between;
   }
-  .loyalty-front-top{ display:flex; align-items:center; gap:10px; }
-  .loyalty-front-top img{ width:30px; height:30px; border-radius:6px; flex-shrink:0; }
-  .loyalty-front-brand{ font-family: var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color: rgba(245,243,238,0.75); line-height:1.4; }
+  .loyalty-front-logo{
+    display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    position:relative; z-index:2; width:118px;
+  }
+  .loyalty-front-logo span{
+    font-family: var(--font-mono); font-size:7px; letter-spacing:0.14em;
+    text-transform:uppercase; color: rgba(245,243,238,0.8); font-weight:700;
+  }
+  .loyalty-front-logo img{ width:100%; height:auto; display:block; margin:1px 0; }
+  .loyalty-front-player{
+    position:absolute; right:2%; top:8%; height:74%; width:auto;
+    opacity:0.16; filter: brightness(4) saturate(0);
+    pointer-events:none;
+  }
+  .loyalty-front-mid{ position:relative; z-index:2; }
   .loyalty-front-title{
-    font-family: var(--font-display); text-transform:uppercase; line-height:0.95;
-    font-size:clamp(24px, 7vw, 34px);
+    font-family: var(--font-display); text-transform:uppercase; line-height:0.92;
+    font-size:clamp(26px, 8.5vw, 40px); font-weight:800; color:#fff;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.25);
   }
-  .loyalty-front-title span{ display:block; font-size:0.62em; color: var(--sky); }
-  .loyalty-front-tag{ font-family: var(--font-mono); font-size:9.5px; letter-spacing:0.06em; text-transform:uppercase; color: rgba(245,243,238,0.6); }
+  .loyalty-front-title span{
+    display:block; font-size:0.52em; letter-spacing:0.03em; color: var(--sky); font-weight:700;
+  }
+  .loyalty-front-tag{
+    position:relative; z-index:2; font-family: var(--font-mono); font-size:8.5px;
+    letter-spacing:0.09em; text-transform:uppercase; color: rgba(245,243,238,0.72);
+  }
   .loyalty-ball{
-    position:absolute; right:-18px; bottom:-18px; width:100px; height:100px;
-    border-radius:50%; background: var(--sky); opacity:0.9;
+    position:absolute; right:-14%; bottom:-18%; width:42%; max-width:130px;
+    z-index:1; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.3));
   }
-  .loyalty-ball::before{
-    content:''; position:absolute; inset:0; border-radius:50%;
-    background-image:
-      radial-gradient(circle, rgba(11,36,54,0.35) 22%, transparent 23%);
-    background-size: 20px 20px;
-    background-position: 8px 10px, 28px 30px, 50px 15px, 15px 50px, 60px 55px, 35px 70px;
-  }
+
+  /* Back: white field, stamp grid on the left, a reward ribbon on the
+     right, terms + brand mark along the bottom. */
   .loyalty-back{
-    background: var(--white);
+    background:
+      linear-gradient(115deg, rgba(27,74,134,0.9) 0%, rgba(27,74,134,0.9) 3.5%, transparent 3.5%),
+      linear-gradient(115deg, rgba(94,151,220,0.5) 0%, rgba(94,151,220,0.5) 5.5%, transparent 5.5%),
+      var(--white);
     color: var(--ink);
     transform: rotateY(180deg);
-    padding:16px 18px;
+    padding:14px 16px 10px;
     display:flex; flex-direction:column;
   }
-  .loyalty-back-head{ text-align:center; margin-bottom:10px; }
-  .loyalty-back-head h4{ font-family: var(--font-display); text-transform:uppercase; font-size:15px; letter-spacing:0.01em; }
-  .loyalty-back-head p{ font-size:9.5px; color: var(--ink-faint); line-height:1.3; margin-top:2px; }
+  .loyalty-back-head{ margin-bottom:8px; }
+  .loyalty-back-head h4{
+    font-family: var(--font-display); text-transform:uppercase; font-size:clamp(13px, 3.6vw, 17px);
+    letter-spacing:0.01em; color: var(--navy-deep); font-weight:800;
+    border-bottom:2px solid var(--sky-deep); display:inline-block; padding-bottom:2px;
+  }
+  .loyalty-back-head p{ font-size:8.5px; color: var(--ink-faint); line-height:1.35; margin-top:4px; max-width:340px; }
+  .loyalty-back-body{ flex:1; display:flex; align-items:center; gap:10px; min-height:0; }
   .stamp-grid{
     flex:1;
     display:grid;
     grid-template-columns: repeat(5, 1fr);
-    gap:6px 4px;
-    align-content:center;
+    gap:6px 5px;
   }
   .stamp-slot{
     display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
   }
   .stamp-circle{
-    width:100%; max-width:44px; aspect-ratio:1;
+    width:100%; max-width:38px; aspect-ratio:1;
     border-radius:50%;
     display:flex; align-items:center; justify-content:center;
-    border: 1.5px dashed var(--line);
-    color: var(--ink-faint);
+    border: 1.5px solid var(--navy-deep);
+    color: var(--navy-deep);
   }
   .stamp-slot.filled .stamp-circle{
     border: 2px solid var(--pop);
@@ -282,10 +308,10 @@
     animation: stamp-press 0.35s ease-out;
   }
   .stamp-slot.filled .stamp-circle svg{ width:58%; height:58%; }
-  .stamp-num{ font-family: var(--font-mono); font-size:11px; opacity:0.5; }
+  .stamp-num{ font-family: var(--font-mono); font-size:11px; font-weight:700; }
   .stamp-date{
-    font-family: var(--font-mono); font-size:7.5px; letter-spacing:0.02em;
-    color: var(--ink-faint); margin-top:3px; text-align:center; line-height:1.1;
+    font-family: var(--font-mono); font-size:6.8px; letter-spacing:0.02em;
+    color: var(--ink-faint); margin-top:2px; text-align:center; line-height:1.1;
   }
   .stamp-slot.filled .stamp-date{ color: var(--ink-soft); font-weight:700; }
   @keyframes stamp-press{
@@ -293,18 +319,33 @@
     60%{ opacity:0.95; }
     100%{ transform: rotate(var(--stamp-rot, -6deg)) scale(1); opacity:0.85; }
   }
+  .loyalty-divider{ width:1px; align-self:stretch; background: var(--line); flex-shrink:0; }
   .loyalty-reward{
-    margin-top:8px; text-align:center; font-family: var(--font-mono);
-    font-size:9.5px; letter-spacing:0.04em; text-transform:uppercase; color: var(--sky-deep);
+    width:88px; flex-shrink:0;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--sky-deep) 100%);
+    color:#fff; border-radius:10px; padding:8px 7px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+    text-align:center;
+    font-family: var(--font-display); text-transform:uppercase; font-size:11px; line-height:1.15;
   }
-  .loyalty-reward.is-earned{ color:#2E7D32; font-weight:700; }
+  .loyalty-reward.is-earned{ background: linear-gradient(135deg, #2E7D32 0%, #4C9A52 100%); }
+  .loyalty-reward-ball{ width:22px; height:22px; flex-shrink:0; }
   .loyalty-claim-btn{
-    margin-left:6px; font-family: var(--font-mono); font-size:9.5px; letter-spacing:0.04em;
-    text-transform:uppercase; color:#fff; background:#2E7D32; border:none; border-radius:20px;
-    padding:5px 12px; cursor:pointer;
+    font-family: var(--font-mono); font-size:8px; letter-spacing:0.03em;
+    text-transform:uppercase; color: var(--navy-deep); background:#fff; border:none; border-radius:20px;
+    padding:4px 9px; cursor:pointer; font-weight:700;
   }
   .loyalty-claim-btn:disabled{ opacity:0.6; cursor:default; }
-  .loyalty-claim-btn:hover:not(:disabled){ background:#256428; }
+  .loyalty-claim-btn:hover:not(:disabled){ background: var(--paper-dim); }
+  .loyalty-back-foot{
+    margin-top:8px; padding-top:6px; border-top:1px solid var(--line);
+    display:flex; align-items:flex-end; justify-content:space-between; gap:8px;
+  }
+  .loyalty-terms{ font-size:6.6px; line-height:1.4; color: var(--ink-faint); max-width:250px; }
+  .loyalty-terms strong{ display:block; font-size:7.2px; letter-spacing:0.05em; text-transform:uppercase; color: var(--ink-soft); margin-bottom:2px; }
+  .loyalty-terms ul{ margin:0; padding-left:10px; }
+  .loyalty-back-brand{ flex-shrink:0; text-align:right; }
+  .loyalty-back-brand img{ height:20px; width:auto; display:block; margin-left:auto; }
   .loyalty-flip-hint{
     text-align:center; font-family: var(--font-mono); font-size:10.5px;
     color: var(--ink-faint); margin-top:8px; letter-spacing:0.03em;
@@ -509,23 +550,39 @@
         <div class="loyalty-wrap" id="loyaltyWrap" style="display:none;">
           <div class="loyalty-card" id="loyaltyCard" tabindex="0" role="button" aria-label="Flip loyalty card">
             <div class="loyalty-face loyalty-front">
-              <div class="loyalty-front-top">
-                <img src="/assets/logo.png" alt="">
-                <div class="loyalty-front-brand">One Cavite<br>Pickleball Club</div>
+              <img class="loyalty-front-player" src="/assets/loyalty-player.png" alt="" aria-hidden="true">
+              <div class="loyalty-front-logo">
+                <span>One Cavite</span>
+                <img src="/assets/loyalty-roundel.png" alt="OCPC">
+                <span>Pickleball Club</span>
               </div>
-              <div>
+              <div class="loyalty-front-mid">
                 <div class="loyalty-front-title">Open Play<span>Loyalty Card</span></div>
-                <div class="loyalty-front-tag">Play More. Connect More. One Cavite.</div>
               </div>
-              <div class="loyalty-ball" aria-hidden="true"></div>
+              <div class="loyalty-front-tag">Play More. Connect More. One Cavite.</div>
+              <img class="loyalty-ball" src="/assets/loyalty-ball.png" alt="" aria-hidden="true">
             </div>
             <div class="loyalty-face loyalty-back">
               <div class="loyalty-back-head">
                 <h4>Earn Stamps. Get Rewarded.</h4>
-                <p>One stamp per Open Play. Collect 10 for a free session.</p>
+                <p>Get one (1) stamp for every Open Play session you're logged for. Collect 10 stamps and get your next Open Play on us.</p>
               </div>
-              <div class="stamp-grid" id="stampGrid"></div>
-              <div class="loyalty-reward" id="loyaltyReward"></div>
+              <div class="loyalty-back-body">
+                <div class="stamp-grid" id="stampGrid"></div>
+                <div class="loyalty-divider" aria-hidden="true"></div>
+                <div class="loyalty-reward" id="loyaltyReward"></div>
+              </div>
+              <div class="loyalty-back-foot">
+                <div class="loyalty-terms">
+                  <strong>Terms &amp; Conditions</strong>
+                  <ul>
+                    <li>Stamps count sessions from August 2026 onward.</li>
+                    <li>Card is non-transferable.</li>
+                    <li>Rewards are confirmed by an officer before use.</li>
+                  </ul>
+                </div>
+                <div class="loyalty-back-brand"><img src="/assets/loyalty-roundel.png" alt="OCPC"></div>
+              </div>
             </div>
           </div>
           <div class="loyalty-flip-hint">Tap the card to flip it</div>
@@ -1013,18 +1070,11 @@
   }
 
   const PADDLE_STAMP_SVG = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-      <ellipse cx="12" cy="9" rx="6.5" ry="8"/>
-      <circle cx="9.5" cy="6" r="0.6" fill="currentColor" stroke="none"/>
-      <circle cx="12.5" cy="5.3" r="0.6" fill="currentColor" stroke="none"/>
-      <circle cx="15" cy="6.5" r="0.6" fill="currentColor" stroke="none"/>
-      <circle cx="8.3" cy="9" r="0.6" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="8.6" r="0.6" fill="currentColor" stroke="none"/>
-      <circle cx="15.7" cy="9.3" r="0.6" fill="currentColor" stroke="none"/>
-      <circle cx="9" cy="12" r="0.6" fill="currentColor" stroke="none"/>
-      <circle cx="12.3" cy="11.8" r="0.6" fill="currentColor" stroke="none"/>
-      <circle cx="15.2" cy="12.3" r="0.6" fill="currentColor" stroke="none"/>
-      <line x1="12" y1="17" x2="12" y2="22.5"/>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <ellipse cx="12" cy="8.5" rx="7" ry="8.3"/>
+      <line x1="12" y1="16.6" x2="12" y2="22"/>
+      <line x1="9.3" y1="17.6" x2="9.3" y2="21"/>
+      <line x1="14.7" y1="17.6" x2="14.7" y2="21"/>
     </svg>
   `;
   const STAMP_ROTATIONS = [-7, 5, -4, 8, -9, 3, -5, 6, -3, 7];
@@ -1084,7 +1134,10 @@
       renderLoyaltyClaim(reward, total / 10);
     } else {
       reward.className = 'loyalty-reward';
-      reward.textContent = `${10 - posInCycle} more stamp${10 - posInCycle === 1 ? '' : 's'} to a free open play`;
+      reward.innerHTML = `
+        <img class="loyalty-reward-ball" src="/assets/loyalty-ball.png" alt="">
+        ${10 - posInCycle} more stamp${10 - posInCycle === 1 ? '' : 's'} for a free Open Play
+      `;
     }
 
     wrap.style.display = total > 0 ? 'block' : 'none';
@@ -1097,7 +1150,7 @@
   async function renderLoyaltyClaim(reward, cycleNumber){
     if (!currentUid) return;
     reward.className = 'loyalty-reward is-earned';
-    reward.textContent = 'Checking reward status…';
+    reward.innerHTML = `<img class="loyalty-reward-ball" src="/assets/loyalty-ball.png" alt="">Checking status…`;
 
     let existing = null;
     try {
@@ -1113,15 +1166,19 @@
     }
 
     if (existing && existing.status === 'fulfilled'){
-      reward.textContent = '✅ Redeemed, enjoy your free open play!';
+      reward.innerHTML = `<img class="loyalty-reward-ball" src="/assets/loyalty-ball.png" alt="">Redeemed, enjoy!`;
       return;
     }
     if (existing && existing.status === 'pending'){
-      reward.textContent = '📨 Claim submitted. An officer will confirm it at the courts.';
+      reward.innerHTML = `<img class="loyalty-reward-ball" src="/assets/loyalty-ball.png" alt="">Claim submitted, awaiting officer confirmation`;
       return;
     }
 
-    reward.innerHTML = `🎉 Free open play earned! <button type="button" class="loyalty-claim-btn" id="loyaltyClaimBtn">Claim it</button>`;
+    reward.innerHTML = `
+      <img class="loyalty-reward-ball" src="/assets/loyalty-ball.png" alt="">
+      Next Open Play is on us!
+      <button type="button" class="loyalty-claim-btn" id="loyaltyClaimBtn">Claim it</button>
+    `;
     const btn = document.getElementById('loyaltyClaimBtn');
     if (btn){
       btn.addEventListener('click', async (e) => {
@@ -1136,7 +1193,7 @@
             status: 'pending',
             createdAt: serverTimestamp()
           });
-          reward.textContent = '📨 Claim submitted. An officer will confirm it at the courts.';
+          reward.innerHTML = `<img class="loyalty-reward-ball" src="/assets/loyalty-ball.png" alt="">Claim submitted, awaiting officer confirmation`;
         } catch (err) {
           console.error('loyalty claim submit failed:', err);
           btn.disabled = false;
