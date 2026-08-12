@@ -88,17 +88,29 @@
   .loyalty-used-card-inner{
     position:relative; width:100%; aspect-ratio: 858 / 575; border-radius:16px;
     overflow:hidden; box-shadow: 0 10px 24px rgba(11,36,54,0.2);
-    filter: grayscale(1) brightness(0.88);
+  }
+  .loyalty-used-card-inner.is-redeemed{ filter: grayscale(1) brightness(0.88); }
+  .loyalty-used-card-inner.is-ready{
+    box-shadow: 0 0 0 3px #9FDE3B, 0 10px 26px rgba(46,125,50,0.35);
+    animation: loyalty-ready-glow 2.2s ease-in-out infinite;
+  }
+  @keyframes loyalty-ready-glow{
+    0%, 100%{ box-shadow: 0 0 0 3px #9FDE3B, 0 10px 26px rgba(46,125,50,0.35); }
+    50%{ box-shadow: 0 0 0 5px #9FDE3B, 0 10px 30px rgba(46,125,50,0.55); }
   }
   .loyalty-used-card-inner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
   .loyalty-used-ribbon{
     position:absolute; top:16px; right:-38px; width:160px; text-align:center;
-    background: var(--pop); color:#fff; font-family: var(--font-mono); font-size:11px;
+    color:#fff; font-family: var(--font-mono); font-size:11px;
     font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:5px 0;
     transform:rotate(38deg); box-shadow:0 2px 6px rgba(0,0,0,0.25);
   }
+  .loyalty-used-ribbon.ribbon-redeemed{ background: var(--pop); }
+  .loyalty-used-ribbon.ribbon-pending{ background: var(--sky-deep); }
+  .loyalty-used-ribbon.ribbon-ready{ background:#2E7D32; }
   .loyalty-used-actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; }
   .loyalty-used-caption{ font-size:12px; color: var(--ink-soft); font-weight:700; }
+  .loyalty-used-actions .loyalty-claim-btn{ font-size:10px; padding:6px 12px; }
   .loyalty-archive-btn{
     font-family: var(--font-mono); font-size:10px; letter-spacing:0.03em; text-transform:uppercase;
     color: var(--ink-soft); background: var(--white); border:1px solid var(--line); border-radius:20px;
@@ -114,9 +126,10 @@
 <div class="demo-banner">
   Internal preview only, not linked from anywhere on the site. Everything
   here runs on fake in-memory data, nothing is read from or written to
-  Firestore. Use the buttons below to drive the card through a full
-  cycle: earn stamps, claim, have "admin" fulfill it, watch it roll over
-  to a new card, then archive the used one.
+  Firestore. Add stamps past 10 without claiming to see the old card
+  drop into the list below, still glowing and claimable, while a fresh
+  card starts on top. Claim it from either spot, then simulate the
+  admin fulfilling and archiving it.
 </div>
 
 <div class="loyalty-wrap" id="loyaltyWrap">
@@ -217,17 +230,14 @@
     const usedList = document.getElementById('loyaltyUsedCards');
     const wrap = document.getElementById('loyaltyWrap');
 
-    // Same "lowest not-yet-fulfilled cycle" logic as the real profile
-    // page: a completed-but-unclaimed (or claimed-but-unconfirmed) card
-    // keeps showing here no matter how many more stamps come in behind
-    // it, exactly like a real stamp card that isn't replaced until it's
-    // actually redeemed.
-    let activeCycleNumber = 1;
-    while (redemptions[activeCycleNumber] && redemptions[activeCycleNumber].status === 'fulfilled'){
-      activeCycleNumber++;
-    }
+    // Same logic as the real profile page: the active card always
+    // follows the newest stamp. Once an 11th session lands, a fresh
+    // card starts right away, even if the previous one was never
+    // claimed, that one just drops into the list below instead of
+    // disappearing.
+    const activeCycleNumber = totalStamps === 0 ? 1 : Math.ceil(totalStamps / 10);
     const stampsBeforeActive = (activeCycleNumber - 1) * 10;
-    const posInCycle = Math.max(0, Math.min(10, totalStamps - stampsBeforeActive));
+    const posInCycle = totalStamps - stampsBeforeActive;
 
     const dates = Array.from({ length: totalStamps }).map((_, i) => {
       const d = i + 1;
@@ -250,16 +260,13 @@
       `;
     }).join('');
 
-    const fulfillBtn = document.getElementById('btnFulfill');
     if (posInCycle >= 10){
       const existing = redemptions[activeCycleNumber];
       reward.className = 'loyalty-reward is-earned';
       if (existing && existing.status === 'fulfilled'){
         reward.textContent = 'Redeemed, enjoy your free Open Play!';
-        fulfillBtn.disabled = true;
       } else if (existing && existing.status === 'pending'){
         reward.textContent = 'Claim submitted, awaiting admin confirmation';
-        fulfillBtn.disabled = false;
       } else {
         const confettiKey = 'demo-confetti-' + activeCycleNumber;
         if (!sessionStorage.getItem(confettiKey)){
@@ -268,7 +275,6 @@
           say('Confetti fired for cycle ' + activeCycleNumber + '!');
         }
         reward.innerHTML = `Free Open Play earned! <button type="button" class="loyalty-claim-btn" id="loyaltyClaimBtn">Claim it</button>`;
-        fulfillBtn.disabled = true;
         const claimBtn = document.getElementById('loyaltyClaimBtn');
         if (claimBtn){
           claimBtn.addEventListener('click', (e) => {
@@ -282,32 +288,84 @@
     } else {
       reward.className = 'loyalty-reward';
       reward.innerHTML = `${10 - posInCycle} more stamp${10 - posInCycle === 1 ? '' : 's'} for a free Open Play`;
-      fulfillBtn.disabled = true;
     }
 
-    const usedCycleNumbers = [];
+    // "Simulate admin" fulfills whichever card is currently pending,
+    // whether that's the main card or one sitting in the shelf below.
+    const fulfillBtn = document.getElementById('btnFulfill');
+    const pendingCycle = Object.keys(redemptions).map(Number).find(k => redemptions[k].status === 'pending');
+    fulfillBtn.disabled = pendingCycle === undefined;
+    fulfillBtn.dataset.pendingCycle = pendingCycle === undefined ? '' : pendingCycle;
+
+    const shelvedCycleNumbers = [];
     for (let i = 1; i < activeCycleNumber; i++){
       const r = redemptions[i];
-      if (r && !r.archived) usedCycleNumbers.push(i);
+      if (r && r.status === 'fulfilled' && r.archived) continue;
+      shelvedCycleNumbers.push(i);
     }
-    usedList.innerHTML = usedCycleNumbers.map(n => `
-      <div class="loyalty-used-card-wrap" data-cycle="${n}">
-        <div class="loyalty-used-card-inner">
-          <img src="/assets/loyalty-card-back.png" alt="Used loyalty card, cycle ${n}">
-          <div class="loyalty-used-ribbon">Redeemed</div>
+    usedList.innerHTML = shelvedCycleNumbers.map(n => {
+      const r = redemptions[n];
+      if (r && r.status === 'fulfilled'){
+        return `
+          <div class="loyalty-used-card-wrap" data-cycle="${n}">
+            <div class="loyalty-used-card-inner is-redeemed">
+              <img src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+              <div class="loyalty-used-ribbon ribbon-redeemed">Redeemed</div>
+            </div>
+            <div class="loyalty-used-actions">
+              <span class="loyalty-used-caption">Loyalty Card #${n}, all 10 stamps used</span>
+              <button type="button" class="loyalty-archive-btn" data-cycle="${n}">Archive</button>
+            </div>
+          </div>
+        `;
+      }
+      if (r && r.status === 'pending'){
+        return `
+          <div class="loyalty-used-card-wrap" data-cycle="${n}">
+            <div class="loyalty-used-card-inner is-pending">
+              <img src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+              <div class="loyalty-used-ribbon ribbon-pending">Pending</div>
+            </div>
+            <div class="loyalty-used-actions">
+              <span class="loyalty-used-caption">Loyalty Card #${n}, awaiting admin confirmation</span>
+            </div>
+          </div>
+        `;
+      }
+      const shelfConfettiKey = 'demo-confetti-shelf-' + n;
+      if (!sessionStorage.getItem(shelfConfettiKey)){
+        fireLoyaltyConfetti();
+        sessionStorage.setItem(shelfConfettiKey, '1');
+        say('Loyalty Card #' + n + ' moved down, still ready to claim!');
+      }
+      return `
+        <div class="loyalty-used-card-wrap" data-cycle="${n}">
+          <div class="loyalty-used-card-inner is-ready">
+            <img src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+            <div class="loyalty-used-ribbon ribbon-ready">Ready to claim!</div>
+          </div>
+          <div class="loyalty-used-actions">
+            <span class="loyalty-used-caption">Loyalty Card #${n}, all 10 stamps earned</span>
+            <button type="button" class="loyalty-claim-btn" data-cycle="${n}">Claim it</button>
+          </div>
         </div>
-        <div class="loyalty-used-actions">
-          <span class="loyalty-used-caption">Cycle ${n} card, all 10 stamps used</span>
-          <button type="button" class="loyalty-archive-btn" data-cycle="${n}">Archive</button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+
     usedList.querySelectorAll('.loyalty-archive-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const n = parseInt(btn.dataset.cycle, 10);
         if (!confirm('Archive this loyalty card? It\'ll be hidden from your profile. Ask an admin if you ever need it restored.')) return;
         redemptions[n].archived = true;
-        say('Cycle ' + n + ' archived and hidden from the list. An admin could unarchive it from the admin dashboard.');
+        say('Loyalty Card #' + n + ' archived and hidden from the list. An admin could unarchive it from the admin dashboard.');
+        render();
+      });
+    });
+    usedList.querySelectorAll('.loyalty-used-card-wrap .loyalty-claim-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const n = parseInt(btn.dataset.cycle, 10);
+        redemptions[n] = { status: 'pending', archived: false };
+        say('Claim filed for Loyalty Card #' + n + '. Now simulate the admin fulfilling it.');
         render();
       });
     });
@@ -321,11 +379,11 @@
     say('Added stamp #' + totalStamps + '.');
     render();
   });
-  document.getElementById('btnFulfill').addEventListener('click', () => {
-    const n = window.__demoActiveCycle;
+  document.getElementById('btnFulfill').addEventListener('click', (e) => {
+    const n = parseInt(e.currentTarget.dataset.pendingCycle, 10);
     if (redemptions[n]){
       redemptions[n].status = 'fulfilled';
-      say('Cycle ' + n + ' marked fulfilled by "admin". Reload the card view, it rolls over to a new one.');
+      say('Loyalty Card #' + n + ' marked fulfilled by "admin".');
       render();
     }
   });

@@ -2794,7 +2794,7 @@
       <div class="admin-row">
         <div>
           <div class="admin-row-date">${escapeHtml(r.name)}</div>
-          <div class="admin-row-names">Cycle ${escapeHtml(String(r.cycleNumber))}, 10 stamps earned</div>
+          <div class="admin-row-names">Loyalty Card #${escapeHtml(String(r.cycleNumber))}, 10 stamps earned</div>
         </div>
         <div style="display:flex; gap:6px; flex-shrink:0;">
           <button class="signup-btn approve" data-action="fulfill-loyalty" data-id="${r.id}">Mark Redeemed</button>
@@ -2852,7 +2852,7 @@
       <div class="admin-row">
         <div>
           <div class="admin-row-date">${escapeHtml(r.name)}</div>
-          <div class="admin-row-names">Cycle ${escapeHtml(String(r.cycleNumber))}, redeemed and archived</div>
+          <div class="admin-row-names">Loyalty Card #${escapeHtml(String(r.cycleNumber))}, redeemed and archived</div>
         </div>
         <div style="display:flex; gap:6px; flex-shrink:0;">
           <button class="signup-btn approve" data-action="unarchive-loyalty" data-id="${r.id}">Unarchive</button>

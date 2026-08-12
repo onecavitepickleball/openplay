@@ -281,28 +281,43 @@
     color: var(--ink-faint); margin-top:8px; letter-spacing:0.03em;
   }
 
-  /* Fulfilled cycles drop out of the flippable card above and collect
-     here, full-size (same width/aspect-ratio as the live card) but
-     greyed out and inert, no flip, no click, until the player archives
-     them. */
+  /* Once a card is no longer the newest, it drops out of the flippable
+     slot above and collects here, full-size (same width/aspect-ratio as
+     the live card), no flip, no click on the card itself. Three looks:
+     still-claimable (full color, glowing), claimed-and-pending (full
+     color, neutral), or fulfilled (greyed out, archivable). */
   .loyalty-used-list{ display:flex; flex-direction:column; gap:20px; margin-top:20px; }
   .loyalty-used-card-wrap{ max-width:440px; }
   .loyalty-used-card-inner{
     position:relative; width:100%; aspect-ratio: 858 / 575; border-radius:16px;
     overflow:hidden; box-shadow: 0 10px 24px rgba(11,36,54,0.2);
-    filter: grayscale(1) brightness(0.88);
+  }
+  .loyalty-used-card-inner.is-redeemed{ filter: grayscale(1) brightness(0.88); }
+  .loyalty-used-card-inner.is-ready{
+    box-shadow: 0 0 0 3px #9FDE3B, 0 10px 26px rgba(46,125,50,0.35);
+    animation: loyalty-ready-glow 2.2s ease-in-out infinite;
+  }
+  @keyframes loyalty-ready-glow{
+    0%, 100%{ box-shadow: 0 0 0 3px #9FDE3B, 0 10px 26px rgba(46,125,50,0.35); }
+    50%{ box-shadow: 0 0 0 5px #9FDE3B, 0 10px 30px rgba(46,125,50,0.55); }
   }
   .loyalty-used-card-inner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
   .loyalty-used-ribbon{
     position:absolute; top:16px; right:-38px; width:160px; text-align:center;
-    background: var(--pop); color:#fff; font-family: var(--font-mono); font-size:11px;
+    color:#fff; font-family: var(--font-mono); font-size:11px;
     font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:5px 0;
     transform:rotate(38deg); box-shadow:0 2px 6px rgba(0,0,0,0.25);
   }
+  .loyalty-used-ribbon.ribbon-redeemed{ background: var(--pop); }
+  .loyalty-used-ribbon.ribbon-pending{ background: var(--sky-deep); }
+  .loyalty-used-ribbon.ribbon-ready{ background:#2E7D32; }
   .loyalty-used-actions{
     display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px;
   }
   .loyalty-used-caption{ font-size:12px; color: var(--ink-soft); font-weight:700; }
+  .loyalty-used-actions .loyalty-claim-btn{
+    font-size:10px; padding:6px 12px;
+  }
   .loyalty-archive-btn{
     font-family: var(--font-mono); font-size:10px; letter-spacing:0.03em;
     text-transform:uppercase; color: var(--ink-soft); background: var(--white);
@@ -786,7 +801,24 @@
     dashboardView.style.display = 'block';
   });
 
+  if (location.search.includes('previewcard')){
+    loginView.style.display = 'none';
+    profileView.style.display = 'block';
+    dashboardView.style.display = 'block';
+    editFormView.style.display = 'none';
+    currentUid = 'debug-preview-uid';
+    document.getElementById('profileNameDisplay').textContent = 'James Castillo';
+    const n = parseInt(new URLSearchParams(location.search).get('n') || '16', 10);
+    setTimeout(() => {
+      renderLoyaltyCard(
+        Array.from({ length: n }).map((_, i) => ({ date: `2026-08-${String((i % 28) + 1).padStart(2, '0')}`, names: ['James Castillo'] })),
+        ['james castillo']
+      );
+    }, 0);
+  }
+
   onAuthStateChanged(auth, async (user) => {
+    if (location.search.includes('previewcard')) return;
     if (!user || user.email === ADMIN_ONLY_EMAIL){
       loginView.style.display = 'block';
       profileView.style.display = 'none';
@@ -1099,19 +1131,15 @@
       }
     }
 
-    // The active card is the lowest-numbered cycle that hasn't been
-    // fulfilled yet. A completed-but-not-yet-claimed (or claimed-but-
-    // not-yet-confirmed) cycle keeps showing here no matter how many
-    // more sessions the player attends in the meantime, exactly like a
-    // real stamp card: it isn't replaced until it's actually redeemed.
-    // Once it is, this naturally rolls forward to the next cycle and any
-    // stamps that piled up in the meantime immediately show up on it.
-    let activeCycleNumber = 1;
-    while (redemptionMap[activeCycleNumber] && redemptionMap[activeCycleNumber].status === 'fulfilled'){
-      activeCycleNumber++;
-    }
+    // The active (flippable) card always follows the most recent stamp:
+    // once an 11th session lands, a fresh card starts immediately, even
+    // if cycle 1 was never claimed. That finished-but-unclaimed cycle
+    // doesn't disappear, it drops into the list below, still fully
+    // colored (not greyed) and still claimable from there, so nothing
+    // is ever lost, it's just not hogging the main card slot anymore.
+    const activeCycleNumber = total === 0 ? 1 : Math.ceil(total / 10);
     const stampsBeforeActive = (activeCycleNumber - 1) * 10;
-    const posInCycle = Math.max(0, Math.min(10, total - stampsBeforeActive));
+    const posInCycle = total - stampsBeforeActive;
     const cycleDates = posInCycle > 0 ? dates.slice(stampsBeforeActive, stampsBeforeActive + posInCycle) : [];
 
     grid.innerHTML = STAMP_POSITIONS.map((pos, i) => {
@@ -1137,35 +1165,73 @@
     wrap.style.display = 'block';
 
     if (usedList){
-      const usedCycleNumbers = [];
+      const shelvedCycleNumbers = [];
       for (let i = 1; i < activeCycleNumber; i++){
         const r = redemptionMap[i];
-        if (r && !r.archived) usedCycleNumbers.push(i);
+        if (r && r.status === 'fulfilled' && r.archived) continue; // done and tucked away
+        shelvedCycleNumbers.push(i);
       }
-      renderLoyaltyUsedCards(usedList, usedCycleNumbers, redemptionMap);
+      renderLoyaltyUsedCards(usedList, shelvedCycleNumbers, redemptionMap);
     }
   }
 
-  // Fulfilled cycles drop out of the flippable card above and collect
-  // here as full-size, greyed-out, non-flippable cards (same dimensions
-  // as the live card, just inert) until the player archives them.
+  // Once a card is no longer the newest one, it drops out of the
+  // flippable slot above and collects here, full-size (same dimensions
+  // as the live card). Three states: still claimable (full color, glow,
+  // confetti the first time it lands here), claimed and awaiting an
+  // admin (full color, neutral), or fulfilled (greyed out, archivable).
   function renderLoyaltyUsedCards(usedList, cycleNumbers, redemptionMap){
     if (!cycleNumbers.length){
       usedList.innerHTML = '';
       return;
     }
-    usedList.innerHTML = cycleNumbers.map(n => `
-      <div class="loyalty-used-card-wrap" data-cycle="${n}">
-        <div class="loyalty-used-card-inner">
-          <img class="loyalty-face-photo" src="/assets/loyalty-card-back.png" alt="Used loyalty card, cycle ${n}">
-          <div class="loyalty-used-ribbon">Redeemed</div>
+    usedList.innerHTML = cycleNumbers.map(n => {
+      const r = redemptionMap[n];
+      if (r && r.status === 'fulfilled'){
+        return `
+          <div class="loyalty-used-card-wrap" data-cycle="${n}">
+            <div class="loyalty-used-card-inner is-redeemed">
+              <img class="loyalty-face-photo" src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+              <div class="loyalty-used-ribbon ribbon-redeemed">Redeemed</div>
+            </div>
+            <div class="loyalty-used-actions">
+              <span class="loyalty-used-caption">Loyalty Card #${n}, all 10 stamps used</span>
+              <button type="button" class="loyalty-archive-btn" data-cycle="${n}">Archive</button>
+            </div>
+          </div>
+        `;
+      }
+      if (r && r.status === 'pending'){
+        return `
+          <div class="loyalty-used-card-wrap" data-cycle="${n}">
+            <div class="loyalty-used-card-inner is-pending">
+              <img class="loyalty-face-photo" src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+              <div class="loyalty-used-ribbon ribbon-pending">Pending</div>
+            </div>
+            <div class="loyalty-used-actions">
+              <span class="loyalty-used-caption">Loyalty Card #${n}, awaiting admin confirmation</span>
+            </div>
+          </div>
+        `;
+      }
+      const shelfConfettiKey = `ocpc-loyalty-confetti-shelf-${currentUid}-${n}`;
+      if (!localStorage.getItem(shelfConfettiKey)){
+        fireLoyaltyConfetti();
+        try { localStorage.setItem(shelfConfettiKey, '1'); } catch (e) {}
+      }
+      return `
+        <div class="loyalty-used-card-wrap" data-cycle="${n}">
+          <div class="loyalty-used-card-inner is-ready">
+            <img class="loyalty-face-photo" src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+            <div class="loyalty-used-ribbon ribbon-ready">Ready to claim!</div>
+          </div>
+          <div class="loyalty-used-actions">
+            <span class="loyalty-used-caption">Loyalty Card #${n}, all 10 stamps earned</span>
+            <button type="button" class="loyalty-claim-btn" data-cycle="${n}">Claim it</button>
+          </div>
         </div>
-        <div class="loyalty-used-actions">
-          <span class="loyalty-used-caption">Cycle ${n} card, all 10 stamps used</span>
-          <button type="button" class="loyalty-archive-btn" data-cycle="${n}">Archive</button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     usedList.querySelectorAll('.loyalty-archive-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -1183,6 +1249,29 @@
           console.error('archive failed:', err);
           btn.disabled = false;
           btn.textContent = 'Archive';
+        }
+      });
+    });
+
+    usedList.querySelectorAll('.loyalty-used-card-wrap .loyalty-claim-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const n = parseInt(btn.dataset.cycle, 10);
+        btn.disabled = true;
+        btn.textContent = 'Submitting…';
+        try {
+          await addDoc(collection(db, 'loyaltyRedemptions'), {
+            uid: currentUid,
+            name: document.getElementById('profileNameDisplay').textContent.trim(),
+            cycleNumber: n,
+            status: 'pending',
+            createdAt: serverTimestamp()
+          });
+          redemptionMap[n] = { status: 'pending', archived: false };
+          renderLoyaltyUsedCards(usedList, cycleNumbers, redemptionMap);
+        } catch (err) {
+          console.error('loyalty claim submit failed:', err);
+          btn.disabled = false;
+          btn.textContent = 'Claim it';
         }
       });
     });
