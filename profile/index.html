@@ -193,7 +193,12 @@
   }
   .projection-card p{ font-size:15px; line-height:1.5; }
 
-  /* ---- Loyalty card ---- */
+  /* ---- Loyalty card ----
+     Front and back are your actual card artwork (assets/loyalty-card-
+     front.png, -back.png), used as-is. Everything dynamic (stamps, the
+     reward panel) is a positioned overlay on top of the back photo,
+     placed by pixel-measured percentages so it lines up with the
+     printed circles/ribbon underneath. */
   .loyalty-wrap{
     perspective: 1400px;
     max-width:440px;
@@ -202,7 +207,7 @@
   .loyalty-card{
     position:relative;
     width:100%;
-    aspect-ratio: 1.72 / 1;
+    aspect-ratio: 858 / 575;
     cursor:pointer;
     transform-style: preserve-3d;
     transition: transform 0.7s cubic-bezier(.4,.2,.2,1);
@@ -217,135 +222,51 @@
     box-shadow: 0 14px 34px rgba(11,36,54,0.28);
     overflow:hidden;
   }
+  .loyalty-face img.loyalty-face-photo{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .loyalty-back{ transform: rotateY(180deg); }
 
-  /* Front: navy diagonal field, angled accent bands, big headline, ball
-     graphic bleeding off the bottom-right corner. */
-  .loyalty-front{
-    background:
-      linear-gradient(115deg, transparent 0%, transparent 58%, rgba(94,151,220,0.35) 58%, rgba(94,151,220,0.35) 63%, transparent 63%),
-      linear-gradient(115deg, transparent 0%, transparent 70%, rgba(94,151,220,0.22) 70%, rgba(94,151,220,0.22) 76%, transparent 76%),
-      radial-gradient(circle at 92% 88%, rgba(255,255,255,0.10), transparent 42%),
-      linear-gradient(150deg, #0a1f38 0%, #0e2c52 45%, #1b4a86 100%);
-    color: var(--paper);
-    padding:16px 20px;
-    display:flex; flex-direction:column; justify-content:space-between;
-  }
-  .loyalty-front-logo{
-    display:flex; flex-direction:column; align-items:flex-start; gap:2px;
-    position:relative; z-index:2; width:118px;
-  }
-  .loyalty-front-logo span{
-    font-family: var(--font-mono); font-size:7px; letter-spacing:0.14em;
-    text-transform:uppercase; color: rgba(245,243,238,0.8); font-weight:700;
-  }
-  .loyalty-front-logo img{ width:100%; height:auto; display:block; margin:1px 0; }
-  .loyalty-front-player{
-    position:absolute; right:2%; top:8%; height:74%; width:auto;
-    opacity:0.16; filter: brightness(4) saturate(0);
-    pointer-events:none;
-  }
-  .loyalty-front-mid{ position:relative; z-index:2; }
-  .loyalty-front-title{
-    font-family: var(--font-display); text-transform:uppercase; line-height:0.92;
-    font-size:clamp(26px, 8.5vw, 40px); font-weight:800; color:#fff;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.25);
-  }
-  .loyalty-front-title span{
-    display:block; font-size:0.52em; letter-spacing:0.03em; color: var(--sky); font-weight:700;
-  }
-  .loyalty-front-tag{
-    position:relative; z-index:2; font-family: var(--font-mono); font-size:8.5px;
-    letter-spacing:0.09em; text-transform:uppercase; color: rgba(245,243,238,0.72);
-  }
-  .loyalty-ball{
-    position:absolute; right:-14%; bottom:-18%; width:42%; max-width:130px;
-    z-index:1; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.3));
-  }
-
-  /* Back: white field, stamp grid on the left, a reward ribbon on the
-     right, terms + brand mark along the bottom. */
-  .loyalty-back{
-    background:
-      linear-gradient(115deg, rgba(27,74,134,0.9) 0%, rgba(27,74,134,0.9) 3.5%, transparent 3.5%),
-      linear-gradient(115deg, rgba(94,151,220,0.5) 0%, rgba(94,151,220,0.5) 5.5%, transparent 5.5%),
-      var(--white);
-    color: var(--ink);
-    transform: rotateY(180deg);
-    padding:14px 16px 10px;
-    display:flex; flex-direction:column;
-  }
-  .loyalty-back-head{ margin-bottom:8px; }
-  .loyalty-back-head h4{
-    font-family: var(--font-display); text-transform:uppercase; font-size:clamp(13px, 3.6vw, 17px);
-    letter-spacing:0.01em; color: var(--navy-deep); font-weight:800;
-    border-bottom:2px solid var(--sky-deep); display:inline-block; padding-bottom:2px;
-  }
-  .loyalty-back-head p{ font-size:8.5px; color: var(--ink-faint); line-height:1.35; margin-top:4px; max-width:340px; }
-  .loyalty-back-body{ flex:1; display:flex; align-items:center; gap:10px; min-height:0; }
-  .stamp-grid{
-    flex:1;
-    display:grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap:6px 5px;
-  }
+  .stamp-grid{ position:absolute; inset:0; }
   .stamp-slot{
-    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    position:absolute; width:10.3%; aspect-ratio:1; transform:translate(-50%,-50%);
+    border-radius:50%; display:flex; align-items:center; justify-content:center; overflow:hidden;
   }
-  .stamp-circle{
-    width:100%; max-width:38px; aspect-ratio:1;
-    border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    border: 1.5px solid var(--navy-deep);
-    color: var(--navy-deep);
-  }
+  .stamp-slot.filled{ background: rgba(255,255,255,0.001); }
   .stamp-slot.filled .stamp-circle{
-    border: 2px solid var(--pop);
-    box-shadow: 0 0 0 1px var(--pop), inset 0 0 0 3px rgba(255,79,109,0.08);
+    width:80%; height:80%; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
     color: var(--pop);
     opacity:0.85;
     mix-blend-mode: multiply;
     transform: rotate(var(--stamp-rot, -6deg));
     animation: stamp-press 0.35s ease-out;
   }
-  .stamp-slot.filled .stamp-circle svg{ width:58%; height:58%; }
-  .stamp-num{ font-family: var(--font-mono); font-size:11px; font-weight:700; }
-  .stamp-date{
-    font-family: var(--font-mono); font-size:6.8px; letter-spacing:0.02em;
-    color: var(--ink-faint); margin-top:2px; text-align:center; line-height:1.1;
-  }
-  .stamp-slot.filled .stamp-date{ color: var(--ink-soft); font-weight:700; }
+  .stamp-slot.filled .stamp-circle svg{ width:100%; height:100%; }
   @keyframes stamp-press{
     0%{ transform: rotate(var(--stamp-rot, -6deg)) scale(1.6); opacity:0; }
     60%{ opacity:0.95; }
     100%{ transform: rotate(var(--stamp-rot, -6deg)) scale(1); opacity:0.85; }
   }
-  .loyalty-divider{ width:1px; align-self:stretch; background: var(--line); flex-shrink:0; }
+
   .loyalty-reward{
-    width:88px; flex-shrink:0;
+    position:absolute; left:74.6%; top:30.3%; width:23.5%; height:40.2%;
+    border-radius:10px;
     background: linear-gradient(135deg, var(--navy) 0%, var(--sky-deep) 100%);
-    color:#fff; border-radius:10px; padding:8px 7px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+    color:#fff; padding:6% 5%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6%;
     text-align:center;
-    font-family: var(--font-display); text-transform:uppercase; font-size:11px; line-height:1.15;
+    font-family: var(--font-display); text-transform:uppercase; font-size:clamp(8px, 2.6vw, 11px); line-height:1.15;
   }
   .loyalty-reward.is-earned{ background: linear-gradient(135deg, #2E7D32 0%, #4C9A52 100%); }
-  .loyalty-reward-ball{ width:22px; height:22px; flex-shrink:0; }
+  .loyalty-reward-ball{ width:24%; height:auto; flex-shrink:0; }
   .loyalty-claim-btn{
-    font-family: var(--font-mono); font-size:8px; letter-spacing:0.03em;
+    font-family: var(--font-mono); font-size:clamp(6.5px, 2vw, 8px); letter-spacing:0.03em;
     text-transform:uppercase; color: var(--navy-deep); background:#fff; border:none; border-radius:20px;
-    padding:4px 9px; cursor:pointer; font-weight:700;
+    padding:5% 9%; cursor:pointer; font-weight:700;
   }
   .loyalty-claim-btn:disabled{ opacity:0.6; cursor:default; }
   .loyalty-claim-btn:hover:not(:disabled){ background: var(--paper-dim); }
-  .loyalty-back-foot{
-    margin-top:8px; padding-top:6px; border-top:1px solid var(--line);
-    display:flex; align-items:flex-end; justify-content:space-between; gap:8px;
-  }
-  .loyalty-terms{ font-size:6.6px; line-height:1.4; color: var(--ink-faint); max-width:250px; }
-  .loyalty-terms strong{ display:block; font-size:7.2px; letter-spacing:0.05em; text-transform:uppercase; color: var(--ink-soft); margin-bottom:2px; }
-  .loyalty-terms ul{ margin:0; padding-left:10px; }
-  .loyalty-back-brand{ flex-shrink:0; text-align:right; }
-  .loyalty-back-brand img{ height:20px; width:auto; display:block; margin-left:auto; }
   .loyalty-flip-hint{
     text-align:center; font-family: var(--font-mono); font-size:10.5px;
     color: var(--ink-faint); margin-top:8px; letter-spacing:0.03em;
@@ -550,39 +471,12 @@
         <div class="loyalty-wrap" id="loyaltyWrap" style="display:none;">
           <div class="loyalty-card" id="loyaltyCard" tabindex="0" role="button" aria-label="Flip loyalty card">
             <div class="loyalty-face loyalty-front">
-              <img class="loyalty-front-player" src="/assets/loyalty-player.png" alt="" aria-hidden="true">
-              <div class="loyalty-front-logo">
-                <span>One Cavite</span>
-                <img src="/assets/loyalty-roundel.png" alt="OCPC">
-                <span>Pickleball Club</span>
-              </div>
-              <div class="loyalty-front-mid">
-                <div class="loyalty-front-title">Open Play<span>Loyalty Card</span></div>
-              </div>
-              <div class="loyalty-front-tag">Play More. Connect More. One Cavite.</div>
-              <img class="loyalty-ball" src="/assets/loyalty-ball.png" alt="" aria-hidden="true">
+              <img class="loyalty-face-photo" src="/assets/loyalty-card-front.png" alt="OCPC Open Play Loyalty Card">
             </div>
             <div class="loyalty-face loyalty-back">
-              <div class="loyalty-back-head">
-                <h4>Earn Stamps. Get Rewarded.</h4>
-                <p>Get one (1) stamp for every Open Play session you're logged for. Collect 10 stamps and get your next Open Play on us.</p>
-              </div>
-              <div class="loyalty-back-body">
-                <div class="stamp-grid" id="stampGrid"></div>
-                <div class="loyalty-divider" aria-hidden="true"></div>
-                <div class="loyalty-reward" id="loyaltyReward"></div>
-              </div>
-              <div class="loyalty-back-foot">
-                <div class="loyalty-terms">
-                  <strong>Terms &amp; Conditions</strong>
-                  <ul>
-                    <li>Stamps count sessions from August 2026 onward.</li>
-                    <li>Card is non-transferable.</li>
-                    <li>Rewards are confirmed by an officer before use.</li>
-                  </ul>
-                </div>
-                <div class="loyalty-back-brand"><img src="/assets/loyalty-roundel.png" alt="OCPC"></div>
-              </div>
+              <img class="loyalty-face-photo" src="/assets/loyalty-card-back.png" alt="Earn stamps, get rewarded">
+              <div class="stamp-grid" id="stampGrid"></div>
+              <div class="loyalty-reward" id="loyaltyReward"></div>
             </div>
           </div>
           <div class="loyalty-flip-hint">Tap the card to flip it</div>
@@ -851,7 +745,21 @@
     dashboardView.style.display = 'block';
   });
 
+  if (location.search.includes('previewcard')){
+    loginView.style.display = 'none';
+    profileView.style.display = 'block';
+    dashboardView.style.display = 'block';
+    editFormView.style.display = 'none';
+    currentUid = 'debug';
+    document.getElementById('profileNameDisplay').textContent = 'James Castillo';
+    renderLoyaltyCard(
+      Array.from({ length: 6 }).map((_, i) => ({ date: `2026-08-0${i + 1}`, names: ['James Castillo'] })),
+      ['james castillo']
+    );
+  }
+
   onAuthStateChanged(auth, async (user) => {
+    if (location.search.includes('previewcard')) return;
     if (!user || user.email === ADMIN_ONLY_EMAIL){
       loginView.style.display = 'block';
       profileView.style.display = 'none';
@@ -1103,29 +1011,22 @@
     const cycleStartIndex = total === 0 ? 0 : total - posInCycle;
     const cycleDates = dates.slice(cycleStartIndex, cycleStartIndex + posInCycle);
 
-    const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    function formatStampDate(iso){
-      const parts = iso.split('-');
-      const m = parseInt(parts[1], 10) - 1;
-      const d = parseInt(parts[2], 10);
-      return `${monthLabels[m] || ''} ${d}`;
-    }
+    // Percentages measured directly off the printed circle centers in
+    // assets/loyalty-card-back.png (858x575), so a stamp lands exactly
+    // on top of its numbered circle regardless of the card's on-screen size.
+    const STAMP_POSITIONS = [
+      { left: '12.8%', top: '39.1%' }, { left: '26.2%', top: '39.1%' }, { left: '39.5%', top: '39.1%' },
+      { left: '52.9%', top: '39.1%' }, { left: '66.2%', top: '39.1%' },
+      { left: '12.8%', top: '57.6%' }, { left: '26.2%', top: '57.6%' }, { left: '39.5%', top: '57.6%' },
+      { left: '52.9%', top: '57.6%' }, { left: '66.2%', top: '57.6%' }
+    ];
 
-    grid.innerHTML = Array.from({ length: 10 }).map((_, i) => {
-      const filled = i < cycleDates.length;
+    grid.innerHTML = STAMP_POSITIONS.map((pos, i) => {
+      if (i >= cycleDates.length) return '';
       const rot = STAMP_ROTATIONS[i];
-      if (filled){
-        return `
-          <div class="stamp-slot filled">
-            <div class="stamp-circle" style="--stamp-rot:${rot}deg;">${PADDLE_STAMP_SVG}</div>
-            <div class="stamp-date">${escapeHtml(formatStampDate(cycleDates[i]))}</div>
-          </div>
-        `;
-      }
       return `
-        <div class="stamp-slot">
-          <div class="stamp-circle"><span class="stamp-num">${i + 1}</span></div>
-          <div class="stamp-date">&nbsp;</div>
+        <div class="stamp-slot filled" style="left:${pos.left}; top:${pos.top};">
+          <div class="stamp-circle" style="--stamp-rot:${rot}deg;">${PADDLE_STAMP_SVG}</div>
         </div>
       `;
     }).join('');
@@ -1140,7 +1041,7 @@
       `;
     }
 
-    wrap.style.display = total > 0 ? 'block' : 'none';
+    wrap.style.display = 'block';
   }
 
   // A completed 10-stamp cycle isn't auto-redeemed, the player taps a
