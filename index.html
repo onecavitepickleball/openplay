@@ -1423,6 +1423,10 @@
 
     sessionList.forEach(s => {
       const dt = parseDayDate(s.date);
+      // Once a day has fully passed, it drops off "This Week" entirely
+      // instead of lingering as the default selection, that's what was
+      // making the widget open on a stale Monday after the week moved on.
+      if (dt.getTime() < today0.getTime()) return;
       const monday = mondayOf(dt).getTime();
       if (monday < thisMonday) return;
       if (!buckets.has(monday)) buckets.set(monday, []);
