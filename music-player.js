@@ -65,7 +65,6 @@
 
   var userWantsSound = !getStoredMuted();
   try { audio.currentTime = getStoredTime(); } catch (e) {}
-  audio.muted = false;
   reflectMuted(!userWantsSound);
 
   if (userWantsSound) {
@@ -73,6 +72,7 @@
     // origin "engaged" (the visitor unmuted it earlier this same session)
     // will often allow this immediately, so most page-to-page navigations
     // never need a fresh gesture at all.
+    audio.muted = false;
     var directAttempt = audio.play();
     if (directAttempt && directAttempt.catch) {
       directAttempt.catch(function () {
@@ -82,9 +82,15 @@
         armGestureUnmute();
       });
     }
+  } else {
+    // Explicitly muted on a previous page: force it back off. The <audio>
+    // tag's own muted/autoplay HTML attributes can otherwise start it
+    // playing (muted) before this script even runs, and leaving
+    // audio.muted untouched here would let that slip through as audible
+    // once something later in the page flips it, so both are reasserted.
+    audio.muted = true;
+    audio.pause();
   }
-  // If the visitor previously muted, stay fully paused; no autoplay attempt
-  // at all until they explicitly hit the button again.
 
   btns.forEach(function (btn) {
     btn.addEventListener('click', function () {
