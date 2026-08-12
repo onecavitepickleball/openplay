@@ -281,6 +281,29 @@
     color: var(--ink-faint); margin-top:8px; letter-spacing:0.03em;
   }
 
+  /* Fulfilled cycles drop out of the flippable card above and collect
+     here as small greyed-out strips, until the player archives them. */
+  .loyalty-used-list{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .loyalty-used-card{
+    display:flex; align-items:center; gap:10px;
+    background: var(--paper-dim); border-radius:10px; padding:8px 10px;
+  }
+  .loyalty-used-thumb{
+    width:44px; height:auto; border-radius:6px; flex-shrink:0;
+    filter: grayscale(1) brightness(0.9); opacity:0.7;
+  }
+  .loyalty-used-info{ flex:1; min-width:0; }
+  .loyalty-used-label{ font-size:12.5px; font-weight:700; color: var(--ink-soft); }
+  .loyalty-used-status{ font-size:11px; color: var(--ink-faint); margin-top:1px; }
+  .loyalty-archive-btn{
+    font-family: var(--font-mono); font-size:10px; letter-spacing:0.03em;
+    text-transform:uppercase; color: var(--ink-soft); background: var(--white);
+    border:1px solid var(--line); border-radius:20px; padding:6px 12px;
+    cursor:pointer; flex-shrink:0; font-weight:700;
+  }
+  .loyalty-archive-btn:disabled{ opacity:0.6; cursor:default; }
+  .loyalty-archive-btn:hover:not(:disabled){ background: var(--paper-dim); border-color: var(--ink-faint); }
+
   .mini-chart{ display:flex; align-items:flex-end; gap:6px; height:100px; margin-bottom:20px; position:relative; }
   .mini-chart-bar{ flex:1; background: var(--paper-dim); border-radius:3px 3px 0 0; position:relative; min-height:3px; align-self:flex-end; }
   .mini-chart-bar-label{
@@ -489,6 +512,7 @@
             </div>
           </div>
           <div class="loyalty-flip-hint">Tap the card to flip it</div>
+          <div class="loyalty-used-list" id="loyaltyUsedCards"></div>
         </div>
 
         <div class="stats-row" id="statsRow" style="display:none;">
@@ -754,7 +778,24 @@
     dashboardView.style.display = 'block';
   });
 
+  if (location.search.includes('previewcard')){
+    loginView.style.display = 'none';
+    profileView.style.display = 'block';
+    dashboardView.style.display = 'block';
+    editFormView.style.display = 'none';
+    currentUid = 'debug-preview-uid';
+    document.getElementById('profileNameDisplay').textContent = 'James Castillo';
+    const n = parseInt(new URLSearchParams(location.search).get('n') || '6', 10);
+    setTimeout(() => {
+      renderLoyaltyCard(
+        Array.from({ length: n }).map((_, i) => ({ date: `2026-08-${String(i + 1).padStart(2, '0')}`, names: ['James Castillo'] })),
+        ['james castillo']
+      );
+    }, 0);
+  }
+
   onAuthStateChanged(auth, async (user) => {
+    if (location.search.includes('previewcard')) return;
     if (!user || user.email === ADMIN_ONLY_EMAIL){
       loginView.style.display = 'block';
       profileView.style.display = 'none';
@@ -972,19 +1013,74 @@
     } catch (err) { console.error('loadStats failed:', err); }
   }
 
+  // A short confetti burst, shown once per cycle the first time a player's
+  // card actually completes (a localStorage flag stops it firing again on
+  // every later page load of the same finished card).
+  function fireLoyaltyConfetti(){
+    const colors = ['#005E89', '#2C93DE', '#9FDE3B', '#FFC845', '#FF6B6B'];
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    const pieces = Array.from({ length: 90 }).map(() => ({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * canvas.height * 0.4,
+      w: 5 + Math.random() * 5,
+      h: 8 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * Math.PI,
+      vRot: (Math.random() - 0.5) * 0.3,
+      vy: 2 + Math.random() * 3,
+      vx: (Math.random() - 0.5) * 2.5
+    }));
+    const start = performance.now();
+    function frame(now){
+      const elapsed = now - start;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pieces.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.rot += p.vRot;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      if (elapsed < 2600){
+        requestAnimationFrame(frame);
+      } else {
+        canvas.remove();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
   const PADDLE_STAMP_SVG = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="5.5" y="1.5" width="13" height="15" rx="6.2" ry="6.8"/>
-      <rect x="10.2" y="15.8" width="3.6" height="6.5" rx="1.5"/>
+    <svg viewBox="0 0 24 24">
+      <path fill="currentColor" d="M12 0.8c-4.1 0-7.2 3.3-7.2 7.6 0 4.1 3.1 7.4 6.2 7.7v1h-1.1c-.6 0-1 .5-1 1v2.6c0 .6.4 1 1 1h4.2c.6 0 1-.4 1-1v-2.6c0-.5-.4-1-1-1h-1.1v-1c3.1-.3 6.2-3.6 6.2-7.7 0-4.3-3.1-7.6-7.2-7.6z"/>
     </svg>
   `;
   const STAMP_ROTATIONS = [-7, 5, -4, 8, -9, 3, -5, 6, -3, 7];
   const LOYALTY_START_DATE = '2026-08-01';
 
-  function renderLoyaltyCard(allRecords, keys){
+  const STAMP_POSITIONS = [
+    { left: '12.8%', top: '39.1%' }, { left: '26.2%', top: '39.1%' }, { left: '39.5%', top: '39.1%' },
+    { left: '52.9%', top: '39.1%' }, { left: '66.2%', top: '39.1%' },
+    { left: '12.8%', top: '57.6%' }, { left: '26.2%', top: '57.6%' }, { left: '39.5%', top: '57.6%' },
+    { left: '52.9%', top: '57.6%' }, { left: '66.2%', top: '57.6%' }
+  ];
+  function formatStampDate(iso){
+    const parts = iso.split('-');
+    return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
+  }
+
+  async function renderLoyaltyCard(allRecords, keys){
     const wrap = document.getElementById('loyaltyWrap');
     const grid = document.getElementById('stampGrid');
     const reward = document.getElementById('loyaltyReward');
+    const usedList = document.getElementById('loyaltyUsedCards');
     if (!wrap || !grid) return;
 
     // Every date this player's name (or an alias) shows up in an
@@ -1000,24 +1096,30 @@
 
     const total = dates.length;
     const completedCycles = Math.floor(total / 10);
-    const posInCycle = total === 0 ? 0 : (total % 10 === 0 ? 10 : total % 10);
-    const cycleStartIndex = total === 0 ? 0 : total - posInCycle;
-    const cycleDates = dates.slice(cycleStartIndex, cycleStartIndex + posInCycle);
+    let posInCycle = total === 0 ? 0 : (total % 10 === 0 ? 10 : total % 10);
+    let activeCycleNumber = posInCycle === 10 ? completedCycles : completedCycles + 1;
 
-    // Percentages measured directly off the printed circle centers in
-    // assets/loyalty-card-back.png (858x575), so a stamp lands exactly
-    // on top of its numbered circle regardless of the card's on-screen size.
-    const STAMP_POSITIONS = [
-      { left: '12.8%', top: '39.1%' }, { left: '26.2%', top: '39.1%' }, { left: '39.5%', top: '39.1%' },
-      { left: '52.9%', top: '39.1%' }, { left: '66.2%', top: '39.1%' },
-      { left: '12.8%', top: '57.6%' }, { left: '26.2%', top: '57.6%' }, { left: '39.5%', top: '57.6%' },
-      { left: '52.9%', top: '57.6%' }, { left: '66.2%', top: '57.6%' }
-    ];
-
-    function formatStampDate(iso){
-      const parts = iso.split('-');
-      return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
+    // Pull every redemption this player has ever filed so we know which
+    // completed cycles are already fulfilled (and therefore "used up").
+    const redemptionMap = {};
+    if (currentUid){
+      try {
+        const snap = await getDocs(query(collection(db, 'loyaltyRedemptions'), where('uid', '==', currentUid)));
+        snap.forEach(d => { redemptionMap[d.data().cycleNumber] = { id: d.id, ...d.data() }; });
+      } catch (err) {
+        console.error('loyalty redemption lookup failed:', err);
+      }
     }
+
+    // If the card sitting right at a 10-stamp boundary has already been
+    // redeemed, it's done, roll the active card over to a fresh, empty one
+    // for the next cycle instead of re-showing the claim button forever.
+    const boundaryRedemption = posInCycle === 10 ? redemptionMap[activeCycleNumber] : null;
+    if (boundaryRedemption && boundaryRedemption.status === 'fulfilled'){
+      activeCycleNumber += 1;
+      posInCycle = 0;
+    }
+    const cycleDates = posInCycle > 0 ? dates.slice(total - posInCycle, total) : [];
 
     grid.innerHTML = STAMP_POSITIONS.map((pos, i) => {
       if (i >= cycleDates.length) return '';
@@ -1033,36 +1135,68 @@
     }).join('');
 
     if (posInCycle >= 10){
-      renderLoyaltyClaim(reward, total / 10);
+      renderLoyaltyClaim(reward, activeCycleNumber, redemptionMap[activeCycleNumber]);
     } else {
       reward.className = 'loyalty-reward';
       reward.innerHTML = `${10 - posInCycle} more stamp${10 - posInCycle === 1 ? '' : 's'} for a free Open Play`;
     }
 
     wrap.style.display = 'block';
+
+    if (usedList){
+      const usedCycleNumbers = [];
+      for (let i = 1; i <= completedCycles; i++){
+        if (i === activeCycleNumber) continue;
+        const r = redemptionMap[i];
+        if (r && r.status === 'fulfilled' && !r.archived) usedCycleNumbers.push(i);
+      }
+      renderLoyaltyUsedCards(usedList, usedCycleNumbers, redemptionMap);
+    }
+  }
+
+  function renderLoyaltyUsedCards(usedList, cycleNumbers, redemptionMap){
+    if (!cycleNumbers.length){
+      usedList.innerHTML = '';
+      return;
+    }
+    usedList.innerHTML = cycleNumbers.map(n => `
+      <div class="loyalty-used-card" data-cycle="${n}">
+        <img class="loyalty-used-thumb" src="/assets/loyalty-card-front.png" alt="">
+        <div class="loyalty-used-info">
+          <div class="loyalty-used-label">Cycle ${n} card</div>
+          <div class="loyalty-used-status">Redeemed, all 10 stamps used</div>
+        </div>
+        <button type="button" class="loyalty-archive-btn" data-cycle="${n}">Archive</button>
+      </div>
+    `).join('');
+
+    usedList.querySelectorAll('.loyalty-archive-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const n = parseInt(btn.dataset.cycle, 10);
+        const r = redemptionMap[n];
+        if (!r) return;
+        btn.disabled = true;
+        btn.textContent = 'Archiving…';
+        try {
+          await updateDoc(doc(db, 'loyaltyRedemptions', r.id), { archived: true });
+          const card = usedList.querySelector(`.loyalty-used-card[data-cycle="${n}"]`);
+          if (card) card.remove();
+        } catch (err) {
+          console.error('archive failed:', err);
+          btn.disabled = false;
+          btn.textContent = 'Archive';
+        }
+      });
+    });
   }
 
   // A completed 10-stamp cycle isn't auto-redeemed, the player taps a
   // button to file a claim, which lands in the admin dashboard for
   // confirmation before it counts as used (same pending-then-approved
   // pattern as self check-in and ladder results).
-  async function renderLoyaltyClaim(reward, cycleNumber){
+  function renderLoyaltyClaim(reward, cycleNumber, existing){
     if (!currentUid) return;
     reward.className = 'loyalty-reward is-earned';
-    reward.textContent = 'Checking status…';
-
-    let existing = null;
-    try {
-      const q = query(
-        collection(db, 'loyaltyRedemptions'),
-        where('uid', '==', currentUid),
-        where('cycleNumber', '==', cycleNumber)
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) existing = snap.docs[0].data();
-    } catch (err) {
-      console.error('loyalty redemption lookup failed:', err);
-    }
 
     if (existing && existing.status === 'fulfilled'){
       reward.textContent = 'Redeemed, enjoy your free Open Play!';
@@ -1071,6 +1205,12 @@
     if (existing && existing.status === 'pending'){
       reward.textContent = 'Claim submitted, awaiting officer confirmation';
       return;
+    }
+
+    const confettiKey = `ocpc-loyalty-confetti-${currentUid}-${cycleNumber}`;
+    if (!localStorage.getItem(confettiKey)){
+      fireLoyaltyConfetti();
+      try { localStorage.setItem(confettiKey, '1'); } catch (e) {}
     }
 
     reward.innerHTML = `

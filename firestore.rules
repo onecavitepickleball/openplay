@@ -374,7 +374,16 @@ service cloud.firestore {
         && request.resource.data.name is string && request.resource.data.name.size() > 0;
       allow read: if isAdmin() || hasRole('court_manager')
         || (request.auth != null && request.auth.uid == resource.data.uid);
-      allow update, delete: if isAdmin() || hasRole('court_manager');
+      // Once a reward is fulfilled, the player can archive their own copy
+      // (hides it from their profile) by flipping ONLY the archived flag,
+      // nothing else, so they can't touch status/cycleNumber themselves.
+      allow update: if isAdmin() || hasRole('court_manager') || (
+        request.auth != null && request.auth.uid == resource.data.uid
+        && resource.data.status == 'fulfilled'
+        && request.resource.data.archived == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['archived'])
+      );
+      allow delete: if isAdmin() || hasRole('court_manager');
     }
 
     // Site-wide settings, hand-edited from admin.html (currently just the
