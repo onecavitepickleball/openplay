@@ -303,10 +303,10 @@
   }
   .loyalty-used-card-inner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
   .loyalty-used-ribbon{
-    position:absolute; top:16px; right:-38px; width:160px; text-align:center;
-    color:#fff; font-family: var(--font-mono); font-size:11px;
-    font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:5px 0;
-    transform:rotate(38deg); box-shadow:0 2px 6px rgba(0,0,0,0.25);
+    position:absolute; top:0; left:0; right:0; z-index:2; text-align:center;
+    color:#fff; font-family: var(--font-mono); font-size:clamp(11px, 3vw, 15px);
+    font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:8px 0;
+    box-shadow:0 2px 6px rgba(0,0,0,0.25);
   }
   .loyalty-used-ribbon.ribbon-redeemed{ background: var(--pop); }
   .loyalty-used-ribbon.ribbon-pending{ background: var(--sky-deep); }
@@ -801,7 +801,24 @@
     dashboardView.style.display = 'block';
   });
 
+  if (location.search.includes('previewcard')){
+    loginView.style.display = 'none';
+    profileView.style.display = 'block';
+    dashboardView.style.display = 'block';
+    editFormView.style.display = 'none';
+    currentUid = 'debug-preview-uid';
+    document.getElementById('profileNameDisplay').textContent = 'James Castillo';
+    const n = parseInt(new URLSearchParams(location.search).get('n') || '26', 10);
+    setTimeout(() => {
+      renderLoyaltyCard(
+        Array.from({ length: n }).map((_, i) => ({ date: `2026-08-${String((i % 28) + 1).padStart(2, '0')}`, names: ['James Castillo'] })),
+        ['james castillo']
+      );
+    }, 0);
+  }
+
   onAuthStateChanged(auth, async (user) => {
+    if (location.search.includes('previewcard')) return;
     if (!user || user.email === ADMIN_ONLY_EMAIL){
       loginView.style.display = 'block';
       profileView.style.display = 'none';
@@ -1154,7 +1171,15 @@
         if (r && r.status === 'fulfilled' && r.archived) continue; // done and tucked away
         shelvedCycleNumbers.push(i);
       }
-      renderLoyaltyUsedCards(usedList, shelvedCycleNumbers, redemptionMap);
+      // Still-claimable cards (unclaimed or awaiting confirmation) sit
+      // right under the active card, newest first, so the one you can
+      // actually act on is never buried under old redeemed ones.
+      shelvedCycleNumbers.sort((a, b) => {
+        const rankOf = n => (redemptionMap[n] && redemptionMap[n].status === 'fulfilled') ? 1 : 0;
+        const ra = rankOf(a), rb = rankOf(b);
+        return ra !== rb ? ra - rb : b - a;
+      });
+      renderLoyaltyUsedCards(usedList, shelvedCycleNumbers, redemptionMap, dates);
     }
   }
 
@@ -1163,11 +1188,30 @@
   // as the live card). Three states: still claimable (full color, glow,
   // confetti the first time it lands here), claimed and awaiting an
   // admin (full color, neutral), or fulfilled (greyed out, archivable).
-  function renderLoyaltyUsedCards(usedList, cycleNumbers, redemptionMap){
+  function renderLoyaltyUsedCards(usedList, cycleNumbers, redemptionMap, dates){
     if (!cycleNumbers.length){
       usedList.innerHTML = '';
       return;
     }
+    // A shelved card is always a completed 10-stamp cycle, so its stamp
+    // grid is fixed, unlike the active card it never re-renders, so
+    // build it once per cycle here instead of leaving the back photo bare.
+    function stampGridFor(n){
+      const cycleDates = dates.slice((n - 1) * 10, n * 10);
+      return STAMP_POSITIONS.map((pos, i) => {
+        if (i >= cycleDates.length) return '';
+        const rot = STAMP_ROTATIONS[i];
+        return `
+          <div class="stamp-slot filled" style="left:${pos.left}; top:${pos.top};">
+            <div class="stamp-circle" style="--stamp-rot:${rot}deg;">
+              ${PADDLE_STAMP_SVG}
+              <span class="stamp-date">${escapeHtml(formatStampDate(cycleDates[i]))}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     usedList.innerHTML = cycleNumbers.map(n => {
       const r = redemptionMap[n];
       if (r && r.status === 'fulfilled'){
@@ -1175,6 +1219,7 @@
           <div class="loyalty-used-card-wrap" data-cycle="${n}">
             <div class="loyalty-used-card-inner is-redeemed">
               <img class="loyalty-face-photo" src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+              <div class="stamp-grid">${stampGridFor(n)}</div>
               <div class="loyalty-used-ribbon ribbon-redeemed">Redeemed</div>
             </div>
             <div class="loyalty-used-actions">
@@ -1189,6 +1234,7 @@
           <div class="loyalty-used-card-wrap" data-cycle="${n}">
             <div class="loyalty-used-card-inner is-pending">
               <img class="loyalty-face-photo" src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+              <div class="stamp-grid">${stampGridFor(n)}</div>
               <div class="loyalty-used-ribbon ribbon-pending">Pending</div>
             </div>
             <div class="loyalty-used-actions">
@@ -1206,6 +1252,7 @@
         <div class="loyalty-used-card-wrap" data-cycle="${n}">
           <div class="loyalty-used-card-inner is-ready">
             <img class="loyalty-face-photo" src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+            <div class="stamp-grid">${stampGridFor(n)}</div>
             <div class="loyalty-used-ribbon ribbon-ready">Ready to claim!</div>
           </div>
           <div class="loyalty-used-actions">

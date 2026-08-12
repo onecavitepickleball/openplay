@@ -100,10 +100,10 @@
   }
   .loyalty-used-card-inner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
   .loyalty-used-ribbon{
-    position:absolute; top:16px; right:-38px; width:160px; text-align:center;
-    color:#fff; font-family: var(--font-mono); font-size:11px;
-    font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:5px 0;
-    transform:rotate(38deg); box-shadow:0 2px 6px rgba(0,0,0,0.25);
+    position:absolute; top:0; left:0; right:0; z-index:2; text-align:center;
+    color:#fff; font-family: var(--font-mono); font-size:clamp(11px, 3vw, 15px);
+    font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:8px 0;
+    box-shadow:0 2px 6px rgba(0,0,0,0.25);
   }
   .loyalty-used-ribbon.ribbon-redeemed{ background: var(--pop); }
   .loyalty-used-ribbon.ribbon-pending{ background: var(--sky-deep); }
@@ -303,6 +303,30 @@
       if (r && r.status === 'fulfilled' && r.archived) continue;
       shelvedCycleNumbers.push(i);
     }
+    // Still-claimable cards sit right under the active card, newest
+    // first, so redeemed history doesn't bury the one you can act on.
+    shelvedCycleNumbers.sort((a, b) => {
+      const rankOf = n => (redemptions[n] && redemptions[n].status === 'fulfilled') ? 1 : 0;
+      const ra = rankOf(a), rb = rankOf(b);
+      return ra !== rb ? ra - rb : b - a;
+    });
+
+    function stampGridFor(n){
+      const cycleDates = dates.slice((n - 1) * 10, n * 10);
+      return STAMP_POSITIONS.map((pos, i) => {
+        if (i >= cycleDates.length) return '';
+        const rot = STAMP_ROTATIONS[i];
+        return `
+          <div class="stamp-slot filled" style="left:${pos.left}; top:${pos.top};">
+            <div class="stamp-circle" style="--stamp-rot:${rot}deg;">
+              ${PADDLE_STAMP_SVG}
+              <span class="stamp-date">${escapeHtml(formatStampDate(cycleDates[i]))}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     usedList.innerHTML = shelvedCycleNumbers.map(n => {
       const r = redemptions[n];
       if (r && r.status === 'fulfilled'){
@@ -310,6 +334,7 @@
           <div class="loyalty-used-card-wrap" data-cycle="${n}">
             <div class="loyalty-used-card-inner is-redeemed">
               <img src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+              <div class="stamp-grid">${stampGridFor(n)}</div>
               <div class="loyalty-used-ribbon ribbon-redeemed">Redeemed</div>
             </div>
             <div class="loyalty-used-actions">
@@ -324,6 +349,7 @@
           <div class="loyalty-used-card-wrap" data-cycle="${n}">
             <div class="loyalty-used-card-inner is-pending">
               <img src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+              <div class="stamp-grid">${stampGridFor(n)}</div>
               <div class="loyalty-used-ribbon ribbon-pending">Pending</div>
             </div>
             <div class="loyalty-used-actions">
@@ -342,6 +368,7 @@
         <div class="loyalty-used-card-wrap" data-cycle="${n}">
           <div class="loyalty-used-card-inner is-ready">
             <img src="/assets/loyalty-card-back.png" alt="Loyalty Card #${n}">
+            <div class="stamp-grid">${stampGridFor(n)}</div>
             <div class="loyalty-used-ribbon ribbon-ready">Ready to claim!</div>
           </div>
           <div class="loyalty-used-actions">
