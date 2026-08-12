@@ -268,7 +268,6 @@
     font-family: var(--font-mono); text-transform:uppercase;
     font-size:clamp(6.5px, 1.9vw, 8.5px); letter-spacing:0.03em; color: #2C93DE;
   }
-  .loyalty-reward.is-earned{ color:#2E7D32; font-weight:700; }
   .loyalty-claim-btn{
     font-family: var(--font-mono); font-size:clamp(6.5px, 1.8vw, 8px); letter-spacing:0.03em;
     text-transform:uppercase; color:#fff; background: var(--pop); border:none; border-radius:20px;
@@ -303,10 +302,12 @@
   }
   .loyalty-used-card-inner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
   .loyalty-used-ribbon{
-    position:absolute; top:0; left:0; right:0; z-index:2; text-align:center;
-    color:#fff; font-family: var(--font-mono); font-size:clamp(11px, 3vw, 15px);
-    font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:8px 0;
-    box-shadow:0 2px 6px rgba(0,0,0,0.25);
+    position:absolute; top:50%; left:0; right:0; z-index:2; text-align:center;
+    transform: translateY(-50%);
+    color:#fff; font-family: var(--font-mono); font-size:clamp(13px, 3.6vw, 19px);
+    font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:14px 0;
+    box-shadow:0 4px 16px rgba(0,0,0,0.3);
+    opacity:0.94;
   }
   .loyalty-used-ribbon.ribbon-redeemed{ background: var(--pop); }
   .loyalty-used-ribbon.ribbon-pending{ background: var(--sky-deep); }
@@ -801,7 +802,24 @@
     dashboardView.style.display = 'block';
   });
 
+  if (location.search.includes('previewcard')){
+    loginView.style.display = 'none';
+    profileView.style.display = 'block';
+    dashboardView.style.display = 'block';
+    editFormView.style.display = 'none';
+    currentUid = 'debug-preview-uid';
+    document.getElementById('profileNameDisplay').textContent = 'James Castillo';
+    const n = parseInt(new URLSearchParams(location.search).get('n') || '10', 10);
+    setTimeout(() => {
+      renderLoyaltyCard(
+        Array.from({ length: n }).map((_, i) => ({ date: `2026-08-${String((i % 28) + 1).padStart(2, '0')}`, names: ['James Castillo'] })),
+        ['james castillo']
+      );
+    }, 0);
+  }
+
   onAuthStateChanged(auth, async (user) => {
+    if (location.search.includes('previewcard')) return;
     if (!user || user.email === ADMIN_ONLY_EMAIL){
       loginView.style.display = 'block';
       profileView.style.display = 'none';
@@ -1114,16 +1132,16 @@
       }
     }
 
-    // The active (flippable) card always follows the most recent stamp:
-    // once an 11th session lands, a fresh card starts immediately, even
-    // if cycle 1 was never claimed. That finished-but-unclaimed cycle
-    // doesn't disappear, it drops into the list below, still fully
-    // colored (not greyed) and still claimable from there, so nothing
-    // is ever lost, it's just not hogging the main card slot anymore.
-    const activeCycleNumber = total === 0 ? 1 : Math.ceil(total / 10);
-    const stampsBeforeActive = (activeCycleNumber - 1) * 10;
-    const posInCycle = total - stampsBeforeActive;
-    const cycleDates = posInCycle > 0 ? dates.slice(stampsBeforeActive, stampsBeforeActive + posInCycle) : [];
+    // The active (flippable) card is always the next in-progress cycle,
+    // 0-9 stamps. The instant a cycle hits its 10th stamp, it's already
+    // "full" and drops straight into the shelf below (whether or not the
+    // player has claimed it yet, whether or not an admin has fulfilled
+    // it), and a brand new blank card takes the main slot immediately,
+    // no need to wait for an 11th stamp.
+    const completedCycles = Math.floor(total / 10);
+    const activeCycleNumber = completedCycles + 1;
+    const posInCycle = total - completedCycles * 10;
+    const cycleDates = posInCycle > 0 ? dates.slice(completedCycles * 10, total) : [];
 
     grid.innerHTML = STAMP_POSITIONS.map((pos, i) => {
       if (i >= cycleDates.length) return '';
@@ -1138,18 +1156,14 @@
       `;
     }).join('');
 
-    if (posInCycle >= 10){
-      renderLoyaltyClaim(reward, activeCycleNumber, redemptionMap[activeCycleNumber]);
-    } else {
-      reward.className = 'loyalty-reward';
-      reward.innerHTML = `${10 - posInCycle} more stamp${10 - posInCycle === 1 ? '' : 's'} for a free Open Play`;
-    }
+    reward.className = 'loyalty-reward';
+    reward.innerHTML = `${10 - posInCycle} more stamp${10 - posInCycle === 1 ? '' : 's'} for a free Open Play`;
 
     wrap.style.display = 'block';
 
     if (usedList){
       const shelvedCycleNumbers = [];
-      for (let i = 1; i < activeCycleNumber; i++){
+      for (let i = 1; i <= completedCycles; i++){
         const r = redemptionMap[i];
         if (r && r.status === 'fulfilled' && r.archived) continue; // done and tucked away
         shelvedCycleNumbers.push(i);
@@ -1288,57 +1302,6 @@
         }
       });
     });
-  }
-
-  // A completed 10-stamp cycle isn't auto-redeemed, the player taps a
-  // button to file a claim, which lands in the admin dashboard for
-  // confirmation before it counts as used (same pending-then-approved
-  // pattern as self check-in and ladder results).
-  function renderLoyaltyClaim(reward, cycleNumber, existing){
-    if (!currentUid) return;
-    reward.className = 'loyalty-reward is-earned';
-
-    if (existing && existing.status === 'fulfilled'){
-      reward.textContent = 'Redeemed, enjoy your free Open Play!';
-      return;
-    }
-    if (existing && existing.status === 'pending'){
-      reward.textContent = 'Claim submitted, awaiting admin confirmation';
-      return;
-    }
-
-    const confettiKey = `ocpc-loyalty-confetti-${currentUid}-${cycleNumber}`;
-    if (!localStorage.getItem(confettiKey)){
-      fireLoyaltyConfetti();
-      try { localStorage.setItem(confettiKey, '1'); } catch (e) {}
-    }
-
-    reward.innerHTML = `
-      Free Open Play earned!
-      <button type="button" class="loyalty-claim-btn" id="loyaltyClaimBtn">Claim it</button>
-    `;
-    const btn = document.getElementById('loyaltyClaimBtn');
-    if (btn){
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        btn.disabled = true;
-        btn.textContent = 'Submitting…';
-        try {
-          await addDoc(collection(db, 'loyaltyRedemptions'), {
-            uid: currentUid,
-            name: document.getElementById('profileNameDisplay').textContent.trim(),
-            cycleNumber,
-            status: 'pending',
-            createdAt: serverTimestamp()
-          });
-          reward.textContent = 'Claim submitted, awaiting admin confirmation';
-        } catch (err) {
-          console.error('loyalty claim submit failed:', err);
-          btn.disabled = false;
-          btn.textContent = 'Claim it';
-        }
-      });
-    }
   }
 
   const loyaltyCard = document.getElementById('loyaltyCard');

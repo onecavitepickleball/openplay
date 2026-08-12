@@ -71,7 +71,6 @@
     display:flex; align-items:center; gap:6px; font-family: var(--font-mono);
     text-transform:uppercase; font-size:clamp(6.5px, 1.9vw, 8.5px); letter-spacing:0.03em; color: #2C93DE;
   }
-  .loyalty-reward.is-earned{ color:#2E7D32; font-weight:700; }
   .loyalty-claim-btn{
     font-family: var(--font-mono); font-size:clamp(6.5px, 1.8vw, 8px); letter-spacing:0.03em;
     text-transform:uppercase; color:#fff; background: var(--pop); border:none; border-radius:20px;
@@ -100,10 +99,12 @@
   }
   .loyalty-used-card-inner img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
   .loyalty-used-ribbon{
-    position:absolute; top:0; left:0; right:0; z-index:2; text-align:center;
-    color:#fff; font-family: var(--font-mono); font-size:clamp(11px, 3vw, 15px);
-    font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:8px 0;
-    box-shadow:0 2px 6px rgba(0,0,0,0.25);
+    position:absolute; top:50%; left:0; right:0; z-index:2; text-align:center;
+    transform: translateY(-50%);
+    color:#fff; font-family: var(--font-mono); font-size:clamp(13px, 3.6vw, 19px);
+    font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:14px 0;
+    box-shadow:0 4px 16px rgba(0,0,0,0.3);
+    opacity:0.94;
   }
   .loyalty-used-ribbon.ribbon-redeemed{ background: var(--pop); }
   .loyalty-used-ribbon.ribbon-pending{ background: var(--sky-deep); }
@@ -126,10 +127,10 @@
 <div class="demo-banner">
   Internal preview only, not linked from anywhere on the site. Everything
   here runs on fake in-memory data, nothing is read from or written to
-  Firestore. Add stamps past 10 without claiming to see the old card
-  drop into the list below, still glowing and claimable, while a fresh
-  card starts on top. Claim it from either spot, then simulate the
-  admin fulfilling and archiving it.
+  Firestore. Add the 10th stamp to see the full card drop into the list
+  below, still glowing and claimable, while a fresh blank card starts on
+  top right away. Claim it from the shelf, then simulate the admin
+  fulfilling and archiving it.
 </div>
 
 <div class="loyalty-wrap" id="loyaltyWrap">
@@ -230,14 +231,14 @@
     const usedList = document.getElementById('loyaltyUsedCards');
     const wrap = document.getElementById('loyaltyWrap');
 
-    // Same logic as the real profile page: the active card always
-    // follows the newest stamp. Once an 11th session lands, a fresh
-    // card starts right away, even if the previous one was never
-    // claimed, that one just drops into the list below instead of
-    // disappearing.
-    const activeCycleNumber = totalStamps === 0 ? 1 : Math.ceil(totalStamps / 10);
-    const stampsBeforeActive = (activeCycleNumber - 1) * 10;
-    const posInCycle = totalStamps - stampsBeforeActive;
+    // Same logic as the real profile page: the active card is always
+    // the next in-progress cycle (0-9 stamps). The instant a cycle hits
+    // its 10th stamp it's already "full" and drops straight into the
+    // shelf below, whether or not it's been claimed, and a brand new
+    // blank card takes the main slot immediately.
+    const completedCycles = Math.floor(totalStamps / 10);
+    const activeCycleNumber = completedCycles + 1;
+    const posInCycle = totalStamps - completedCycles * 10;
 
     const dates = Array.from({ length: totalStamps }).map((_, i) => {
       const d = i + 1;
@@ -245,7 +246,7 @@
       const dd = ((d - 1) % 28) + 1;
       return `2026-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
     });
-    const cycleDates = posInCycle > 0 ? dates.slice(stampsBeforeActive, stampsBeforeActive + posInCycle) : [];
+    const cycleDates = posInCycle > 0 ? dates.slice(completedCycles * 10, totalStamps) : [];
 
     grid.innerHTML = STAMP_POSITIONS.map((pos, i) => {
       if (i >= cycleDates.length) return '';
@@ -260,45 +261,18 @@
       `;
     }).join('');
 
-    if (posInCycle >= 10){
-      const existing = redemptions[activeCycleNumber];
-      reward.className = 'loyalty-reward is-earned';
-      if (existing && existing.status === 'fulfilled'){
-        reward.textContent = 'Redeemed, enjoy your free Open Play!';
-      } else if (existing && existing.status === 'pending'){
-        reward.textContent = 'Claim submitted, awaiting admin confirmation';
-      } else {
-        const confettiKey = 'demo-confetti-' + activeCycleNumber;
-        if (!sessionStorage.getItem(confettiKey)){
-          fireLoyaltyConfetti();
-          sessionStorage.setItem(confettiKey, '1');
-          say('Confetti fired for cycle ' + activeCycleNumber + '!');
-        }
-        reward.innerHTML = `Free Open Play earned! <button type="button" class="loyalty-claim-btn" id="loyaltyClaimBtn">Claim it</button>`;
-        const claimBtn = document.getElementById('loyaltyClaimBtn');
-        if (claimBtn){
-          claimBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            redemptions[activeCycleNumber] = { status: 'pending', archived: false };
-            say('Claim filed for cycle ' + activeCycleNumber + '. Now simulate the admin fulfilling it.');
-            render();
-          });
-        }
-      }
-    } else {
-      reward.className = 'loyalty-reward';
-      reward.innerHTML = `${10 - posInCycle} more stamp${10 - posInCycle === 1 ? '' : 's'} for a free Open Play`;
-    }
+    reward.className = 'loyalty-reward';
+    reward.innerHTML = `${10 - posInCycle} more stamp${10 - posInCycle === 1 ? '' : 's'} for a free Open Play`;
 
     // "Simulate admin" fulfills whichever card is currently pending,
-    // whether that's the main card or one sitting in the shelf below.
+    // wherever it sits in the shelf below.
     const fulfillBtn = document.getElementById('btnFulfill');
     const pendingCycle = Object.keys(redemptions).map(Number).find(k => redemptions[k].status === 'pending');
     fulfillBtn.disabled = pendingCycle === undefined;
     fulfillBtn.dataset.pendingCycle = pendingCycle === undefined ? '' : pendingCycle;
 
     const shelvedCycleNumbers = [];
-    for (let i = 1; i < activeCycleNumber; i++){
+    for (let i = 1; i <= completedCycles; i++){
       const r = redemptions[i];
       if (r && r.status === 'fulfilled' && r.archived) continue;
       shelvedCycleNumbers.push(i);
