@@ -176,7 +176,9 @@ service cloud.firestore {
         && request.resource.data.fullName is string && request.resource.data.fullName.size() > 0
         && request.resource.data.contactNumber is string && request.resource.data.contactNumber.size() > 0
         && request.resource.data.fbName is string && request.resource.data.fbName.size() > 0
-        && request.resource.data.email is string && request.resource.data.email.size() > 0;
+        && request.resource.data.email is string && request.resource.data.email.size() > 0
+        && request.resource.data.paymentRef is string && request.resource.data.paymentRef.size() > 0
+        && request.resource.data.paymentProofURL is string && request.resource.data.paymentProofURL.size() > 0;
 
       // A signed-in player can also read their own orders (matched by the
       // email on the order, not a stored uid, since checkout doesn't

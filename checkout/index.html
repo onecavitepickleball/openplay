@@ -337,13 +337,13 @@
           </div>
 
           <div class="form-row" style="margin-top:16px;">
-            <label for="orderRef">GCash / Bank Reference No. <span class="optional-tag">(optional — you can send it later)</span></label>
-            <input type="text" id="orderRef">
+            <label for="orderRef">GCash / Bank Reference No.</label>
+            <input type="text" id="orderRef" required>
           </div>
 
           <div class="form-row">
-            <label for="orderProof">Proof of Payment <span class="optional-tag">(optional — screenshot of your receipt)</span></label>
-            <input type="file" id="orderProof" accept="image/*">
+            <label for="orderProof">Proof of Payment <span class="optional-tag">(screenshot of your receipt)</span></label>
+            <input type="file" id="orderProof" accept="image/*" required>
             <div class="proof-preview" id="orderProofPreview"></div>
           </div>
         </div>
