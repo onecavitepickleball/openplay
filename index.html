@@ -357,170 +357,183 @@
   }
 
   /* ---- SCHEDULE ---- */
-  .day-tabs{
+  .sched-card{
+    background: var(--white, #fff);
+    border: 1.5px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .sched-card-head{
     display:flex;
-    gap:0;
+    justify-content:flex-end;
+    gap:8px;
+    padding:16px 20px;
     border-bottom: 1.5px solid var(--line);
-    margin-bottom:36px;
-    overflow-x:auto;
+    background: var(--paper-dim);
   }
-  .day-tab{
-    position:relative;
-    flex:1 1 auto;
-    min-width:110px;
-    background:none;
-    border:none;
-    cursor:pointer;
-    padding:16px 12px;
-    text-align:center;
-    border-bottom: 3px solid transparent;
-    margin-bottom:-1.5px;
-    transition: border-color .15s ease, background .15s ease;
-  }
-  .day-tab.is-today:not(.active){ background: rgba(79,182,255,0.08); }
-  .day-tab .wk{
-    display:block;
+  .week-pill{
     font-family: var(--font-mono);
     font-size:11.5px;
-    letter-spacing:0.1em;
+    letter-spacing:0.04em;
     text-transform:uppercase;
-    color: var(--ink-faint);
-    margin-bottom:6px;
-  }
-  .day-tab .dt{
-    display:block;
-    font-family: var(--font-display);
-    font-size:22px;
-    color: var(--ink-soft);
-  }
-  .day-tab .today-flag{
-    display:block;
-    font-family: var(--font-mono);
-    font-size:9px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color: var(--sky-deep);
-    margin-top:5px;
-  }
-  .day-tab .status-flag{
-    display:block;
-    font-family: var(--font-mono);
-    font-size:9px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    margin-top:5px;
-  }
-  .day-tab .status-flag.tentative{ color:#9A6B00; }
-  .day-tab .status-flag.cancelled{ color: var(--ink-faint); }
-  .day-tab:hover{ border-bottom-color: rgba(79,182,255,0.5); }
-  .day-tab.active{ border-bottom-color: var(--pop); }
-  .day-tab.active .wk{ color: var(--sky-deep); }
-  .day-tab.active .dt{ color: var(--ink); }
-  .day-tab.is-today .wk{ color: var(--sky-deep); }
-
-  .week-tabs{ display:flex; gap:10px; margin-bottom:20px; }
-  .week-tab{
-    font-family: var(--font-mono);
-    font-size:12px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    padding:8px 18px;
+    padding:8px 16px;
     border-radius:20px;
-    border:1.5px solid var(--line);
+    border:none;
     background:none;
     cursor:pointer;
     color: var(--ink-soft);
     transition: all .15s ease;
   }
-  .week-tab:hover:not(.active){ border-color: var(--pop); }
-  .week-tab.active{ background: var(--navy); border-color: var(--navy); color: var(--paper); }
+  .week-pill:hover:not(.active){ color: var(--ink); }
+  .week-pill.active{ background: var(--navy); color: var(--paper); }
 
-  .detail-panel{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap:40px;
-    align-items:start;
+  .sched-card-body{ padding:26px 28px 30px; }
+
+  .day-rail{
+    display:flex;
+    gap:8px;
+    margin-bottom:28px;
+    overflow-x:auto;
+    padding-bottom:2px;
   }
-  .detail-heading{
-    font-family: var(--font-display);
-    font-size:clamp(32px, 5vw, 48px);
-    text-transform:uppercase;
-    line-height:1;
+  .day-chip{
+    position:relative;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    min-width:60px;
+    padding:10px 14px;
+    border-radius:10px;
+    border:1.5px solid transparent;
+    background: var(--paper);
+    cursor:pointer;
+    transition: border-color .15s ease, background .15s ease;
   }
-  .detail-badge{
-    display:inline-block;
-    margin-top:16px;
+  .day-chip:hover:not(.active){ border-color: rgba(79,182,255,0.5); }
+  .day-chip.is-today:not(.active){ border-color: var(--sky); }
+  .day-chip.active{ background: var(--navy); }
+  .day-chip .wk{
     font-family: var(--font-mono);
-    font-size:11.5px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    background: var(--navy);
-    color: var(--paper);
-    padding:6px 14px;
-    border-radius:3px;
-  }
-  .detail-badge.tentative{ background:#9A6B00; }
-  .detail-badge.cancelled{ background: var(--ink-faint); }
-  .btn-paused{
-    display:inline-flex; align-items:center; gap:8px;
-    font-family: inherit; font-weight:700; text-transform:uppercase; font-size:13px; letter-spacing:0.02em;
-    padding:14px 24px; border-radius:3px; border:1.5px solid var(--line);
-    background: none; color: var(--ink-faint); cursor:not-allowed;
-  }
-  .detail-rows{ display:flex; flex-direction:column; gap:22px; }
-  .detail-row{ border-top: 1px solid var(--line); padding-top:18px; }
-  .detail-row .label{
-    font-family: var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.1em;
+    font-size:10px;
+    letter-spacing:0.05em;
     text-transform:uppercase;
     color: var(--ink-faint);
-    margin-bottom:6px;
   }
-  .detail-row .value{ font-size:19px; font-weight:700; }
-  .detail-row .value small{ display:block; font-size:13.5px; font-weight:400; color: var(--ink-soft); margin-top:2px; }
-  .detail-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+  .day-chip.active .wk{ color: rgba(245,243,238,0.65); }
+  .day-chip .dt{
+    font-family: var(--font-display);
+    font-size:16px;
+    color: var(--ink);
+  }
+  .day-chip.active .dt{ color: var(--paper); }
+  .day-chip .dot{ width:5px; height:5px; border-radius:50%; background: var(--sky); margin-top:1px; }
+  .day-chip .dot.tentative{ background:#9A6B00; }
+  .day-chip .dot.cancelled{ background: var(--ink-faint); }
+  .day-chip.active .dot{ background:#FFC24B; }
+  .day-chip .multi-badge{
+    position:absolute; top:-6px; right:-6px;
+    background:#FFC24B; color: var(--navy);
+    font-family: var(--font-mono); font-size:9px; font-weight:700;
+    padding:2px 5px; border-radius:8px;
+  }
 
-  .detail-panel.multi{ grid-template-columns:1fr; }
-  .detail-session-block{ border-top:1.5px solid var(--line); padding-top:24px; margin-top:24px; }
-  .detail-session-block:first-child{ border-top:none; padding-top:0; margin-top:0; }
-  .detail-session-label{ margin-bottom:16px; }
+  .session-detail{ display:grid; grid-template-columns: minmax(140px, 200px) 1fr; gap:32px; }
+  .session-detail-head .dow{
+    font-family: var(--font-display);
+    font-size:15px;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+  }
+  .session-detail-head .dm{
+    font-family: var(--font-display);
+    font-size:clamp(26px, 4vw, 34px);
+    text-transform:uppercase;
+    line-height:1.05;
+    margin-top:4px;
+  }
+  .session-detail-head .badge{
+    display:inline-block;
+    margin-top:14px;
+    font-family: var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    background: var(--paper-dim);
+    color: var(--navy);
+    padding:5px 12px;
+    border-radius:20px;
+    font-weight:700;
+  }
+  .session-detail-head .badge.tentative{ background:#FBEAD1; color:#9A6B00; }
+  .session-detail-head .badge.cancelled{ background: var(--paper-dim); color: var(--ink-faint); }
+
+  .session-list{ display:flex; flex-direction:column; gap:12px; }
+  .session-item{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:16px 18px;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    transition: border-color .15s ease;
+  }
+  .session-item:hover{ border-color: var(--navy); }
+  .session-item.is-cancelled{ opacity:0.6; }
+  .session-item-main{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .session-item .si-time{ font-family: var(--font-display); font-size:16px; white-space:nowrap; }
+  .session-item .si-meta{ display:flex; flex-direction:column; gap:1px; }
+  .session-item .si-venue{ font-size:14px; font-weight:700; }
+  .session-item .si-court{ font-size:12px; color: var(--ink-soft); }
+  .session-item-actions{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .si-link{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color: var(--ink-soft);
+    text-decoration:underline;
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:0;
+  }
+  .si-register{
+    font-family: var(--font-body);
+    font-weight:700;
+    text-transform:uppercase;
+    font-size:12px;
+    letter-spacing:0.02em;
+    padding:10px 18px;
+    border-radius:6px;
+    background: var(--navy);
+    color:#fff;
+    border:none;
+    text-decoration:none;
+    white-space:nowrap;
+  }
+  .si-status{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.02em;
+    color: var(--ink-faint);
+  }
 
   .no-schedule{
     border: 1.5px dashed var(--line);
-    border-radius:6px;
-    padding:48px 30px;
+    border-radius:8px;
+    padding:44px 30px;
     text-align:center;
     color: var(--ink-soft);
   }
 
   @media (max-width: 720px){
-    .detail-panel{ grid-template-columns:1fr; gap:24px; }
-  }
-
-  /* ---- INFO STRIP ---- */
-  .info-strip{
-    display:grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap:1px;
-    background: var(--line);
-    border: 1px solid var(--line);
-    margin-top:56px;
-  }
-  .info-box{ background: var(--paper); padding:24px; transition: background .2s ease; }
-  .info-box:hover{ background: var(--paper-dim); }
-  .info-box .label{
-    font-family: var(--font-mono);
-    font-size:11px;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color: var(--sky-deep);
-    margin-bottom:8px;
-  }
-  .info-box .val{ font-size:15px; font-weight:600; line-height:1.4; }
-
-  @media (max-width: 640px){
-    .info-strip{ grid-template-columns: 1fr; }
+    .session-detail{ grid-template-columns:1fr; gap:16px; }
+    .session-item{ flex-direction:column; align-items:flex-start; }
+    .session-item-actions{ width:100%; justify-content:space-between; }
   }
 
   /* ---- MERCH TEASER ---- */
@@ -1161,22 +1174,11 @@
       <span class="section-rule"></span>
     </div>
 
-    <div class="week-tabs" id="weekPills"></div>
-    <div class="day-tabs" id="dayPills"></div>
-    <div class="detail-panel" id="detailCard"></div>
-
-    <div class="info-strip">
-      <div class="info-box">
-        <div class="label">Level</div>
-        <div class="val">Beginner to advanced — everyone rotates in</div>
-      </div>
-      <div class="info-box">
-        <div class="label">What to bring</div>
-        <div class="val">Paddle, non-marking shoes, and your own water. A few loaner paddles on site</div>
-      </div>
-      <div class="info-box">
-        <div class="label">Format</div>
-        <div class="val">Open rotation, first come first served on courts</div>
+    <div class="sched-card">
+      <div class="sched-card-head" id="weekPills"></div>
+      <div class="sched-card-body">
+        <div class="day-rail" id="dayPills"></div>
+        <div id="detailCard"></div>
       </div>
     </div>
   </div>
@@ -1686,14 +1688,16 @@
 
   function renderWeekTabs(){
     if (weeks.length <= 1){
+      weekPillsEl.style.display = 'none';
       weekPillsEl.innerHTML = '';
       return;
     }
+    weekPillsEl.style.display = 'flex';
     weekPillsEl.innerHTML = weeks.map((w, i) => `
-      <button class="week-tab ${i === activeWeek ? 'active' : ''}" data-week="${i}">${w.label}</button>
+      <button class="week-pill ${i === activeWeek ? 'active' : ''}" data-week="${i}">${w.label}</button>
     `).join('');
 
-    weekPillsEl.querySelectorAll('.week-tab').forEach(btn => {
+    weekPillsEl.querySelectorAll('.week-pill').forEach(btn => {
       btn.addEventListener('click', () => {
         activeWeek = parseInt(btn.dataset.week);
         renderWeekTabs();
@@ -1708,100 +1712,94 @@
     if (schedule.length === 0){
       pillsEl.innerHTML = '';
       const msg = weeks[activeWeek].emptyMessage || 'No open play sessions scheduled this week.';
-      cardEl.className = 'no-schedule';
-      cardEl.style.gridColumn = '1 / -1';
       cardEl.innerHTML = `
-        <strong>${msg}</strong><br>
-        Check our <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" style="color:var(--pop); text-decoration:underline;">Facebook page</a> for updates.
+        <div class="no-schedule">
+          <strong>${msg}</strong><br>
+          Check our <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" style="color:var(--pop); text-decoration:underline;">Facebook page</a> for updates.
+        </div>
       `;
       return;
     }
 
     pillsEl.innerHTML = schedule.map((d, i) => {
-      let flag = '';
-      if (isToday(d.date)) flag = '<span class="today-flag">Today</span>';
-      else if (d.sessions.length > 1) flag = '<span class="status-flag">2 Sessions</span>';
-      else {
+      let dot = '';
+      if (d.sessions.length === 1){
         const status = d.sessions[0].status || 'confirmed';
-        if (status === 'tentative') flag = '<span class="status-flag tentative">Tentative</span>';
-        else if (status === 'cancelled') flag = '<span class="status-flag cancelled">Cancelled</span>';
+        if (status === 'tentative') dot = '<span class="dot tentative"></span>';
+        else if (status === 'cancelled') dot = '<span class="dot cancelled"></span>';
+        else dot = '<span class="dot"></span>';
+      } else {
+        dot = '<span class="dot"></span>';
       }
+      const multiBadge = d.sessions.length > 1 ? `<span class="multi-badge">${d.sessions.length}</span>` : '';
       return `
-      <button class="day-tab ${i === activeIndex ? 'active' : ''} ${isToday(d.date) ? 'is-today' : ''}" data-index="${i}">
+      <button class="day-chip ${i === activeIndex ? 'active' : ''} ${isToday(d.date) ? 'is-today' : ''}" data-index="${i}">
         <span class="wk">${d.weekday}</span>
-        <span class="dt">${d.date}</span>
-        ${flag}
+        <span class="dt">${d.date.split(' ')[1]}</span>
+        ${dot}
+        ${multiBadge}
       </button>
     `;
     }).join('');
 
-    pillsEl.querySelectorAll('.day-tab').forEach(pill => {
-      pill.addEventListener('click', () => render(parseInt(pill.dataset.index)));
+    pillsEl.querySelectorAll('.day-chip').forEach(chip => {
+      chip.addEventListener('click', () => render(parseInt(chip.dataset.index)));
     });
 
     const d = schedule[activeIndex];
-    const multi = d.sessions.length > 1;
-    cardEl.className = multi ? 'detail-panel multi' : 'detail-panel';
-    cardEl.style.gridColumn = '';
 
     function badgeHTML(status){
-      if (status === 'tentative') return '<span class="detail-badge tentative">Tentative, Not Yet Confirmed</span>';
-      if (status === 'cancelled') return '<span class="detail-badge cancelled">Cancelled</span>';
-      return '<span class="detail-badge">All Levels Welcome</span>';
+      if (status === 'tentative') return '<span class="badge tentative">Tentative, Not Yet Confirmed</span>';
+      if (status === 'cancelled') return '<span class="badge cancelled">Cancelled</span>';
+      return '<span class="badge">All Levels Welcome</span>';
     }
 
-    function sessionRowsHTML(s, idx){
+    function sessionItemHTML(s, idx){
       const status = s.status || 'confirmed';
       let actions = `
-        <a class="btn btn-primary" href="${s.link}" target="_blank" rel="noopener">Register for this session ${icons.arrow}</a>
-        <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">Get directions</a>
-        <button class="btn btn-ghost" data-ics-index="${idx}" type="button">Add to Calendar</button>
+        <button class="si-link" data-ics-index="${idx}" type="button">Add to Calendar</button>
+        <a class="si-link" href="https://www.google.com/maps/search/${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">Directions</a>
+        <a class="si-register" href="${s.link}" target="_blank" rel="noopener">Register ${icons.arrow}</a>
       `;
       if (status === 'tentative'){
         actions = `
-          <span class="btn-paused">Registration opens once confirmed</span>
-          <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">Get directions</a>
+          <a class="si-link" href="https://www.google.com/maps/search/${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">Directions</a>
+          <span class="si-status">Registration opens once confirmed</span>
         `;
       } else if (status === 'cancelled'){
-        actions = `<span class="btn-paused">This session has been cancelled</span>`;
+        actions = `<span class="si-status">This session has been cancelled</span>`;
       }
 
       return `
-        <div class="detail-rows">
-          <div class="detail-row">
-            <div class="label">Time</div>
-            <div class="value">${s.time}</div>
+        <div class="session-item ${status === 'cancelled' ? 'is-cancelled' : ''}">
+          <div class="session-item-main">
+            <span class="si-time">${s.time}</span>
+            <div class="si-meta">
+              <span class="si-venue">${s.venue}</span>
+              <span class="si-court">${s.court}</span>
+            </div>
           </div>
-          <div class="detail-row">
-            <div class="label">Venue</div>
-            <div class="value">${s.venue}<small>${s.court}</small></div>
-          </div>
-          <div class="detail-actions">
+          <div class="session-item-actions">
             ${actions}
           </div>
         </div>
       `;
     }
 
-    if (multi){
-      cardEl.innerHTML = `
-        <div class="detail-heading">${d.weekday}, ${d.date}</div>
-        ${d.sessions.map((s, idx) => `
-          <div class="detail-session-block">
-            <div class="detail-session-label">${badgeHTML(s.status || 'confirmed')}</div>
-            ${sessionRowsHTML(s, idx)}
-          </div>
-        `).join('')}
-      `;
-    } else {
-      cardEl.innerHTML = `
-        <div>
-          <div class="detail-heading">${d.weekday}, ${d.date}</div>
-          ${badgeHTML(d.sessions[0].status || 'confirmed')}
+    const headBadgeStatus = d.sessions.length === 1 ? (d.sessions[0].status || 'confirmed') : 'confirmed';
+
+    cardEl.innerHTML = `
+      <div class="session-detail">
+        <div class="session-detail-head">
+          <div class="dow">${d.weekday}${isToday(d.date) ? ' &middot; Today' : ''}</div>
+          <div class="dm">${d.date}</div>
+          ${badgeHTML(headBadgeStatus)}
         </div>
-        ${sessionRowsHTML(d.sessions[0], 0)}
-      `;
-    }
+        <div class="session-list">
+          ${d.sessions.map((s, idx) => sessionItemHTML(s, idx)).join('')}
+        </div>
+      </div>
+    `;
 
     cardEl.querySelectorAll('[data-ics-index]').forEach(btn => {
       btn.addEventListener('click', () => downloadICS(d.sessions[parseInt(btn.dataset.icsIndex)]));
