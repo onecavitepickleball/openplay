@@ -213,6 +213,91 @@
     flex-shrink:0;
   }
 
+  /* ---- SPECIAL EVENT BANNER ---- */
+  .event-banner{
+    margin-top:28px;
+    background: var(--navy);
+    border-radius:8px;
+    padding:30px 30px 26px;
+  }
+  .event-banner-badge{
+    display:inline-block;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    background:#FFC24B;
+    color: var(--navy);
+    padding:6px 14px;
+    border-radius:3px;
+    font-weight:700;
+  }
+  .event-banner-title{
+    font-family: var(--font-display);
+    font-size:clamp(24px, 4vw, 34px);
+    text-transform:uppercase;
+    color: var(--paper);
+    line-height:1.1;
+    margin-top:14px;
+  }
+  .event-banner-meta{
+    font-family: var(--font-mono);
+    font-size:13px;
+    color: var(--sky);
+    margin-top:8px;
+    letter-spacing:0.02em;
+  }
+  .event-banner-sessions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-top:22px;
+  }
+  .event-session-card{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    background: rgba(245,243,238,0.06);
+    border:1.5px solid rgba(245,243,238,0.18);
+    border-radius:6px;
+    padding:16px 18px;
+    text-decoration:none;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .event-session-card:hover{ border-color:#FFC24B; background: rgba(245,243,238,0.1); }
+  .event-session-card .es-label{
+    font-family: var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky);
+  }
+  .event-session-card .es-time{
+    font-family: var(--font-display);
+    font-size:19px;
+    color: var(--paper);
+    text-transform:uppercase;
+  }
+  .event-session-card .es-cta{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:#FFC24B;
+    margin-top:4px;
+  }
+  .event-banner-footer{
+    margin-top:20px;
+    font-family: var(--font-mono);
+    font-size:13px;
+    color: var(--paper);
+    letter-spacing:0.02em;
+  }
+  .event-banner-footer b{ color:#FFC24B; }
+  @media (max-width:560px){
+    .event-banner-sessions{ grid-template-columns:1fr; }
+  }
+
   /* ---- SCHEDULE ---- */
   .day-tabs{
     display:flex;
@@ -337,6 +422,11 @@
   .detail-row .value{ font-size:19px; font-weight:700; }
   .detail-row .value small{ display:block; font-size:13.5px; font-weight:400; color: var(--ink-soft); margin-top:2px; }
   .detail-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+
+  .detail-panel.multi{ grid-template-columns:1fr; }
+  .detail-session-block{ border-top:1.5px solid var(--line); padding-top:24px; margin-top:24px; }
+  .detail-session-block:first-child{ border-top:none; padding-top:0; margin-top:0; }
+  .detail-session-label{ margin-bottom:16px; }
 
   .no-schedule{
     border: 1.5px dashed var(--line);
@@ -961,6 +1051,27 @@
     </div>
   </div>
 
+  <!-- SPECIAL EVENT: Golden Day Pickleball Court, Kawit debut, Aug 27, 2026.
+       Remove or update this block once the event has passed. -->
+  <div class="event-banner">
+    <span class="event-banner-badge">First Open Play Outside SM Rosario!</span>
+    <h3 class="event-banner-title">Golden Day Pickleball Court, Kawit</h3>
+    <div class="event-banner-meta">Thursday, August 27 &middot; 2 Courts &middot; 24 Players per Session</div>
+    <div class="event-banner-sessions">
+      <a class="event-session-card" href="https://reclub.co/m/H424S5" target="_blank" rel="noopener">
+        <span class="es-label">Session 1</span>
+        <span class="es-time">5:00 PM &ndash; 9:00 PM</span>
+        <span class="es-cta">Register &rarr;</span>
+      </a>
+      <a class="event-session-card" href="https://reclub.co/m/LN7WCB" target="_blank" rel="noopener">
+        <span class="es-label">Session 2</span>
+        <span class="es-time">9:00 PM &ndash; 1:00 AM</span>
+        <span class="es-cta">Register &rarr;</span>
+      </a>
+    </div>
+    <div class="event-banner-footer">Open Play Fee: <b>&#8369;230</b> &middot; Limited slots only &mdash; register early!</div>
+  </div>
+
   <!-- BIRTHDAY BANNER (shown only when a member's birthday is today) -->
   <div class="bday-banner" id="bdayBanner" style="display:none;">
     <img class="bday-banner-photo" id="bdayBannerPhoto" src="" alt="">
@@ -1439,10 +1550,23 @@
     const mondayKeys = [...buckets.keys()].sort((a, b) => a - b);
 
     return mondayKeys.map((monday, i) => {
-      const days = buckets.get(monday).slice().sort((a, b) => parseDayDate(a.date) - parseDayDate(b.date));
-      const label = i === 0
+      // Group same-day sessions together (e.g. two time slots posted for
+      // the same date) so they share a single day tab instead of each
+      // getting its own duplicate tab.
+      const grouped = new Map();
+      buckets.get(monday).forEach(s => {
+        if (!grouped.has(s.date)) grouped.set(s.date, { date: s.date, weekday: s.weekday, sessions: [] });
+        grouped.get(s.date).sessions.push(s);
+      });
+      const days = [...grouped.values()].sort((a, b) => parseDayDate(a.date) - parseDayDate(b.date));
+
+      // Label by actual distance from this week's Monday (not array index),
+      // so a week with no sessions in between doesn't get skipped over and
+      // mislabeled as "Next Week" when it's really two or more weeks out.
+      const weeksAway = Math.round((monday - thisMonday) / (7 * 86400000));
+      const label = weeksAway === 0
         ? "This Week"
-        : i === 1
+        : weeksAway === 1
           ? "Next Week"
           : `Week of ${new Date(monday).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
       return {
@@ -1480,7 +1604,8 @@
     for (let wi = 0; wi < weeks.length; wi++){
       const days = weeks[wi].days;
       for (let di = 0; di < days.length; di++){
-        if ((days[di].status || 'confirmed') === 'cancelled') continue;
+        const allCancelled = days[di].sessions.every(s => (s.status || 'confirmed') === 'cancelled');
+        if (allCancelled) continue;
         const t = parseDayDate(days[di].date).getTime();
         if (t > today0.getTime() && (!best || t < best.t)) best = { week: wi, index: di, t };
       }
@@ -1522,11 +1647,14 @@
     }
 
     pillsEl.innerHTML = schedule.map((d, i) => {
-      const status = d.status || 'confirmed';
       let flag = '';
       if (isToday(d.date)) flag = '<span class="today-flag">Today</span>';
-      else if (status === 'tentative') flag = '<span class="status-flag tentative">Tentative</span>';
-      else if (status === 'cancelled') flag = '<span class="status-flag cancelled">Cancelled</span>';
+      else if (d.sessions.length > 1) flag = '<span class="status-flag">2 Sessions</span>';
+      else {
+        const status = d.sessions[0].status || 'confirmed';
+        if (status === 'tentative') flag = '<span class="status-flag tentative">Tentative</span>';
+        else if (status === 'cancelled') flag = '<span class="status-flag cancelled">Cancelled</span>';
+      }
       return `
       <button class="day-tab ${i === activeIndex ? 'active' : ''} ${isToday(d.date) ? 'is-today' : ''}" data-index="${i}">
         <span class="wk">${d.weekday}</span>
@@ -1541,50 +1669,72 @@
     });
 
     const d = schedule[activeIndex];
-    const status = d.status || 'confirmed';
-    cardEl.className = 'detail-panel';
+    const multi = d.sessions.length > 1;
+    cardEl.className = multi ? 'detail-panel multi' : 'detail-panel';
     cardEl.style.gridColumn = '';
 
-    let badge = '<span class="detail-badge">All Levels Welcome</span>';
-    if (status === 'tentative') badge = '<span class="detail-badge tentative">Tentative — Not Yet Confirmed</span>';
-    else if (status === 'cancelled') badge = '<span class="detail-badge cancelled">Cancelled</span>';
-
-    let actions = `
-      <a class="btn btn-primary" href="${d.link}" target="_blank" rel="noopener">Register for this session ${icons.arrow}</a>
-      <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(d.venue)}" target="_blank" rel="noopener">Get directions</a>
-      <button class="btn btn-ghost" id="addToCalBtn" type="button">Add to Calendar</button>
-    `;
-    if (status === 'tentative'){
-      actions = `
-        <span class="btn-paused">Registration opens once confirmed</span>
-        <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(d.venue)}" target="_blank" rel="noopener">Get directions</a>
-      `;
-    } else if (status === 'cancelled'){
-      actions = `<span class="btn-paused">This session has been cancelled</span>`;
+    function badgeHTML(status){
+      if (status === 'tentative') return '<span class="detail-badge tentative">Tentative, Not Yet Confirmed</span>';
+      if (status === 'cancelled') return '<span class="detail-badge cancelled">Cancelled</span>';
+      return '<span class="detail-badge">All Levels Welcome</span>';
     }
 
-    cardEl.innerHTML = `
-      <div>
-        <div class="detail-heading">${d.weekday}, ${d.date}</div>
-        ${badge}
-      </div>
-      <div class="detail-rows">
-        <div class="detail-row">
-          <div class="label">Time</div>
-          <div class="value">${d.time}</div>
-        </div>
-        <div class="detail-row">
-          <div class="label">Venue</div>
-          <div class="value">${d.venue}<small>${d.court}</small></div>
-        </div>
-        <div class="detail-actions">
-          ${actions}
-        </div>
-      </div>
-    `;
+    function sessionRowsHTML(s, idx){
+      const status = s.status || 'confirmed';
+      let actions = `
+        <a class="btn btn-primary" href="${s.link}" target="_blank" rel="noopener">Register for this session ${icons.arrow}</a>
+        <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">Get directions</a>
+        <button class="btn btn-ghost" data-ics-index="${idx}" type="button">Add to Calendar</button>
+      `;
+      if (status === 'tentative'){
+        actions = `
+          <span class="btn-paused">Registration opens once confirmed</span>
+          <a class="btn btn-ghost" href="https://www.google.com/maps/search/${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">Get directions</a>
+        `;
+      } else if (status === 'cancelled'){
+        actions = `<span class="btn-paused">This session has been cancelled</span>`;
+      }
 
-    const addToCalBtn = document.getElementById('addToCalBtn');
-    if (addToCalBtn) addToCalBtn.addEventListener('click', () => downloadICS(d));
+      return `
+        <div class="detail-rows">
+          <div class="detail-row">
+            <div class="label">Time</div>
+            <div class="value">${s.time}</div>
+          </div>
+          <div class="detail-row">
+            <div class="label">Venue</div>
+            <div class="value">${s.venue}<small>${s.court}</small></div>
+          </div>
+          <div class="detail-actions">
+            ${actions}
+          </div>
+        </div>
+      `;
+    }
+
+    if (multi){
+      cardEl.innerHTML = `
+        <div class="detail-heading">${d.weekday}, ${d.date}</div>
+        ${d.sessions.map((s, idx) => `
+          <div class="detail-session-block">
+            <div class="detail-session-label">${badgeHTML(s.status || 'confirmed')}</div>
+            ${sessionRowsHTML(s, idx)}
+          </div>
+        `).join('')}
+      `;
+    } else {
+      cardEl.innerHTML = `
+        <div>
+          <div class="detail-heading">${d.weekday}, ${d.date}</div>
+          ${badgeHTML(d.sessions[0].status || 'confirmed')}
+        </div>
+        ${sessionRowsHTML(d.sessions[0], 0)}
+      `;
+    }
+
+    cardEl.querySelectorAll('[data-ics-index]').forEach(btn => {
+      btn.addEventListener('click', () => downloadICS(d.sessions[parseInt(btn.dataset.icsIndex)]));
+    });
   }
 
   // ---- Add to Calendar (.ics download) ----
@@ -1651,11 +1801,11 @@
   }
 
   function findNextSession(){
-    const allDays = weeks.flatMap(w => w.days);
+    const allSessions = weeks.flatMap(w => w.days.flatMap(d => d.sessions));
     const now = new Date();
-    const upcoming = allDays
-      .filter(d => (d.status || 'confirmed') !== 'cancelled')
-      .map(d => ({ d, dt: parseSessionStart(d) }))
+    const upcoming = allSessions
+      .filter(s => (s.status || 'confirmed') !== 'cancelled')
+      .map(s => ({ d: s, dt: parseSessionStart(s) }))
       .filter(x => !isNaN(x.dt.getTime()) && x.dt > now)
       .sort((a, b) => a.dt - b.dt);
     return upcoming[0] || null;
