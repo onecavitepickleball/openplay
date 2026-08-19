@@ -1011,8 +1011,9 @@
   .poster-modal-overlay.visible{ opacity:1; }
   .poster-modal-box{
     position:relative;
-    max-width:380px;
-    width:100%;
+    display:inline-block;
+    max-width:92vw;
+    max-height:88vh;
     transform: scale(0.92);
     opacity:0;
     transition: transform .4s cubic-bezier(.2,.8,.3,1.3), opacity .4s ease;
@@ -1021,12 +1022,15 @@
   .poster-modal-overlay.visible .poster-modal-box{ transform: scale(1); opacity:1; }
   .poster-modal-box img{
     display:block;
-    width:100%;
+    width:auto;
+    height:auto;
+    max-width:92vw;
+    max-height:88vh;
     border-radius:14px;
   }
   .poster-modal-close{
     position:absolute;
-    top:-14px; right:-14px;
+    top:-16px; right:-16px;
     width:38px; height:38px;
     border-radius:50%;
     background: var(--paper);
@@ -1037,11 +1041,14 @@
     color: var(--ink);
     box-shadow: 0 6px 16px rgba(0,0,0,0.35);
     transition: transform .15s ease, background .15s ease;
+    flex-shrink:0;
   }
   .poster-modal-close:hover{ background:#FFC24B; transform: scale(1.08); }
 
   @media (max-width:480px){
-    .poster-modal-box{ max-width:300px; }
+    .poster-modal-box{ max-width:94vw; max-height:88vh; }
+    .poster-modal-box img{ max-width:94vw; max-height:88vh; }
+    .poster-modal-close{ top:-12px; right:-4px; width:34px; height:34px; }
   }
 </style>
 </head>
