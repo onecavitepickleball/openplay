@@ -660,8 +660,10 @@
     text-align:center;
   }
   .roster-hype-grid.team-of-four{ grid-template-columns:repeat(4, 1fr); gap:18px; }
+  .roster-hype-grid.team-of-eight{ grid-template-columns:repeat(4, 1fr); gap:18px; }
   @media (max-width:640px){
     .roster-hype-grid.team-of-four{ grid-template-columns:repeat(2, 1fr); }
+    .roster-hype-grid.team-of-eight{ grid-template-columns:repeat(2, 1fr); }
   }
   .roster-hype-player{
     position:relative;
@@ -986,7 +988,7 @@
   }
   .fb-feed-wrap iframe{ max-width:100%; }
 
-  /* ---- TANZA FIESTA CUP POSTER POPUP ---- */
+  /* ---- ANNOUNCEMENT POSTER POPUP ---- */
   body.poster-modal-open .site-nav,
   body.poster-modal-open .wrap,
   body.poster-modal-open footer,
@@ -2520,9 +2522,9 @@
 </script>
 
 <script>
-  // ---- Tanza Fiesta Cup poster popup: once per browser session, with confetti ----
+  // ---- Homepage announcement poster popup: once per browser session, with confetti ----
   (function(){
-    const SEEN_KEY = 'ocpc-seen-tanza-poster';
+    const SEEN_KEY = 'ocpc-seen-poster-golden-day-paddle-clash';
     const overlay = document.getElementById('posterModalOverlay');
     const closeBtn = document.getElementById('posterModalClose');
     if (!overlay || !closeBtn) return;
