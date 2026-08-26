@@ -1,0 +1,2672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('ocpc-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-H86SSQPCJ6');
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One Cavite Pickleball Club — Open Play &amp; Community</title>
+<meta name="description" content="Open play schedule, club info, and merch for One Cavite Pickleball Club. All levels welcome at SM City Rosario, Cavite.">
+
+<meta property="og:title" content="One Cavite Pickleball Club">
+<meta property="og:description" content="Open play schedule, club info, and merch for One Cavite Pickleball Club.">
+<meta property="og:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://www.onecavitepickleball.club/">
+<meta property="og:site_name" content="One Cavite Pickleball Club">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="One Cavite Pickleball Club">
+<meta name="twitter:description" content="Open play schedule, club info, and merch for One Cavite Pickleball Club.">
+<meta name="twitter:image" content="https://www.onecavitepickleball.club/assets/social/og-default.jpg">
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#005E89">
+<link rel="canonical" href="https://www.onecavitepickleball.club/">
+<link rel="stylesheet" href="/styles.css">
+
+<!-- Structured data so Google can show club info directly in search results -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SportsActivityLocation",
+  "name": "One Cavite Pickleball Club",
+  "alternateName": "OCPC",
+  "description": "Open play pickleball sessions for all skill levels in Cavite, Philippines.",
+  "url": "https://www.onecavitepickleball.club/",
+  "logo": "https://www.onecavitepickleball.club/assets/logo.png",
+  "image": "https://www.onecavitepickleball.club/assets/logo.png",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "SM City Rosario",
+    "addressLocality": "Rosario",
+    "addressRegion": "Cavite",
+    "addressCountry": "PH"
+  },
+  "email": "ocpc.pickleball@gmail.com",
+  "sameAs": [
+    "https://www.facebook.com/onecavitepickleball",
+    "https://www.facebook.com/groups/2075031119497964/"
+  ],
+  "sport": "Pickleball",
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Friday"],
+      "opens": "15:30",
+      "closes": "21:00"
+    }
+  ]
+}
+</script>
+<style>
+  /* ---- HERO ---- */
+  .hero{
+    display:grid;
+    grid-template-columns: 0.95fr 1.05fr;
+    gap:56px;
+    align-items:center;
+    padding:64px 0 0;
+  }
+  .hero-copy h1{
+    font-family: var(--font-display);
+    font-size:clamp(52px, 7vw, 88px);
+    line-height:0.94;
+    letter-spacing:-0.01em;
+    text-transform:uppercase;
+    margin-top:18px;
+  }
+  .hero-copy h1 .accent{ color: var(--sky-deep); }
+  .hero-copy p.sub{
+    margin-top:20px;
+    font-size:17px;
+    line-height:1.6;
+    color: var(--ink-soft);
+    max-width:440px;
+  }
+  .hero-actions{
+    display:flex;
+    gap:14px;
+    margin-top:32px;
+    flex-wrap:wrap;
+  }
+  .hero-photo{
+    position:relative;
+  }
+  .hero-photo-frame{
+    position:relative;
+    border-radius:6px;
+    overflow:hidden;
+    aspect-ratio: 4/3;
+    background: var(--navy);
+  }
+  .hero-photo-frame img{
+    width:100%; height:100%; object-fit:cover;
+  }
+  .hero-tag{
+    position:absolute;
+    bottom:-18px;
+    left:-18px;
+    background: var(--pop);
+    color:#FFFFFF;
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:12px 18px;
+    border-radius:3px;
+  }
+  .hero-logo-badge{
+    position:absolute;
+    top:-20px;
+    right:-20px;
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    background: var(--white);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 8px 24px rgba(11,36,54,0.22);
+    padding:10px;
+  }
+
+  @media (max-width: 860px){
+    .hero{ grid-template-columns:1fr; gap:40px; padding-top:40px; }
+    .hero-photo{ order:-1; max-width:460px; margin:0 auto; }
+    .hero-copy{ text-align:center; }
+    .hero-copy p.sub{ margin-left:auto; margin-right:auto; }
+    .hero-actions{ justify-content:center; }
+    .hero-tag{ left:50%; transform:translateX(-50%); bottom:-16px; }
+  }
+
+  .hero-countdown{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    margin-top:22px;
+    background: var(--paper-dim);
+    border: 1.5px solid var(--line);
+    border-radius:20px;
+    padding:10px 18px;
+    font-family: var(--font-mono);
+    font-size:12.5px;
+    color: var(--ink-soft);
+  }
+  .hero-countdown b{ color: var(--sky-deep); }
+  .hero-photo-frame img{ transition: opacity .5s ease; }
+
+  /* ---- BIRTHDAY BANNER ---- */
+  .bday-banner{
+    margin-top:28px;
+    background: var(--navy);
+    border-radius:8px;
+    padding:22px 26px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .bday-banner-photo{
+    width:64px; height:64px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid var(--sky);
+    flex-shrink:0;
+  }
+  .bday-banner-eyebrow{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky);
+  }
+  .bday-banner-name{
+    font-family: var(--font-display);
+    font-size:clamp(20px, 3vw, 28px);
+    text-transform:uppercase;
+    color: var(--paper);
+    line-height:1.15;
+    margin-top:2px;
+  }
+  .bday-banner-link{
+    margin-left:auto;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--sky);
+    text-decoration:underline;
+    flex-shrink:0;
+  }
+
+  /* ---- SPECIAL EVENT BANNER ---- */
+  .event-banner{
+    margin-top:28px;
+    background: var(--navy);
+    border-radius:8px;
+    padding:30px 30px 26px;
+    display:grid;
+    grid-template-columns:1fr 280px;
+    gap:36px;
+    align-items:center;
+  }
+  .event-banner-photo{
+    position:relative;
+  }
+  .event-banner-photo-frame{
+    position:relative;
+    border-radius:6px;
+    overflow:hidden;
+    aspect-ratio: 4/3;
+    background: rgba(0,0,0,0.2);
+  }
+  .event-banner-photo-frame img{
+    width:100%; height:100%; object-fit:cover;
+  }
+  .event-banner-logo-badge{
+    position:absolute;
+    top:12px;
+    right:12px;
+    width:64px;
+    height:64px;
+    border-radius:50%;
+    background:#0B0B0B;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    overflow:hidden;
+    border:2px solid #FFC24B;
+  }
+  .event-banner-logo-badge img{ width:100%; height:100%; object-fit:cover; }
+  .event-banner-photo-tag{
+    position:absolute;
+    bottom:-14px;
+    left:14px;
+    background:#FFC24B;
+    color: var(--navy);
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:8px 14px;
+    border-radius:3px;
+  }
+  @media (max-width:720px){
+    .event-banner{ grid-template-columns:1fr; }
+    .event-banner-photo{ order:-1; max-width:320px; margin:0 auto; width:100%; }
+  }
+  .event-banner-badge{
+    display:inline-block;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    background:#FFC24B;
+    color: var(--navy);
+    padding:6px 14px;
+    border-radius:3px;
+    font-weight:700;
+  }
+  .event-banner-title{
+    font-family: var(--font-display);
+    font-size:clamp(24px, 4vw, 34px);
+    text-transform:uppercase;
+    color: var(--paper);
+    line-height:1.1;
+    margin-top:14px;
+  }
+  .event-banner-meta{
+    font-family: var(--font-mono);
+    font-size:13px;
+    color: var(--sky);
+    margin-top:8px;
+    letter-spacing:0.02em;
+  }
+  .event-banner-sessions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-top:22px;
+  }
+  .event-session-card{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    background: rgba(245,243,238,0.06);
+    border:1.5px solid rgba(245,243,238,0.18);
+    border-radius:6px;
+    padding:16px 18px;
+    text-decoration:none;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .event-session-card:hover{ border-color:#FFC24B; background: rgba(245,243,238,0.1); }
+  .event-session-card .es-label{
+    font-family: var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky);
+  }
+  .event-session-card .es-time{
+    font-family: var(--font-display);
+    font-size:19px;
+    color: var(--paper);
+    text-transform:uppercase;
+  }
+  .event-session-card .es-fee{
+    font-family: var(--font-mono);
+    font-size:12.5px;
+    color: var(--paper);
+    font-weight:700;
+    margin-top:2px;
+  }
+  .event-session-card .es-cta{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:#FFC24B;
+    margin-top:4px;
+  }
+  .event-banner-footer{
+    margin-top:20px;
+    font-family: var(--font-mono);
+    font-size:13px;
+    color: var(--paper);
+    letter-spacing:0.02em;
+  }
+  .event-banner-footer b{ color:#FFC24B; }
+  @media (max-width:560px){
+    .event-banner-sessions{ grid-template-columns:1fr; }
+  }
+
+  /* ---- SCHEDULE ---- */
+  .sched-card{
+    background: var(--white, #fff);
+    border: 1.5px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .sched-card-head{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    padding:16px 20px;
+    border-bottom: 1.5px solid var(--line);
+    background: var(--paper-dim);
+  }
+  .week-pill{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:8px 16px;
+    border-radius:20px;
+    border:none;
+    background:none;
+    cursor:pointer;
+    color: var(--ink-soft);
+    transition: all .15s ease;
+  }
+  .week-pill:hover:not(.active){ color: var(--ink); }
+  .week-pill.active{ background: var(--navy); color: var(--paper); }
+
+  .sched-card-body{ padding:26px 28px 30px; }
+
+  .day-rail{
+    display:flex;
+    gap:8px;
+    margin-bottom:28px;
+    overflow-x:auto;
+    padding-bottom:2px;
+  }
+  .day-chip{
+    position:relative;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    min-width:60px;
+    padding:10px 14px;
+    border-radius:10px;
+    border:1.5px solid transparent;
+    background: var(--paper);
+    cursor:pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .day-chip:hover:not(.active){ border-color: rgba(79,182,255,0.5); }
+  .day-chip.is-today:not(.active){ border-color: var(--sky); }
+  .day-chip.active{ background: var(--navy); }
+  .day-chip .wk{
+    font-family: var(--font-mono);
+    font-size:10px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+  }
+  .day-chip.active .wk{ color: rgba(245,243,238,0.65); }
+  .day-chip .dt{
+    font-family: var(--font-display);
+    font-size:16px;
+    color: var(--ink);
+  }
+  .day-chip.active .dt{ color: var(--paper); }
+  .day-chip .dot{ width:5px; height:5px; border-radius:50%; background: var(--sky); margin-top:1px; }
+  .day-chip .dot.tentative{ background:#9A6B00; }
+  .day-chip .dot.cancelled{ background: var(--ink-faint); }
+  .day-chip.active .dot{ background:#FFC24B; }
+  .day-chip .multi-badge{
+    position:absolute; top:-6px; right:-6px;
+    background:#FFC24B; color: var(--navy);
+    font-family: var(--font-mono); font-size:9px; font-weight:700;
+    padding:2px 5px; border-radius:8px;
+  }
+
+  .session-detail{ display:grid; grid-template-columns: minmax(140px, 200px) 1fr; gap:32px; }
+  .session-detail-head .dow{
+    font-family: var(--font-display);
+    font-size:15px;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+  }
+  .session-detail-head .dm{
+    font-family: var(--font-display);
+    font-size:clamp(26px, 4vw, 34px);
+    text-transform:uppercase;
+    line-height:1.05;
+    margin-top:4px;
+  }
+  .session-detail-head .badge{
+    display:inline-block;
+    margin-top:14px;
+    font-family: var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    background: var(--paper-dim);
+    color: var(--navy);
+    padding:5px 12px;
+    border-radius:20px;
+    font-weight:700;
+  }
+  .session-detail-head .badge.tentative{ background:#FBEAD1; color:#9A6B00; }
+  .session-detail-head .badge.cancelled{ background: var(--paper-dim); color: var(--ink-faint); }
+
+  .session-list{ display:flex; flex-direction:column; gap:12px; }
+  .session-item{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:16px 18px;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    transition: border-color .15s ease;
+  }
+  .session-item:hover{ border-color: var(--navy); }
+  .session-item.is-cancelled{ opacity:0.6; }
+  .session-item-main{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .session-item .si-time{ font-family: var(--font-display); font-size:16px; white-space:nowrap; }
+  .session-item .si-meta{ display:flex; flex-direction:column; gap:1px; }
+  .session-item .si-venue{ font-size:14px; font-weight:700; }
+  .session-item .si-court{ font-size:12px; color: var(--ink-soft); }
+  .session-item-actions{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .si-link{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color: var(--ink-soft);
+    text-decoration:underline;
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:0;
+  }
+  .si-register{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family: var(--font-body);
+    font-weight:700;
+    text-transform:uppercase;
+    font-size:12px;
+    letter-spacing:0.02em;
+    padding:10px 18px;
+    border-radius:6px;
+    background: var(--navy);
+    color:#fff;
+    border:none;
+    text-decoration:none;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .si-register svg{ width:14px; height:14px; flex-shrink:0; }
+  .si-status{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.02em;
+    color: var(--ink-faint);
+  }
+
+  .no-schedule{
+    border: 1.5px dashed var(--line);
+    border-radius:8px;
+    padding:44px 30px;
+    text-align:center;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 720px){
+    .session-detail{ grid-template-columns:1fr; gap:16px; }
+    .session-item{ flex-direction:column; align-items:flex-start; }
+    .session-item-actions{ width:100%; justify-content:space-between; }
+  }
+
+  /* ---- MERCH TEASER ---- */
+  .merch-teaser{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--navy);
+    color: var(--paper);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .merch-teaser-copy{ padding:48px 44px; display:flex; flex-direction:column; justify-content:center; gap:14px; }
+  .merch-teaser-copy h3{ font-family: var(--font-display); font-size:36px; text-transform:uppercase; line-height:1; }
+  .merch-teaser-copy p{ color: rgba(245,243,238,0.75); font-size:15px; line-height:1.6; }
+  .merch-teaser-img{ background: var(--navy-deep); display:flex; align-items:center; justify-content:center; padding:24px; }
+  .merch-teaser-img img{ max-height:280px; width:auto; border-radius:4px; }
+
+  @media (max-width: 700px){
+    .merch-teaser{ grid-template-columns: 1fr; }
+    .merch-teaser-img{ order:-1; }
+    .merch-teaser-copy{ padding:36px 28px; }
+  }
+
+  /* ---- RECENT EVENT ---- */
+  .recent-event-card{
+    display:grid;
+    grid-template-columns: 1fr 1.2fr;
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .recent-event-img{ position:relative; min-height:260px; background: var(--navy-deep); }
+  .recent-event-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .recent-event-copy{ padding:40px 44px; display:flex; flex-direction:column; justify-content:center; gap:12px; }
+  .recent-event-copy .event-tag{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+  }
+  .recent-event-copy h3{ font-family: var(--font-display); font-size:32px; text-transform:uppercase; line-height:1.05; }
+  .recent-event-copy p{ font-size:15px; line-height:1.6; color: var(--ink-soft); }
+  .recent-event-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; }
+
+  @media (max-width: 700px){
+    .recent-event-card{ grid-template-columns:1fr; }
+    .recent-event-copy{ padding:32px 26px; }
+  }
+
+  /* ---- REPRESENTING OCPC ---- */
+  .roster-hype-card{
+    position:relative;
+    overflow:hidden;
+    background: linear-gradient(135deg, var(--sky-deep) 0%, var(--navy) 45%, var(--navy-deep) 100%);
+    color: var(--paper);
+    border-radius:10px;
+    padding:52px 48px;
+    border:2px solid rgba(255,196,75,0.4);
+    box-shadow: 0 20px 50px rgba(0,63,94,0.35);
+  }
+  .roster-hype-card::before{
+    content:'';
+    position:absolute; inset:0;
+    background-image: radial-gradient(rgba(255,255,255,0.16) 1.5px, transparent 1.5px);
+    background-size:24px 24px;
+    opacity:0.5;
+    pointer-events:none;
+  }
+  .roster-hype-card::after{
+    content:'';
+    position:absolute; top:-60px; right:-60px;
+    width:220px; height:220px; border-radius:50%;
+    background: radial-gradient(circle, rgba(255,196,75,0.35) 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .roster-hype-intro{ position:relative; }
+  .roster-hype-intro .event-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:#FFC24B;
+    background: rgba(255,196,75,0.16);
+    border:1px solid rgba(255,196,75,0.45);
+    padding:7px 16px;
+    border-radius:100px;
+    margin-bottom:18px;
+  }
+  .roster-hype-headline{
+    font-family: var(--font-display);
+    font-size: clamp(30px, 4.2vw, 46px);
+    text-transform:uppercase;
+    line-height:1.05;
+    margin-bottom:14px;
+  }
+  .roster-hype-headline .accent{ color:#FFC24B; }
+  .roster-hype-intro p{
+    font-size:15.5px;
+    line-height:1.65;
+    color: rgba(255,255,255,0.86);
+    max-width:640px;
+  }
+  .roster-hype-grid{
+    position:relative;
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:center;
+    gap:24px;
+    margin-top:36px;
+  }
+  .roster-hype-divider{
+    font-family: var(--font-display);
+    font-size:30px;
+    color:#FFC24B;
+    text-align:center;
+  }
+  .roster-hype-grid.team-of-four{ grid-template-columns:repeat(4, 1fr); gap:18px; }
+  .roster-hype-grid.team-of-eight{ grid-template-columns:repeat(4, 1fr); gap:18px; }
+  @media (max-width:640px){
+    .roster-hype-grid.team-of-four{ grid-template-columns:repeat(2, 1fr); }
+    .roster-hype-grid.team-of-eight{ grid-template-columns:repeat(2, 1fr); }
+  }
+  .roster-hype-player{
+    position:relative;
+    border-radius:10px;
+    overflow:hidden;
+    background: rgba(0,0,0,0.22);
+    border:2px solid rgba(255,196,75,0.55);
+    transition: transform .2s ease;
+  }
+  .roster-hype-img{ aspect-ratio: 4/5; overflow:hidden; }
+  .roster-hype-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .roster-hype-name{
+    font-family: var(--font-display);
+    font-size:22px;
+    text-transform:uppercase;
+    padding:18px 18px 2px;
+  }
+  .roster-hype-tag{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:#FFC24B;
+    padding:0 18px 18px;
+  }
+  .roster-hype-actions{ position:relative; margin-top:36px; display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+  .roster-hype-actions .btn-gold{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family: var(--font-mono); font-weight:700; font-size:13px; letter-spacing:0.04em; text-transform:uppercase;
+    background:#FFC24B; color: var(--navy-deep);
+    padding:13px 24px; border-radius:100px; text-decoration:none;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .roster-hype-actions .btn-gold:hover{ background:#FFD37A; transform: translateY(-1px); }
+
+  @media (max-width: 640px){
+    .roster-hype-card{ padding:34px 26px; }
+    .roster-hype-grid{ grid-template-columns:1fr; }
+    .roster-hype-divider{ display:none; }
+  }
+
+  /* ---- CHEER + WALL OF SUPPORT ---- */
+  .cheer-block{ position:relative; margin-top:32px; padding-top:28px; border-top:1px dashed rgba(255,196,75,0.35); }
+  .cheer-note{ font-family: var(--font-mono); font-size:12px; color: rgba(255,255,255,0.65); margin-bottom:16px; }
+
+  .cheer-controls{ display:flex; gap:36px; flex-wrap:wrap; align-items:flex-start; }
+  .cheer-btn-wrap{ flex:0 0 auto; }
+  .reaction-side{ flex:0 0 auto; padding-left:32px; border-left:1px dashed rgba(255,196,75,0.35); }
+  @media (max-width: 640px){
+    .reaction-side{ padding-left:0; border-left:none; padding-top:20px; border-top:1px dashed rgba(255,196,75,0.35); }
+  }
+
+  .cheer-btn{
+    position:relative;
+    display:inline-flex; align-items:center; gap:10px;
+    background: rgba(255,196,75,0.14); border:2px solid #FFC24B; color:#FFC24B;
+    font-family: var(--font-mono); font-weight:700; font-size:14px; letter-spacing:0.03em; text-transform:uppercase;
+    padding:14px 22px; border-radius:100px; cursor:pointer;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .cheer-btn:hover:not(:disabled){ background: rgba(255,196,75,0.26); transform: translateY(-2px); }
+  .cheer-btn:active:not(:disabled){ transform: translateY(0) scale(0.97); }
+  .cheer-btn.cheered{ background:#FFC24B; color: var(--navy-deep); cursor:default; }
+  .cheer-btn:disabled{ opacity:0.85; }
+  .cheer-btn-icon{ font-size:18px; }
+  .cheer-btn-count{ background: rgba(0,0,0,0.25); padding:3px 11px; border-radius:100px; font-size:13px; font-variant-numeric: tabular-nums; }
+  .cheer-btn.cheered .cheer-btn-count{ background: rgba(0,0,0,0.16); }
+
+  .reaction-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .reaction-btn{
+    position:relative;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    background: rgba(255,196,75,0.12); border:2px solid rgba(255,196,75,0.55); color:#FFC24B;
+    width:66px; padding:12px 6px 10px; border-radius:14px; cursor:pointer;
+    transition: transform .12s ease, background .12s ease;
+  }
+  .reaction-btn:hover{ background: rgba(255,196,75,0.26); transform: translateY(-2px); }
+  .reaction-btn:active{ transform: translateY(0) scale(0.92); }
+  .reaction-emoji{ font-size:24px; line-height:1; }
+  .reaction-count{
+    font-family: var(--font-mono); font-size:12px; font-weight:700;
+    font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.9);
+  }
+  .floating-emoji{ position:fixed; pointer-events:none; z-index:500; user-select:none; }
+
+  .cheer-wall{ margin-top:28px; max-width:560px; }
+  .cheer-wall-head{
+    font-family: var(--font-mono); font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase;
+    color:#FFC24B; margin-bottom:14px;
+  }
+  .cheer-form{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .cheer-form input{
+    font-family: var(--font-body); font-size:13.5px; color: var(--ink);
+    border:none; border-radius:6px; padding:10px 14px; background: rgba(255,255,255,0.94);
+  }
+  .cheer-form input:focus{ outline:2px solid #FFC24B; }
+  .cheer-form input#cheerName{ flex:0 0 140px; }
+  .cheer-form input#cheerMessage{ flex:1 1 220px; }
+  .cheer-form-submit{
+    font-family: var(--font-mono); font-weight:700; font-size:12.5px; letter-spacing:0.03em; text-transform:uppercase;
+    background:#FFC24B; color: var(--navy-deep); border:none; border-radius:6px; padding:10px 18px; cursor:pointer;
+  }
+  .cheer-form-submit:hover:not(:disabled){ background:#FFD37A; }
+  .cheer-form-submit:disabled{ opacity:0.6; cursor:default; }
+  .cheer-messages{ display:flex; flex-direction:column; gap:10px; max-height:230px; overflow-y:auto; padding-right:4px; }
+  .cheer-message{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    background: rgba(0,0,0,0.18); border-radius:8px; padding:10px 14px; font-size:13.5px; line-height:1.5; color: rgba(255,255,255,0.92);
+  }
+  .cheer-message-text{ flex:1; }
+  .cheer-message-delete{
+    flex-shrink:0;
+    background:none; border:none; color: rgba(255,255,255,0.5); cursor:pointer;
+    font-size:18px; line-height:1; padding:0 2px; margin-top:-1px;
+    transition: color .15s ease;
+  }
+  .cheer-message-delete:hover{ color:#FF5A36; }
+  .cheer-message b{ color:#FFC24B; }
+  .cheer-empty{ font-size:13px; color: rgba(255,255,255,0.55); font-style:italic; }
+
+  @media (max-width: 640px){
+    .cheer-form input#cheerName{ flex:1 1 100%; }
+  }
+
+  /* ---- GALLERY TEASER ---- */
+  .gallery-teaser-strip{
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap:8px;
+  }
+  .gallery-teaser-strip a{
+    display:block;
+    aspect-ratio: 1/1;
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .gallery-teaser-strip img{ width:100%; height:100%; object-fit:cover; transition: transform .3s ease; }
+  .gallery-teaser-strip a:hover img{ transform: scale(1.08); }
+
+  @media (max-width: 700px){
+    .gallery-teaser-strip{ grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ---- PLAYER SPOTLIGHT ---- */
+  .spotlight-card{
+    background: var(--navy);
+    color: var(--paper);
+    border-radius:6px;
+    padding:44px;
+    display:flex;
+    align-items:center;
+    gap:28px;
+    flex-wrap:wrap;
+  }
+  .spotlight-medal{ font-size:52px; line-height:1; flex-shrink:0; }
+  .spotlight-body{ flex:1; min-width:220px; }
+  .spotlight-eyebrow{
+    font-family: var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--sky);
+    margin-bottom:8px;
+  }
+  .spotlight-name{
+    font-family: var(--font-display);
+    font-size:clamp(28px,4vw,42px);
+    text-transform:uppercase;
+    line-height:1.05;
+    margin-bottom:10px;
+  }
+  .spotlight-note{ color: rgba(245,243,238,0.75); font-size:14.5px; line-height:1.6; }
+  .spotlight-note a{ color: var(--sky); text-decoration:underline; }
+
+  /* ---- STATS ---- */
+  .stats-strip{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .stat-item{
+    background: var(--paper);
+    padding:32px 20px;
+    text-align:center;
+  }
+  .stat-num{
+    font-family: var(--font-display);
+    font-size:clamp(30px, 4vw, 44px);
+    color: var(--sky-deep);
+    line-height:1;
+  }
+  .stat-label{
+    margin-top:8px;
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+  }
+  @media (max-width: 700px){
+    .stats-strip{ grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ---- SPONSORS ---- */
+  .sponsor-strip-wrap{ text-align:center; }
+  .sponsor-strip-label{
+    font-family: var(--font-mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: var(--ink-faint);
+    margin-bottom:24px;
+  }
+  .sponsor-marquee{
+    position:relative;
+    overflow:hidden;
+  }
+  .sponsor-marquee::before,
+  .sponsor-marquee::after{
+    content:'';
+    position:absolute;
+    top:0; bottom:0;
+    width:64px;
+    z-index:2;
+    pointer-events:none;
+  }
+  .sponsor-marquee::before{ left:0; background: linear-gradient(90deg, var(--paper), rgba(245,243,238,0)); }
+  .sponsor-marquee::after{ right:0; background: linear-gradient(270deg, var(--paper), rgba(245,243,238,0)); }
+  .sponsor-track{
+    display:flex;
+    align-items:center;
+    width:max-content;
+    animation: sponsorScroll 28s linear infinite;
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  .sponsor-track:hover{ animation-play-state: paused; }
+  .sponsor-logo-box{
+    flex-shrink:0;
+    width:160px;
+    height:72px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 24px;
+  }
+  .sponsor-logo-box img{
+    max-width:100%;
+    max-height:100%;
+    object-fit:contain;
+    filter: grayscale(1) opacity(0.55);
+    transition: filter .2s ease;
+  }
+  .sponsor-logo-box img:hover{ filter: grayscale(0) opacity(1); }
+
+  @keyframes sponsorScroll{
+    from{ transform: translate3d(0,0,0); }
+    to{ transform: translate3d(-50%,0,0); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .sponsor-track{ animation: none; }
+  }
+
+  /* ---- TESTIMONIALS ---- */
+  .testimonial-carousel{ position:relative; max-width:720px; margin:0 auto; text-align:center; }
+  .testimonial-slide{ display:none; }
+  .testimonial-slide.active{ display:block; }
+  .testimonial-quote{
+    font-family: var(--font-display);
+    font-size:clamp(20px,2.6vw,28px);
+    line-height:1.35;
+    text-transform:none;
+    color: var(--ink);
+  }
+  .testimonial-quote::before{ content:'"'; }
+  .testimonial-quote::after{ content:'"'; }
+  .testimonial-avatar{
+    width:56px; height:56px;
+    border-radius:50%;
+    object-fit:cover;
+    margin:0 auto 14px;
+    display:block;
+    border:2px solid var(--sky-deep);
+  }
+  .testimonial-author{
+    margin-top:18px;
+    font-family: var(--font-mono);
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color: var(--sky-deep);
+  }
+  .testimonial-dots{ display:flex; justify-content:center; gap:8px; margin-top:24px; }
+  .testimonial-dot{
+    width:8px; height:8px; border-radius:50%;
+    background: var(--line);
+    border:none; cursor:pointer; padding:0;
+    transition: background .15s ease;
+  }
+  .testimonial-dot.active{ background: var(--sky-deep); }
+
+  /* ---- FACEBOOK FEED ---- */
+  .fb-feed-wrap{
+    display:flex;
+    justify-content:center;
+    max-width:500px;
+    margin:0 auto;
+    border: 1.5px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .fb-feed-wrap iframe{ max-width:100%; }
+
+  /* ---- ANNOUNCEMENT POSTER POPUP ---- */
+  body.poster-modal-open .site-nav,
+  body.poster-modal-open .wrap,
+  body.poster-modal-open footer,
+  body.poster-modal-open .announce-bar{
+    filter: blur(10px);
+    transition: filter .35s ease;
+    pointer-events:none;
+    user-select:none;
+  }
+  .poster-modal-overlay{
+    display:none;
+    position:fixed; inset:0;
+    background: rgba(4,12,18,0.72);
+    z-index:500;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    opacity:0;
+    transition: opacity .35s ease;
+  }
+  .poster-modal-overlay.open{ display:flex; }
+  .poster-modal-overlay.visible{ opacity:1; }
+  .poster-modal-box{
+    position:relative;
+    display:inline-block;
+    max-width:92vw;
+    max-height:88vh;
+    transform: scale(0.92);
+    opacity:0;
+    transition: transform .4s cubic-bezier(.2,.8,.3,1.3), opacity .4s ease;
+    filter: drop-shadow(0 30px 70px rgba(0,0,0,0.55));
+  }
+  .poster-modal-overlay.visible .poster-modal-box{ transform: scale(1); opacity:1; }
+  .poster-modal-box img{
+    display:block;
+    width:auto;
+    height:auto;
+    max-width:92vw;
+    max-height:88vh;
+    border-radius:14px;
+  }
+  .poster-modal-close{
+    position:absolute;
+    top:-16px; right:-16px;
+    width:38px; height:38px;
+    border-radius:50%;
+    background: var(--paper);
+    border: none;
+    font-size:20px;
+    line-height:1;
+    cursor:pointer;
+    color: var(--ink);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    transition: transform .15s ease, background .15s ease;
+    flex-shrink:0;
+  }
+  .poster-modal-close:hover{ background:#FFC24B; transform: scale(1.08); }
+
+  @media (max-width:480px){
+    .poster-modal-box{ max-width:94vw; max-height:88vh; }
+    .poster-modal-box img{ max-width:94vw; max-height:88vh; }
+    .poster-modal-close{ top:-12px; right:-4px; width:34px; height:34px; }
+  }
+</style>
+</head>
+<body>
+<!-- GOLDEN DAY PADDLE CLASH TEAM POSTER (one-time popup, shown once per browser session) -->
+<div class="poster-modal-overlay" id="posterModalOverlay">
+  <div class="poster-modal-box">
+    <button class="poster-modal-close" id="posterModalClose" type="button" aria-label="Close">&times;</button>
+    <img src="/assets/events/golden-day-team-poster.jpg" alt="Team OCPC: James, Ria, Uzz, Des, Jerome, Raf, Heart, and Ann representing at the Golden Day Pickleball Paddle Clash Team Event, August 31, 2026">
+  </div>
+</div>
+
+<div class="announce-bar" style="display:none;">
+  <div class="announce-track"></div>
+</div>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a class="nav-brand" href="/">
+      <span class="logo-chip"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+      <span>One Cavite Pickleball Club</span>
+    </a>
+    <div class="nav-mobile-actions">
+      <button class="nav-icon-btn nav-music-btn nav-music-btn-mobile js-music-toggle" aria-label="Mute music">
+        <svg class="music-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke-linecap="round"/></svg>
+        <svg class="music-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><line x1="23" y1="9" x2="17" y2="15" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke-linecap="round"/></svg>
+      </button>
+      <button class="nav-toggle" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F5F3EE" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="active">Home</a>
+      <a href="/meet-the-club/">Meet the Club</a>
+      <a href="/events/">Events</a>
+      <a href="/giving/">Giving Back</a>
+      <div class="nav-more">
+        <button class="nav-more-btn">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-more-menu">
+          <a href="/merch/">Shop</a>
+          <a href="/track/">Track Order</a>
+          <a href="/gear/">Gear Picks</a>
+          <a href="/gallery/">Gallery</a>
+          <a href="/queue/">Queue</a>
+          <a href="/leaderboard/">Leaderboard</a>
+          <a href="/coaching/">Coaching</a>
+          <a href="/rules/">Rules &amp; Etiquette</a>
+          <a href="/featured-courts/">Featured Courts</a>
+          <a href="/birthdays/">Birthdays</a>
+          <a href="/contact/">Contact</a>
+          <a href="/quiz/">Personality Quiz</a>
+          <a href="/testimonials/">Share Your Story</a>
+        </div>
+      </div>
+
+      <button class="nav-icon-btn nav-theme-btn" id="themeToggle" aria-label="Toggle dark mode">
+          <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-linecap="round"/></svg>
+          <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      <button class="nav-icon-btn nav-music-btn nav-music-btn-desktop js-music-toggle" aria-label="Mute music">
+          <svg class="music-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke-linecap="round"/></svg>
+          <svg class="music-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z" stroke-linejoin="round"/><line x1="23" y1="9" x2="17" y2="15" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke-linecap="round"/></svg>
+        </button>
+        <audio id="ocpcThemeAudio" src="/assets/ocpc-theme-song.mp3" loop muted autoplay preload="auto"></audio>
+
+      <div class="nav-search">
+        <button class="nav-icon-btn nav-search-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round"/></svg>
+        </button>
+        <form class="nav-search-form" id="navSearchForm" autocomplete="off">
+          <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search the site…" aria-label="Search the site">
+        </form>
+        <div class="nav-search-results" id="navSearchResults"></div>
+      </div>
+
+      <div class="nav-notif">
+        <button class="nav-icon-btn nav-notif-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="nav-notif-dot" id="navNotifDot" hidden></span>
+        </button>
+        <div class="nav-notif-panel">
+          <div class="nav-notif-head">
+            <span>Notifications</span>
+            <button class="nav-notif-clear" id="navNotifClear" hidden>Clear all</button>
+          </div>
+          <div class="nav-notif-list" id="navNotifList">
+            <div class="nav-notif-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <a href="/cart/" class="nav-shop" aria-label="Cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16l-1.4 12.2A2 2 0 0 1 16.6 22H7.4a2 2 0 0 1-2-1.8L4 8Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8V6a4 4 0 0 1 8 0v2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="nav-cart-badge" id="navCartBadge" hidden>0</span>
+      </a>
+
+      <div class="nav-account">
+        <button class="nav-account-btn" id="navAccountBtn">
+          <span id="navAccountLabel">Join OCPC</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="nav-account-panel" id="navAccountPanel">
+
+          <div class="nav-account-promo">
+
+            <span class="nav-account-promo-tag">Free</span>
+
+            <h4>Join OCPC Free</h4>
+
+            <p>Get on Meet the Club, birthday shoutouts, and your own player profile — sign up in a couple minutes.</p>
+
+            <a class="btn-promo" href="/join/">Join For Free</a>
+
+          </div>
+
+          <div class="nav-account-links">
+
+            <a class="nav-account-link" href="/profile/">Sign In</a>
+
+            <a class="nav-account-link" href="/join/">Join For Free</a>
+
+            <a class="nav-account-link" href="/meet-the-club/">About OCPC</a>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow">One Cavite Pickleball Club</div>
+      <h1>Open<br>Play,<br><span class="accent">Every Week.</span></h1>
+      <p class="sub">All levels welcome — beginners rotate in right alongside the regulars. Pick a day below and lock in your spot.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#schedule">See This Week's Schedule</a>
+        <a class="btn btn-ghost" href="/merch/">Shop Merch</a>
+      </div>
+      <div class="hero-countdown" id="heroCountdown">Loading next session...</div>
+    </div>
+    <div class="hero-photo">
+      <div class="hero-photo-frame">
+        <img src="/assets/hero/hero-home.webp" alt="OCPC members at open play, SM City Rosario" id="heroPhotoImg">
+      </div>
+      <div class="hero-logo-badge">
+        <img src="/assets/logo.png" alt="OCPC logo" style="width:100%;">
+      </div>
+      <div class="hero-tag">SM City Rosario</div>
+    </div>
+  </div>
+
+  <!-- SPECIAL EVENT: Golden Day Pickleball Court, Kawit debut, Aug 27, 2026.
+       Remove or update this block once the event has passed. -->
+  <div class="event-banner">
+    <div class="event-banner-copy">
+      <span class="event-banner-badge">First Open Play Outside SM Rosario!</span>
+      <h3 class="event-banner-title">Golden Day Pickleball Court, Kawit</h3>
+      <div class="event-banner-meta">Thursday, August 27 &middot; 2 Courts &middot; 24 Players per Session</div>
+      <div class="event-banner-sessions">
+        <a class="event-session-card" href="https://app.sports360.ph/open-play/booking-confirmation/d7a01858-5cc1-465c-9cd5-9ced11dc9fea" target="_blank" rel="noopener">
+          <span class="es-label">DUPR Night</span>
+          <span class="es-time">5:00 PM &ndash; 9:00 PM</span>
+          <span class="es-fee">&#8369;300 per player</span>
+          <span class="es-cta">Register &rarr;</span>
+        </a>
+        <a class="event-session-card" href="https://app.sports360.ph/public/open-play/one-cavite-pickleball-club-ocpc-x-golden-day-kawit-all-levels-open-play-9pm-1am-2-courts-aug27-9pm-1am-2" target="_blank" rel="noopener">
+          <span class="es-label">Regular Open Play</span>
+          <span class="es-time">9:00 PM &ndash; 1:00 AM</span>
+          <span class="es-fee">&#8369;240 per player</span>
+          <span class="es-cta">Register &rarr;</span>
+        </a>
+      </div>
+      <div class="event-banner-footer">Limited slots only, register early!</div>
+    </div>
+    <div class="event-banner-photo">
+      <div class="event-banner-photo-frame">
+        <img src="/assets/gdp/gdp-court.jpeg" alt="Golden Day Pickleball indoor courts, Kawit">
+      </div>
+      <div class="event-banner-logo-badge">
+        <img src="/assets/gdp/gdp-logo.jpeg" alt="Golden Day Pickleball logo">
+      </div>
+      <div class="event-banner-photo-tag">Golden Day Pickleball</div>
+    </div>
+  </div>
+
+  <!-- BIRTHDAY BANNER (shown only when a member's birthday is today) -->
+  <div class="bday-banner" id="bdayBanner" style="display:none;">
+    <img class="bday-banner-photo" id="bdayBannerPhoto" src="" alt="">
+    <div>
+      <div class="bday-banner-eyebrow">🎉 Happy Birthday!</div>
+      <div class="bday-banner-name" id="bdayBannerName"></div>
+    </div>
+    <a class="bday-banner-link" href="/birthdays/">See This Month →</a>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div class="section reveal" id="schedule">
+    <div class="section-head">
+      <span class="section-index">01</span>
+      <h2>This Week's Schedule</h2>
+      <span class="section-rule"></span>
+    </div>
+
+    <div class="sched-card">
+      <div class="sched-card-head" id="weekPills"></div>
+      <div class="sched-card-body">
+        <div class="day-rail" id="dayPills"></div>
+        <div id="detailCard"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECENT EVENT -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">02</span>
+      <h2>Recent Event</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="recent-event-card">
+      <div class="recent-event-img">
+        <img src="/assets/events/nueva-ecija-trip.webp" alt="OCPC members posing with the Corte Verdes banner during a night session in San Isidro, Nueva Ecija" loading="lazy">
+      </div>
+      <div class="recent-event-copy">
+        <span class="event-tag">Concluded · August 15, 2026</span>
+        <h3>OCPC Goes to Nueva Ecija</h3>
+        <p>The squad made the trip up to San Isidro, Nueva Ecija for a night of open play with Corte Verdes: good games, good company, and another club crossed off the road trip list.</p>
+        <div class="recent-event-actions">
+          <a class="btn btn-primary" href="/events/">See All Events</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPRESENTING OCPC -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">03</span>
+      <h2>Representing OCPC</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="roster-hype-card">
+      <div class="roster-hype-intro">
+        <span class="event-tag">🏆 First Serve Grand Opening Tournament · Aug 29–30, 2026</span>
+        <div class="roster-hype-headline">Let's go, <span class="accent">OCPC!</span> 🎉</div>
+        <p>Harvey Cariño and JS Nazareno are stepping up to represent One Cavite Pickleball Club at Pickleball Elites' grand opening tournament in Indang, Cavite. Show them some love!</p>
+      </div>
+      <div class="roster-hype-grid">
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/harvey-carino.jpg" alt="Harvey Cariño playing pickleball at PickleFour Sports Center" loading="lazy">
+          </div>
+          <div class="roster-hype-name">Harvey Cariño</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+        <div class="roster-hype-divider">&amp;</div>
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/js-nazareno.jpg" alt="JS Nazareno serving at PickleFour Sports Center" loading="lazy">
+          </div>
+          <div class="roster-hype-name">JS Nazareno</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+      </div>
+      <div class="roster-hype-actions">
+        <a class="btn-gold" href="/events/">🎊 See Tournament Details →</a>
+      </div>
+
+      <div class="cheer-block">
+        <div class="cheer-controls">
+          <div class="cheer-btn-wrap">
+            <button class="cheer-btn" id="cheerBtn" type="button">
+              <span class="cheer-btn-icon">📣</span>
+              <span class="cheer-btn-label">Cheer Them On</span>
+              <span class="cheer-btn-count" id="cheerCount">0</span>
+            </button>
+            <div class="cheer-note" id="cheerNote">Tap to send some hype their way.</div>
+          </div>
+
+          <div class="reaction-side">
+            <div class="cheer-note">Or send a quick reaction — as many as you want!</div>
+            <div class="reaction-row" id="reactionRow">
+              <button class="reaction-btn" type="button" data-key="celebrate" data-emoji="🎉">
+                <span class="reaction-emoji">🎉</span>
+                <span class="reaction-count" data-count="celebrate">0</span>
+              </button>
+              <button class="reaction-btn" type="button" data-key="clap" data-emoji="👏">
+                <span class="reaction-emoji">👏</span>
+                <span class="reaction-count" data-count="clap">0</span>
+              </button>
+              <button class="reaction-btn" type="button" data-key="fire" data-emoji="🔥">
+                <span class="reaction-emoji">🔥</span>
+                <span class="reaction-count" data-count="fire">0</span>
+              </button>
+              <button class="reaction-btn" type="button" data-key="strength" data-emoji="💪">
+                <span class="reaction-emoji">💪</span>
+                <span class="reaction-count" data-count="strength">0</span>
+              </button>
+              <button class="reaction-btn" type="button" data-key="paddle" data-emoji="🏓">
+                <span class="reaction-emoji">🏓</span>
+                <span class="reaction-count" data-count="paddle">0</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cheer-wall">
+          <div class="cheer-wall-head">Messages of Support</div>
+          <form class="cheer-form" id="cheerForm">
+            <input type="text" id="cheerName" placeholder="Your name" maxlength="40" required>
+            <input type="text" id="cheerMessage" placeholder="Leave a message of support..." maxlength="280" required>
+            <button class="cheer-form-submit" type="submit">Post</button>
+          </form>
+          <div class="cheer-messages" id="cheerMessages"><div class="cheer-empty">Loading messages...</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPRESENTING OCPC: GOLDEN DAY PADDLE CLASH -->
+  <div class="section reveal">
+    <div class="roster-hype-card">
+      <div class="roster-hype-intro">
+        <span class="event-tag">🏆 Golden Day Pickleball Paddle Clash · Aug 31, 2026</span>
+        <div class="roster-hype-headline">Go, Team <span class="accent">OCPC!</span> 🎉</div>
+        <p>James, Ria, Uzz, Des, Jerome, Raf, Heart, and Ann are representing One Cavite Pickleball Club at the Golden Day Pickleball Paddle Clash Team Event, Kawit. Show them some love!</p>
+      </div>
+      <div class="roster-hype-grid team-of-eight">
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/gd-james.jpg" alt="James playing pickleball" loading="lazy">
+          </div>
+          <div class="roster-hype-name">James</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/gd-ria.jpg" alt="Ria playing pickleball" loading="lazy">
+          </div>
+          <div class="roster-hype-name">Ria</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/gd-uzz.jpg" alt="Uzz playing pickleball" loading="lazy">
+          </div>
+          <div class="roster-hype-name">Uzz</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/gd-des.jpg" alt="Des playing pickleball" loading="lazy">
+          </div>
+          <div class="roster-hype-name">Des</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/gd-jerome.jpg" alt="Jerome playing pickleball" loading="lazy">
+          </div>
+          <div class="roster-hype-name">Jerome</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/gd-raf.jpg" alt="Raf playing pickleball" loading="lazy">
+          </div>
+          <div class="roster-hype-name">Raf</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/gd-heart.jpg" alt="Heart playing pickleball" loading="lazy">
+          </div>
+          <div class="roster-hype-name">Heart</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+        <div class="roster-hype-player">
+          <div class="roster-hype-img">
+            <img src="/assets/events/gd-ann.jpg" alt="Ann playing pickleball" loading="lazy">
+          </div>
+          <div class="roster-hype-name">Ann</div>
+          <div class="roster-hype-tag">🏓 Representing OCPC</div>
+        </div>
+      </div>
+      <div class="roster-hype-actions">
+        <a class="btn-gold" href="/events/">🎊 See Tournament Details →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER SPOTLIGHT -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">05</span>
+      <h2>Player Spotlight</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="spotlight-card" id="spotlightCard">
+      <div class="spotlight-body">
+        <div class="spotlight-eyebrow">Top Attendance, Last 4 Weeks</div>
+        <div class="spotlight-name" id="spotlightName">Loading...</div>
+        <div class="spotlight-note">Checking the leaderboard...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="section reveal">
+    <div class="stats-strip">
+      <div class="stat-item">
+        <div class="stat-num" data-target="36" data-suffix="+">0</div>
+        <div class="stat-label">Members</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" data-target="4" data-suffix="x">0</div>
+        <div class="stat-label">Sessions / Week</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" data-target="33" data-suffix="+">0</div>
+        <div class="stat-label">Photos Captured</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="statCheckins" data-target="0" data-suffix="+">0</div>
+        <div class="stat-label">Check-Ins Logged</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GALLERY TEASER -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">07</span>
+      <h2>On The Courts</h2>
+      <span class="section-rule"></span>
+      <a class="btn btn-ghost" href="/gallery/" style="padding:10px 18px; font-size:12px;">View All</a>
+    </div>
+    <div class="gallery-teaser-strip reveal-stagger">
+      <a href="/gallery/"><img src="/assets/gallery/thumb-02.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-04.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-09.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-11.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-14.webp" alt="OCPC gallery" loading="lazy"></a>
+      <a href="/gallery/"><img src="/assets/gallery/thumb-15.webp" alt="OCPC gallery" loading="lazy"></a>
+    </div>
+  </div>
+
+  <!-- MERCH TEASER -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">08</span>
+      <h2>New Drop</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="merch-teaser">
+      <div class="merch-teaser-copy">
+        <div class="eyebrow" style="color:var(--sky);">OCPC Sublimation Uniform</div>
+        <h3>Gear Up.</h3>
+        <p>Full sublimation jersey, batch-ordered for the club. ₱600 each — head to the shop for sizes and how to order.</p>
+        <div>
+          <a class="btn btn-sky" href="/merch/">Shop the Uniform</a>
+        </div>
+      </div>
+      <div class="merch-teaser-img">
+        <img src="/assets/uniform-front.webp" alt="OCPC sublimation uniform front design" loading="lazy">
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURED COURT -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">09</span>
+      <h2>Featured Court</h2>
+      <span class="section-rule"></span>
+      <a class="btn btn-ghost" href="/featured-courts/" style="padding:10px 18px; font-size:12px;">View All</a>
+    </div>
+    <div class="recent-event-card">
+      <div class="recent-event-img">
+        <img src="/assets/courts/dink-academy-visit.jpg" alt="OCPC members visiting Dink Academy Pickleball" loading="lazy">
+      </div>
+      <div class="recent-event-copy">
+        <span class="event-tag">Visited · July 11, 2026</span>
+        <h3>Dink Academy Pickleball.</h3>
+        <p>OCPC was invited out to Dink Academy Pickleball for a club session on their courts — great space, great hosts, and a fun change of scenery from our usual spot.</p>
+        <div class="recent-event-actions">
+          <a class="btn btn-primary" href="/featured-courts/">See Featured Courts</a>
+          <a class="btn btn-ghost" href="https://www.facebook.com/profile.php?id=61589177433386" target="_blank" rel="noopener">Their Facebook</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPONSORS / PARTNERS -->
+  <div class="section reveal">
+    <div class="sponsor-strip-wrap">
+      <div class="sponsor-strip-label">Sponsors &amp; Partners</div>
+      <div class="sponsor-marquee">
+        <div class="sponsor-track">
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/joola.png" alt="JOOLA"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/juego.png" alt="Juego"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/pkl-lab.png" alt="PKL Lab"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/sm-city-rosario.png" alt="SM City Rosario"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/blue.png" alt="B'lue"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/prestige-paddle.png" alt="Prestige Paddle PH"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/joola.png" alt="JOOLA" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/juego.png" alt="Juego" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/pkl-lab.png" alt="PKL Lab" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/sm-city-rosario.png" alt="SM City Rosario" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/blue.png" alt="B'lue" aria-hidden="true"></div>
+          <div class="sponsor-logo-box"><img src="/assets/sponsors/prestige-paddle.png" alt="Prestige Paddle PH" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">10</span>
+      <h2>Why We Love OCPC</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="testimonial-carousel" id="testimonialCarousel">
+      <div class="testimonial-dots" id="testimonialDots"></div>
+    </div>
+    <p style="text-align:center; margin-top:24px;">
+      <a href="/testimonials/" style="font-family: var(--font-mono); font-size:12.5px; color: var(--sky-deep); text-decoration:underline;">Share your own story →</a>
+    </p>
+  </div>
+
+  <!-- FACEBOOK FEED -->
+  <div class="section reveal">
+    <div class="section-head">
+      <span class="section-index">11</span>
+      <h2>From Our Facebook Page</h2>
+      <span class="section-rule"></span>
+    </div>
+    <div class="fb-feed-wrap">
+      <iframe
+        src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fonecavitepickleball&tabs=timeline&width=500&height=500&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true"
+        width="500" height="500" style="border:none; overflow:hidden;" scrolling="no" frameborder="0"
+        allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+        title="OCPC Facebook page feed">
+      </iframe>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <span class="foot-logo"><img src="/assets/logo.png" alt="One Cavite Pickleball Club logo"></span>
+        <div>
+          <div class="foot-brand-name">One Cavite Pickleball Club</div>
+          <div class="foot-brand-tagline">SM City Rosario · See you on the courts!</div>
+        </div>
+      </div>
+      <div class="foot-social">
+        <a class="foot-social-icon" href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" aria-label="Facebook">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M13.5 21v-7.5h2.5l.5-3h-3V8.5c0-.9.3-1.5 1.6-1.5H16V4.3C15.7 4.3 14.8 4 13.7 4 11.4 4 9.9 5.4 9.9 8.1v2.4H7.4v3h2.5V21h3.6z"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="foot-columns">
+      <div class="foot-col">
+        <div class="foot-col-title">Club</div>
+        <a href="/">Home</a>
+        <a href="/meet-the-club/">Meet the Club</a>
+        <a href="/events/">Events</a>
+        <a href="/birthdays/">Birthdays</a>
+        <a href="/gallery/">Gallery</a>
+        <a href="/quiz/">Personality Quiz</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Play</div>
+        <a href="/queue/">Queue</a>
+        <a href="/leaderboard/">Leaderboard</a>
+        <a href="/featured-courts/">Featured Courts</a>
+        <a href="/coaching/">Coaching</a>
+        <a href="/rules/">Rules &amp; Etiquette</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Shop</div>
+        <a href="/merch/">Shop</a>
+        <a href="/track/">Track Order</a>
+        <a href="/gear/">Gear Picks</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Support</div>
+        <a href="/join/">Join OCPC</a>
+        <a href="/contact/">Contact</a>
+        <a href="/giving/">Giving Back</a>
+        <a href="/testimonials/">Share Your Story</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-title">Stop By At</div>
+        <p class="foot-address">SM City Rosario,<br>Cavite</p>
+      </div>
+    </div>
+
+    <div class="foot-bottom">
+      <p class="foot-copyright">© <span class="foot-year">2026</span> One Cavite Pickleball Club. All rights reserved.</p>
+      <div class="foot-legal">
+        <a href="/privacy-policy/">Privacy Policy</a>
+        <a href="/accessibility/">Accessibility Help</a>
+        <a href="/privacy-notice/">Privacy Notice</a>
+        <a href="/terms/">Terms &amp; Conditions</a>
+        <a href="/social-media-policy/">Social Media Policy</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="/script.js"></script>
+<script src="/music-player.js"></script>
+<script type="module" src="/nav-auth.js"></script>
+<script type="module" src="/giving-widget.js"></script>
+<script type="module">
+  // Open play sessions now come from the admin backend's Schedule tab
+  // (Firestore collection "scheduleSessions") instead of being hand-edited
+  // here. The page automatically works out which sessions fall in "This
+  // Week" vs "Next Week" (or further out) based on today's date, so
+  // entries never need to be relabeled or moved by hand.
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function loadSessions(){
+    try {
+      const snap = await getDocs(collection(db, 'scheduleSessions'));
+      return snap.docs.map(docSnap => {
+        const data = docSnap.data();
+        const dt = new Date(`${data.date}T00:00:00`);
+        return {
+          date: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          venue: data.venue || '',
+          court: data.court || '',
+          time: data.time || '',
+          link: data.link || '',
+          status: data.status || 'confirmed'
+        };
+      });
+    } catch (err) {
+      console.error('Failed to load schedule sessions', err);
+      return [];
+    }
+  }
+
+  const sessions = await loadSessions();
+
+  const weekPillsEl = document.getElementById('weekPills');
+  const pillsEl = document.getElementById('dayPills');
+  const cardEl = document.getElementById('detailCard');
+
+  const icons = {
+    arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+
+  let activeWeek = 0;
+
+  // Parses a "Jul 27"-style date against the current year, rolling into
+  // next year if the date is far enough in the past (handles Dec/Jan weeks).
+  function parseDayDate(dateStr){
+    const now = new Date();
+    const dt = new Date(`${dateStr} ${now.getFullYear()}`);
+    dt.setHours(0, 0, 0, 0);
+    const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (dt.getTime() < today0.getTime() - 200 * 86400000) dt.setFullYear(now.getFullYear() + 1);
+    return dt;
+  }
+
+  // Groups the flat session list into week buckets (Mon–Sun), computed
+  // fresh from today's date on every load — this is what keeps "This
+  // Week" and "Next Week" always accurate without manual relabeling.
+  function mondayOf(date){
+    const dt = new Date(date);
+    const day = dt.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    dt.setDate(dt.getDate() + diff);
+    dt.setHours(0, 0, 0, 0);
+    return dt;
+  }
+
+  function buildWeeks(sessionList){
+    const today0 = new Date();
+    today0.setHours(0, 0, 0, 0);
+    const thisMonday = mondayOf(today0).getTime();
+
+    const buckets = new Map();
+    buckets.set(thisMonday, []);
+
+    sessionList.forEach(s => {
+      const dt = parseDayDate(s.date);
+      // Once a day has fully passed, it drops off "This Week" entirely
+      // instead of lingering as the default selection, that's what was
+      // making the widget open on a stale Monday after the week moved on.
+      if (dt.getTime() < today0.getTime()) return;
+      const monday = mondayOf(dt).getTime();
+      if (monday < thisMonday) return;
+      if (!buckets.has(monday)) buckets.set(monday, []);
+      buckets.get(monday).push({
+        ...s,
+        weekday: dt.toLocaleDateString('en-US', { weekday: 'short' })
+      });
+    });
+
+    const mondayKeys = [...buckets.keys()].sort((a, b) => a - b);
+
+    return mondayKeys.map((monday, i) => {
+      // Group same-day sessions together (e.g. two time slots posted for
+      // the same date) so they share a single day tab instead of each
+      // getting its own duplicate tab.
+      const grouped = new Map();
+      buckets.get(monday).forEach(s => {
+        if (!grouped.has(s.date)) grouped.set(s.date, { date: s.date, weekday: s.weekday, sessions: [] });
+        grouped.get(s.date).sessions.push(s);
+      });
+      const days = [...grouped.values()].sort((a, b) => parseDayDate(a.date) - parseDayDate(b.date));
+
+      // Label by actual distance from this week's Monday (not array index),
+      // so a week with no sessions in between doesn't get skipped over and
+      // mislabeled as "Next Week" when it's really two or more weeks out.
+      const weeksAway = Math.round((monday - thisMonday) / (7 * 86400000));
+      const label = weeksAway === 0
+        ? "This Week"
+        : weeksAway === 1
+          ? "Next Week"
+          : `Week of ${new Date(monday).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      return {
+        label,
+        days,
+        emptyMessage: i === 0
+          ? "No open play sessions announced yet this week."
+          : "Schedule to be announced."
+      };
+    });
+  }
+
+  const weeks = buildWeeks(sessions);
+
+  function isToday(dateStr){
+    const today0 = new Date();
+    today0.setHours(0, 0, 0, 0);
+    return parseDayDate(dateStr).getTime() === today0.getTime();
+  }
+
+  // Picks which week/day to show on load: today's session if there's one
+  // this week, otherwise the soonest upcoming session across all weeks.
+  function findDefaultSelection(){
+    const today0 = new Date();
+    today0.setHours(0, 0, 0, 0);
+
+    for (let wi = 0; wi < weeks.length; wi++){
+      const days = weeks[wi].days;
+      for (let di = 0; di < days.length; di++){
+        if (parseDayDate(days[di].date).getTime() === today0.getTime()) return { week: wi, index: di };
+      }
+    }
+
+    let best = null;
+    for (let wi = 0; wi < weeks.length; wi++){
+      const days = weeks[wi].days;
+      for (let di = 0; di < days.length; di++){
+        const allCancelled = days[di].sessions.every(s => (s.status || 'confirmed') === 'cancelled');
+        if (allCancelled) continue;
+        const t = parseDayDate(days[di].date).getTime();
+        if (t > today0.getTime() && (!best || t < best.t)) best = { week: wi, index: di, t };
+      }
+    }
+    return best ? { week: best.week, index: best.index } : { week: 0, index: 0 };
+  }
+
+  function renderWeekTabs(){
+    if (weeks.length <= 1){
+      weekPillsEl.style.display = 'none';
+      weekPillsEl.innerHTML = '';
+      return;
+    }
+    weekPillsEl.style.display = 'flex';
+    weekPillsEl.innerHTML = weeks.map((w, i) => `
+      <button class="week-pill ${i === activeWeek ? 'active' : ''}" data-week="${i}">${w.label}</button>
+    `).join('');
+
+    weekPillsEl.querySelectorAll('.week-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeWeek = parseInt(btn.dataset.week);
+        renderWeekTabs();
+        render(0);
+      });
+    });
+  }
+
+  function render(activeIndex){
+    const schedule = weeks[activeWeek].days;
+
+    if (schedule.length === 0){
+      pillsEl.innerHTML = '';
+      const msg = weeks[activeWeek].emptyMessage || 'No open play sessions scheduled this week.';
+      cardEl.innerHTML = `
+        <div class="no-schedule">
+          <strong>${msg}</strong><br>
+          Check our <a href="https://www.facebook.com/onecavitepickleball" target="_blank" rel="noopener" style="color:var(--pop); text-decoration:underline;">Facebook page</a> for updates.
+        </div>
+      `;
+      return;
+    }
+
+    pillsEl.innerHTML = schedule.map((d, i) => {
+      let dot = '';
+      if (d.sessions.length === 1){
+        const status = d.sessions[0].status || 'confirmed';
+        if (status === 'tentative') dot = '<span class="dot tentative"></span>';
+        else if (status === 'cancelled') dot = '<span class="dot cancelled"></span>';
+        else dot = '<span class="dot"></span>';
+      } else {
+        dot = '<span class="dot"></span>';
+      }
+      const multiBadge = d.sessions.length > 1 ? `<span class="multi-badge">${d.sessions.length}</span>` : '';
+      return `
+      <button class="day-chip ${i === activeIndex ? 'active' : ''} ${isToday(d.date) ? 'is-today' : ''}" data-index="${i}">
+        <span class="wk">${d.weekday}</span>
+        <span class="dt">${d.date.split(' ')[1]}</span>
+        ${dot}
+        ${multiBadge}
+      </button>
+    `;
+    }).join('');
+
+    pillsEl.querySelectorAll('.day-chip').forEach(chip => {
+      chip.addEventListener('click', () => render(parseInt(chip.dataset.index)));
+    });
+
+    const d = schedule[activeIndex];
+
+    function badgeHTML(status){
+      if (status === 'tentative') return '<span class="badge tentative">Tentative, Not Yet Confirmed</span>';
+      if (status === 'cancelled') return '<span class="badge cancelled">Cancelled</span>';
+      return '<span class="badge">All Levels Welcome</span>';
+    }
+
+    function sessionItemHTML(s, idx){
+      const status = s.status || 'confirmed';
+      let actions = `
+        <button class="si-link" data-ics-index="${idx}" type="button">Add to Calendar</button>
+        <a class="si-link" href="https://www.google.com/maps/search/${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">Directions</a>
+        <a class="si-register" href="${s.link}" target="_blank" rel="noopener">Register ${icons.arrow}</a>
+      `;
+      if (status === 'tentative'){
+        actions = `
+          <a class="si-link" href="https://www.google.com/maps/search/${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">Directions</a>
+          <span class="si-status">Registration opens once confirmed</span>
+        `;
+      } else if (status === 'cancelled'){
+        actions = `<span class="si-status">This session has been cancelled</span>`;
+      }
+
+      return `
+        <div class="session-item ${status === 'cancelled' ? 'is-cancelled' : ''}">
+          <div class="session-item-main">
+            <span class="si-time">${s.time}</span>
+            <div class="si-meta">
+              <span class="si-venue">${s.venue}</span>
+              <span class="si-court">${s.court}</span>
+            </div>
+          </div>
+          <div class="session-item-actions">
+            ${actions}
+          </div>
+        </div>
+      `;
+    }
+
+    const headBadgeStatus = d.sessions.length === 1 ? (d.sessions[0].status || 'confirmed') : 'confirmed';
+
+    cardEl.innerHTML = `
+      <div class="session-detail">
+        <div class="session-detail-head">
+          <div class="dow">${d.weekday}${isToday(d.date) ? ' &middot; Today' : ''}</div>
+          <div class="dm">${d.date}</div>
+          ${badgeHTML(headBadgeStatus)}
+        </div>
+        <div class="session-list">
+          ${d.sessions.map((s, idx) => sessionItemHTML(s, idx)).join('')}
+        </div>
+      </div>
+    `;
+
+    cardEl.querySelectorAll('[data-ics-index]').forEach(btn => {
+      btn.addEventListener('click', () => downloadICS(d.sessions[parseInt(btn.dataset.icsIndex)]));
+    });
+  }
+
+  // ---- Add to Calendar (.ics download) ----
+  function pad2(n){ return String(n).padStart(2, '0'); }
+
+  function toICSDate(dt){
+    return `${dt.getUTCFullYear()}${pad2(dt.getUTCMonth() + 1)}${pad2(dt.getUTCDate())}T${pad2(dt.getUTCHours())}${pad2(dt.getUTCMinutes())}${pad2(dt.getUTCSeconds())}Z`;
+  }
+
+  function parseSessionEndTime(d, start){
+    const endTimeStr = d.time.split('–')[1].trim();
+    return new Date(`${d.date} ${start.getFullYear()} ${endTimeStr}`);
+  }
+
+  function icsEscape(str){
+    return String(str).replace(/[\\;,]/g, m => '\\' + m).replace(/\n/g, '\\n');
+  }
+
+  function downloadICS(d){
+    const start = parseSessionStart(d);
+    const end = parseSessionEndTime(d, start);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return;
+
+    const uid = `ocpc-${d.date.replace(/\s+/g, '')}-${start.getFullYear()}@onecavitepickleball.club`;
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//OCPC//Open Play Schedule//EN',
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${toICSDate(new Date())}`,
+      `DTSTART:${toICSDate(start)}`,
+      `DTEND:${toICSDate(end)}`,
+      `SUMMARY:${icsEscape('OCPC Open Play — ' + d.venue)}`,
+      `LOCATION:${icsEscape(d.venue + ' (' + d.court + ')')}`,
+      `DESCRIPTION:${icsEscape('One Cavite Pickleball Club open play session. Register: ' + d.link)}`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([ics], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ocpc-open-play-${d.date.replace(/\s+/g, '-')}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  const defaultSel = findDefaultSelection();
+  activeWeek = defaultSel.week;
+  renderWeekTabs();
+  render(defaultSel.index);
+
+  // ---- Hero countdown to next open play session ----
+  function parseSessionStart(d){
+    const startTimeStr = d.time.split('–')[0].trim();
+    const now = new Date();
+    const dt = new Date(`${d.date} ${now.getFullYear()} ${startTimeStr}`);
+    if (dt.getTime() < now.getTime() - 12 * 60 * 60 * 1000) dt.setFullYear(now.getFullYear() + 1);
+    return dt;
+  }
+
+  function findNextSession(){
+    const allSessions = weeks.flatMap(w => w.days.flatMap(d => d.sessions));
+    const now = new Date();
+    const upcoming = allSessions
+      .filter(s => (s.status || 'confirmed') !== 'cancelled')
+      .map(s => ({ d: s, dt: parseSessionStart(s) }))
+      .filter(x => !isNaN(x.dt.getTime()) && x.dt > now)
+      .sort((a, b) => a.dt - b.dt);
+    return upcoming[0] || null;
+  }
+
+  function updateCountdown(){
+    const el = document.getElementById('heroCountdown');
+    if (!el) return;
+    const next = findNextSession();
+    if (!next){
+      el.innerHTML = 'Next open play: <b>To be announced</b>';
+      return;
+    }
+    const diff = next.dt - new Date();
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const parts = [];
+    if (days) parts.push(`${days}d`);
+    parts.push(`${hours}h`, `${mins}m`);
+    el.innerHTML = `Next open play in <b>${parts.join(' ')}</b> — ${next.d.weekday}, ${next.d.date}`;
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 60000);
+
+  // ---- Rotating hero photo ----
+  const rotatingHero = [
+    { img: "/assets/hero/hero-home.webp", tag: "SM City Rosario" },
+    { img: "/assets/gallery/photo-20.webp", tag: "The Highgrounds Compound, Zambales" },
+    { img: "/assets/gallery/photo-27.webp", tag: "Pampanga Pickleball Center" },
+    { img: "/assets/hero/hero-paddle-point-launion.webp", tag: "Paddle Point, La Union" },
+    { img: "/assets/hero/hero-union-athletics.webp", tag: "Union Athletics, La Union" },
+    { img: "/assets/hero/hero-nueva-ecija.webp", tag: "San Isidro, Nueva Ecija" }
+  ];
+  let heroIdx = 0;
+  setInterval(() => {
+    heroIdx = (heroIdx + 1) % rotatingHero.length;
+    const img = document.getElementById('heroPhotoImg');
+    const tag = document.querySelector('.hero-tag');
+    if (!img || !tag) return;
+    img.style.opacity = 0;
+    setTimeout(() => {
+      img.src = rotatingHero[heroIdx].img;
+      tag.textContent = rotatingHero[heroIdx].tag;
+      img.style.opacity = 1;
+    }, 500);
+  }, 6000);
+</script>
+
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Maps a lowercased raw attendance name (nickname OR full name OR a
+  // unique first name) to the player's canonical full name — used only
+  // to MERGE attendance logged under different spellings into one
+  // person's count; the full name itself is never shown on screen.
+  let aliasMap = {};
+  // Canonical full name (lowercased) -> the short name to actually show:
+  // the player's nickname if set, else just their first name.
+  let displayMap = {};
+
+  function firstWord(str){
+    return String(str || '').trim().split(/\s+/)[0] || '';
+  }
+
+  async function loadRosterAliases(){
+    try {
+      const snap = await getDocs(collection(db, 'roster'));
+      const map = {};
+      const display = {};
+      const firstTokenCounts = {};
+      const firstTokenCanonical = {};
+
+      snap.docs.forEach(d => {
+        const p = d.data();
+        const canonical = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
+        if (!canonical) return;
+        const canonicalKey = canonical.toLowerCase();
+        const nickname = p.nickname && p.nickname.trim() ? p.nickname.trim() : '';
+
+        map[canonicalKey] = canonical;
+        if (nickname) map[nickname.toLowerCase()] = canonical;
+        (p.aliases || []).forEach(a => { if (a && a.trim()) map[a.trim().toLowerCase()] = canonical; });
+        display[canonicalKey] = nickname || toTitleCase(firstWord(p.firstName || ''));
+
+        const firstToken = toTitleCase(firstWord(p.firstName || ''));
+        if (firstToken){
+          const tokenKey = firstToken.toLowerCase();
+          firstTokenCounts[tokenKey] = (firstTokenCounts[tokenKey] || 0) + 1;
+          firstTokenCanonical[tokenKey] = canonical;
+        }
+      });
+
+      Object.keys(firstTokenCounts).forEach(tokenKey => {
+        if (firstTokenCounts[tokenKey] === 1 && !map[tokenKey]) map[tokenKey] = firstTokenCanonical[tokenKey];
+      });
+
+      aliasMap = map;
+      displayMap = display;
+    } catch (err) { /* roster unreachable — raw attendance names still show */ }
+  }
+
+  // Grouping key only — the full canonical name when a roster match
+  // exists, so different spellings of the same person merge together.
+  function normalizeName(raw){
+    const clean = String(raw || '').trim();
+    return aliasMap[clean.toLowerCase()] || clean;
+  }
+
+  // What actually gets shown: nickname or first name only — never the
+  // full "firstName lastName", even for a matched roster player.
+  function displayNameFor(raw){
+    const clean = String(raw || '').trim();
+    const canonical = aliasMap[clean.toLowerCase()];
+    if (canonical) return displayMap[canonical.toLowerCase()] || firstWord(canonical);
+    return firstWord(clean);
+  }
+
+  function isoDate(d){ return d.toISOString().slice(0, 10); }
+  function cutoffDate(){
+    const d = new Date();
+    d.setDate(d.getDate() - 28);
+    return isoDate(d);
+  }
+
+  // ---- Player Spotlight + live check-ins stat ----
+  async function loadSpotlight(){
+    const nameEl = document.getElementById('spotlightName');
+    const cardEl = document.getElementById('spotlightCard');
+    try {
+      await loadRosterAliases();
+      const snap = await getDocs(collection(db, 'attendance'));
+      const allRecords = snap.docs.map(d => d.data());
+      const totalCheckins = allRecords.reduce((sum, r) => sum + (r.names ? r.names.length : 0), 0);
+      const checkinsEl = document.getElementById('statCheckins');
+      if (checkinsEl) checkinsEl.dataset.target = totalCheckins;
+
+      const cutoff = cutoffDate();
+      const recent = allRecords.filter(r => typeof r.date === 'string' && r.date >= cutoff);
+      const counts = {};
+      recent.forEach(r => {
+        (r.names || []).forEach(n => {
+          const raw = String(n).trim();
+          if (!raw) return;
+          const key = normalizeName(raw).toLowerCase();
+          if (!counts[key]) counts[key] = { name: displayNameFor(raw), count: 0 };
+          counts[key].count++;
+        });
+      });
+      const ranked = Object.values(counts).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+      if (ranked.length === 0){
+        nameEl.textContent = 'No sessions logged yet';
+        cardEl.querySelector('.spotlight-note').textContent = 'Check back after the next open play session.';
+        return;
+      }
+
+      const topCount = ranked[0].count;
+      const top = ranked.filter(p => p.count === topCount);
+      const medal = top.length > 1 ? '🏆' : '🥇';
+      cardEl.insertAdjacentHTML('afterbegin', `<div class="spotlight-medal">${medal}</div>`);
+      nameEl.textContent = top.map(p => p.name).join(' & ');
+      cardEl.querySelector('.spotlight-note').innerHTML =
+        `${topCount} session${topCount === 1 ? '' : 's'} in the last 4 weeks. See the full <a href="/leaderboard/">Leaderboard</a>.`;
+    } catch (err) {
+      nameEl.textContent = 'Check the Leaderboard';
+      cardEl.querySelector('.spotlight-note').innerHTML = 'See who\'s on top at our <a href="/leaderboard/">Leaderboard page</a>.';
+    } finally {
+      startStatCounters();
+    }
+  }
+
+  // ---- Animated stat counters ----
+  function startStatCounters(){
+    const nums = document.querySelectorAll('.stat-num');
+    const animate = (el) => {
+      const target = parseInt(el.dataset.target, 10) || 0;
+      const suffix = el.dataset.suffix || '';
+      const duration = 1200;
+      const start = performance.now();
+      function tick(now){
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target) + suffix;
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    };
+
+    if ('IntersectionObserver' in window){
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting){
+            animate(entry.target);
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.4 });
+      nums.forEach(el => io.observe(el));
+    } else {
+      nums.forEach(animate);
+    }
+  }
+
+  loadSpotlight();
+
+  // Normalizes a name for display regardless of how it was typed at signup.
+  function toTitleCase(str){
+    return String(str).replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
+
+  // ---- Birthday banner (shows only if someone's birthday is today) ----
+  async function loadBirthdayBanner(){
+    try {
+      const snap = await getDocs(collection(db, 'roster'));
+      const all = snap.docs.map(d => d.data());
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      const celebrants = all.filter(p => p.birthMonth === month && p.birthDay === day);
+      if (celebrants.length === 0) return;
+
+      const banner = document.getElementById('bdayBanner');
+      const photoEl = document.getElementById('bdayBannerPhoto');
+      const nameEl = document.getElementById('bdayBannerName');
+      const names = celebrants.map(p => `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim()).join(' & ');
+      photoEl.src = celebrants[0].photoURL || '/assets/directory/blank.svg';
+      photoEl.alt = names;
+      nameEl.textContent = `Happy Birthday, ${names}!`;
+      banner.style.display = 'flex';
+    } catch (err) { /* roster not reachable — skip banner silently */ }
+  }
+
+  loadBirthdayBanner();
+</script>
+
+<script type="module">
+  // ---- Cheer button + wall of support (Representing OCPC section) ----
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, deleteDoc, runTransaction, onSnapshot,
+    collection, addDoc, getDocs, query, where, orderBy, limit, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
+    authDomain: "ocpc-website-faf5e.firebaseapp.com",
+    projectId: "ocpc-website-faf5e",
+    storageBucket: "ocpc-website-faf5e.firebasestorage.app",
+    messagingSenderId: "15833259684",
+    appId: "1:15833259684:web:0f2f4400f9995517ae5031"
+  };
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  const SUPER_ADMIN_EMAILS = ["ocpc.pickleball@gmail.com", "jamescastillo37@gmail.com"];
+  let currentIsAdmin = false;
+
+  async function checkIsAdmin(user){
+    if (!user) return false;
+    if (SUPER_ADMIN_EMAILS.includes(user.email)) return true;
+    try {
+      const snap = await getDoc(doc(db, 'players', user.uid));
+      return snap.exists() && snap.data().role === 'admin';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  const CHEER_ID = 'first-serve-2026';
+  const CHEERED_KEY = `ocpc-cheered-${CHEER_ID}`;
+
+  const cheerBtn = document.getElementById('cheerBtn');
+  const cheerCountEl = document.getElementById('cheerCount');
+  const cheerNoteEl = document.getElementById('cheerNote');
+  const reactionRow = document.getElementById('reactionRow');
+  const cheerForm = document.getElementById('cheerForm');
+  const cheerMessagesEl = document.getElementById('cheerMessages');
+  if (!reactionRow) { /* section not on this page */ }
+  else {
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = String(str || '');
+    return div.innerHTML;
+  }
+
+  // ---- "Cheer Them On" button: one confetti-burst cheer per browser ----
+
+  function markCheeredUI(){
+    cheerBtn.classList.add('cheered');
+    cheerBtn.disabled = true;
+    cheerNoteEl.textContent = 'You cheered — thank you! 🎉';
+  }
+
+  if (localStorage.getItem(CHEERED_KEY)) markCheeredUI();
+
+  function spawnCheerBurst(x, y){
+    const colors = ['#FFC24B', '#4FB6FF', '#FF5A36', '#2E9E5B', '#FFFFFF'];
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:400;overflow:hidden;';
+    document.body.appendChild(container);
+    for (let i = 0; i < 26; i++){
+      const piece = document.createElement('div');
+      const size = 5 + Math.random() * 6;
+      piece.style.cssText = `
+        position:absolute; top:${y}px; left:${x}px;
+        width:${size}px; height:${size * 0.4}px;
+        background:${colors[Math.floor(Math.random() * colors.length)]};
+        border-radius:2px;
+      `;
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 120;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist - 40;
+      piece.animate([
+        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy + 160}px) rotate(${360 + Math.random() * 360}deg)`, opacity: 0 }
+      ], { duration: 900 + Math.random() * 500, easing: 'cubic-bezier(.25,.46,.45,.94)' });
+      container.appendChild(piece);
+    }
+    setTimeout(() => container.remove(), 1600);
+  }
+
+  cheerBtn.addEventListener('click', async () => {
+    if (localStorage.getItem(CHEERED_KEY)) return;
+    cheerBtn.disabled = true;
+    const rect = cheerBtn.getBoundingClientRect();
+    spawnCheerBurst(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    try {
+      const ref = doc(db, 'cheers', CHEER_ID);
+      const newCount = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        const next = snap.exists() ? (snap.data().count || 0) + 1 : 1;
+        if (snap.exists()) tx.update(ref, { count: next });
+        else tx.set(ref, { count: 1 });
+        return next;
+      });
+      cheerCountEl.textContent = newCount;
+      localStorage.setItem(CHEERED_KEY, '1');
+      markCheeredUI();
+    } catch (err) {
+      cheerBtn.disabled = false;
+      cheerNoteEl.textContent = "Couldn't record your cheer — try again.";
+    }
+  });
+
+  // ---- Reactions: floating emoji bubbles, Facebook Live style ----
+  const reactionButtons = Array.from(reactionRow.querySelectorAll('.reaction-btn'));
+
+  function reactionDocId(key){ return `${CHEER_ID}__${key}`; }
+
+  // Live-updates the cheer button count and every reaction button count
+  // for ALL visitors as taps come in — no refresh needed.
+  function subscribeToCheers(){
+    try {
+      onSnapshot(collection(db, 'cheers'), (snap) => {
+        const counts = {};
+        snap.docs.forEach(d => { counts[d.id] = d.data().count || 0; });
+        cheerCountEl.textContent = counts[CHEER_ID] || 0;
+        reactionButtons.forEach(btn => {
+          const key = btn.dataset.key;
+          const countEl = btn.querySelector('.reaction-count');
+          countEl.textContent = counts[reactionDocId(key)] || 0;
+        });
+      });
+    } catch (err) { /* leave at 0 */ }
+  }
+
+  function spawnFloatingEmoji(btn, emoji){
+    const rect = btn.getBoundingClientRect();
+    const el = document.createElement('span');
+    el.className = 'floating-emoji';
+    el.textContent = emoji;
+    el.style.left = `${rect.left + rect.width / 2 - 12}px`;
+    el.style.top = `${rect.top}px`;
+    el.style.fontSize = `${20 + Math.random() * 10}px`;
+    document.body.appendChild(el);
+    const drift = (Math.random() - 0.5) * 70;
+    const duration = 1300 + Math.random() * 500;
+    const anim = el.animate([
+      { transform: 'translate(0,0) scale(0.7) rotate(0deg)', opacity: 1 },
+      { transform: `translate(${drift * 0.5}px, -80px) scale(1.15) rotate(${(Math.random() - 0.5) * 40}deg)`, opacity: 1, offset: 0.35 },
+      { transform: `translate(${drift}px, -180px) scale(1) rotate(${(Math.random() - 0.5) * 60}deg)`, opacity: 0 }
+    ], { duration, easing: 'cubic-bezier(.2,.6,.35,1)' });
+    anim.onfinish = () => el.remove();
+  }
+
+  reactionButtons.forEach(btn => {
+    const key = btn.dataset.key;
+    const emoji = btn.dataset.emoji;
+    const countEl = btn.querySelector('.reaction-count');
+    let pending = 0;
+    let flushing = false;
+
+    // Rapid taps spawn bubbles instantly and queue up in `pending`; this
+    // drains the queue in the background so no click's write gets lost
+    // even if several land while a transaction is still in flight.
+    async function flushPending(){
+      if (flushing) return;
+      flushing = true;
+      while (pending > 0){
+        const amount = pending;
+        pending = 0;
+        try {
+          const ref = doc(db, 'cheers', reactionDocId(key));
+          await runTransaction(db, async (tx) => {
+            const snap = await tx.get(ref);
+            const base = snap.exists() ? (snap.data().count || 0) : 0;
+            if (snap.exists()) tx.update(ref, { count: base + amount });
+            else tx.set(ref, { count: amount });
+          });
+        } catch (err) {
+          pending += amount; // retry next time a click (or this loop) tries again
+          break;
+        }
+      }
+      flushing = false;
+    }
+
+    btn.addEventListener('click', () => {
+      spawnFloatingEmoji(btn, emoji);
+      countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+      pending += 1;
+      flushPending();
+    });
+  });
+
+  async function loadCheerMessages(){
+    try {
+      const q = query(collection(db, 'cheerMessages'), orderBy('createdAt', 'desc'), limit(100));
+      const snap = await getDocs(q);
+      const mine = snap.docs.filter(d => d.data().cheerId === CHEER_ID);
+      cheerMessagesEl.innerHTML = mine.length
+        ? mine.map(d => {
+            const data = d.data();
+            return `
+              <div class="cheer-message">
+                <span class="cheer-message-text"><b>${escapeHtml(data.name)}</b> — ${escapeHtml(data.message)}</span>
+                <button class="cheer-message-delete" data-id="${d.id}" title="Delete message" ${currentIsAdmin ? '' : 'hidden'}>&times;</button>
+              </div>
+            `;
+          }).join('')
+        : '<div class="cheer-empty">No messages yet — be the first to leave one!</div>';
+
+      cheerMessagesEl.querySelectorAll('.cheer-message-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this message?')) return;
+          btn.disabled = true;
+          try {
+            await deleteDoc(doc(db, 'cheerMessages', btn.dataset.id));
+            await loadCheerMessages();
+          } catch (err) {
+            btn.disabled = false;
+            alert("Couldn't delete this message — try again.");
+          }
+        });
+      });
+    } catch (err) {
+      cheerMessagesEl.innerHTML = '<div class="cheer-empty">Couldn\'t load messages.</div>';
+    }
+  }
+
+  cheerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('cheerName').value.trim();
+    const message = document.getElementById('cheerMessage').value.trim();
+    if (!name || !message) return;
+    const submitBtn = cheerForm.querySelector('.cheer-form-submit');
+    submitBtn.disabled = true;
+    try {
+      await addDoc(collection(db, 'cheerMessages'), {
+        cheerId: CHEER_ID,
+        name: name.slice(0, 40),
+        message: message.slice(0, 280),
+        createdAt: serverTimestamp()
+      });
+      cheerForm.reset();
+      await loadCheerMessages();
+    } catch (err) {
+      alert('Something went wrong posting your message. Try again.');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  subscribeToCheers();
+  loadCheerMessages();
+
+  onAuthStateChanged(auth, async (user) => {
+    currentIsAdmin = await checkIsAdmin(user);
+    await loadCheerMessages(); // re-render so the delete × shows/hides
+  });
+  }
+
+  // ---- Testimonials carousel: player-submitted stories from /testimonials/,
+  // approved by an admin. Falls back to a few defaults if none are approved
+  // yet, so the carousel is never empty on a fresh install. ----
+  const FALLBACK_TESTIMONIALS = [
+    { name: 'Des', quote: "OCPC is very accommodating and beginner's friendly.", photoURL: '/assets/directory/des.jpg' },
+    { name: 'Joe', quote: "OCPC is more than just a club, it's a family!!! Best training ground without judgement.", photoURL: '/assets/directory/joe.jpg' },
+    { name: 'Raf', quote: 'OCPC is the sole reason I get to play pickleball with confidence and pride.', photoURL: '/assets/directory/rafael.jpg' },
+    { name: 'Mj', quote: 'OCPC is a place where I found not only a sport, but also genuine friendships and unforgettable memories.', photoURL: '/assets/directory/marvin.jpg' }
+  ];
+
+  async function loadTestimonialsCarousel(){
+    const carousel = document.getElementById('testimonialCarousel');
+    const dotsWrap = document.getElementById('testimonialDots');
+    if (!carousel || !dotsWrap) return;
+
+    let list = FALLBACK_TESTIMONIALS;
+    try {
+      const q = query(collection(db, 'testimonials'), where('status', '==', 'approved'));
+      const snap = await getDocs(q);
+      const approved = snap.docs.map(d => d.data());
+      if (approved.length) list = approved;
+    } catch (err) { /* Firestore unreachable, use fallback */ }
+
+      function esc(str){
+      const div = document.createElement('div');
+      div.textContent = String(str || '');
+      return div.innerHTML;
+    }
+
+    const slidesHtml = list.map((t, i) => `
+      <div class="testimonial-slide ${i === 0 ? 'active' : ''}">
+        <img class="testimonial-avatar" src="${t.photoURL || '/assets/directory/blank.svg'}" alt="${esc(t.name || '')}" loading="lazy">
+        <div class="testimonial-quote">${esc(t.quote || '')}</div>
+        <div class="testimonial-author">${esc(t.name || '')}</div>
+      </div>
+    `).join('');
+    carousel.insertAdjacentHTML('afterbegin', slidesHtml);
+
+    const slides = carousel.querySelectorAll('.testimonial-slide');
+    let activeSlide = 0;
+
+    dotsWrap.innerHTML = Array.from(slides).map((_, i) =>
+      `<button class="testimonial-dot ${i === 0 ? 'active' : ''}" data-i="${i}" aria-label="Testimonial ${i + 1}"></button>`
+    ).join('');
+
+    function showSlide(i){
+      slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+      dotsWrap.querySelectorAll('.testimonial-dot').forEach((d, idx) => d.classList.toggle('active', idx === i));
+      activeSlide = i;
+    }
+
+    dotsWrap.querySelectorAll('.testimonial-dot').forEach(dot => {
+      dot.addEventListener('click', () => showSlide(parseInt(dot.dataset.i, 10)));
+    });
+
+    if (slides.length > 1) setInterval(() => showSlide((activeSlide + 1) % slides.length), 6000);
+  }
+
+  loadTestimonialsCarousel();
+</script>
+
+<script>
+  // ---- Homepage announcement poster popup: once per browser session, with confetti ----
+  (function(){
+    const SEEN_KEY = 'ocpc-seen-poster-golden-day-paddle-clash';
+    const overlay = document.getElementById('posterModalOverlay');
+    const closeBtn = document.getElementById('posterModalClose');
+    if (!overlay || !closeBtn) return;
+    if (sessionStorage.getItem(SEEN_KEY)) return;
+
+    function spawnConfetti(){
+      const colors = ['#B6FF3C', '#FFC24B', '#4FB6FF', '#FFFFFF', '#2E9E5B'];
+      const container = document.createElement('div');
+      container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:520;overflow:hidden;';
+      document.body.appendChild(container);
+      const count = 90;
+      for (let i = 0; i < count; i++){
+        const piece = document.createElement('div');
+        const size = 6 + Math.random() * 8;
+        const startX = Math.random() * window.innerWidth;
+        piece.style.cssText = `
+          position:absolute; top:-20px; left:${startX}px;
+          width:${size}px; height:${size * 0.4}px;
+          background:${colors[Math.floor(Math.random() * colors.length)]};
+          border-radius:2px;
+        `;
+        const drift = (Math.random() - 0.5) * 200;
+        const fallDist = window.innerHeight + 60;
+        const duration = 2200 + Math.random() * 1800;
+        const delay = Math.random() * 500;
+        piece.animate([
+          { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+          { transform: `translate(${drift}px, ${fallDist}px) rotate(${360 + Math.random() * 540}deg)`, opacity: 0.9, offset: 0.9 },
+          { transform: `translate(${drift}px, ${fallDist + 20}px) rotate(${420 + Math.random() * 540}deg)`, opacity: 0 }
+        ], { duration, delay, easing: 'cubic-bezier(.25,.46,.45,.94)', fill: 'forwards' });
+        container.appendChild(piece);
+      }
+      setTimeout(() => container.remove(), 4600);
+    }
+
+    function openModal(){
+      document.body.classList.add('poster-modal-open');
+      overlay.classList.add('open');
+      requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+        spawnConfetti();
+      });
+    }
+
+    function closeModal(){
+      overlay.classList.remove('visible');
+      document.body.classList.remove('poster-modal-open');
+      sessionStorage.setItem(SEEN_KEY, '1');
+      setTimeout(() => overlay.classList.remove('open'), 350);
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+    });
+
+    setTimeout(openModal, 700);
+  })();
+</script>
+
+</body>
+</html>
