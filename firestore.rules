@@ -397,5 +397,22 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Private tournament operations. Match Control owns the event document;
+    // signed-in officials may read it, but a referee may only write the live
+    // match document explicitly assigned to their authenticated email.
+    match /tournamentEvents/{eventId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin() || hasRole('court_manager');
+
+      match /matches/{matchId} {
+        allow read: if request.auth != null;
+        allow create, update: if isAdmin() || hasRole('court_manager') || (
+          request.auth != null
+          && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.state.refereeAssignments[matchId] == request.auth.token.email
+        );
+        allow delete: if isAdmin() || hasRole('court_manager');
+      }
+    }
   }
 }

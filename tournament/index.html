@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Matchday Tournament System</title>
+  <meta name="theme-color" content="#003F5E">
+  <link rel="icon" type="image/png" href="/assets/favicon-32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="rolling.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-lockup">
+        <div class="brand-mark"><img id="brandLogo" src="../assets/logo.png" alt=""></div>
+        <div><span class="brand-product" id="appName">Matchday</span><strong id="brandName">OCPC</strong></div>
+      </div>
+      <nav class="side-nav" aria-label="Tournament sections">
+        <button class="nav-item active" data-view="overview"><span>01</span>Overview</button>
+        <button class="nav-item" data-view="courts"><span>02</span>Live Courts</button>
+        <button class="nav-item" data-view="schedule"><span>03</span>Schedule & Scores</button>
+        <button class="nav-item" data-view="standings"><span>04</span>Standings</button>
+        <button class="nav-item" data-view="teams"><span>05</span>Teams</button>
+        <button class="nav-item" data-view="medals"><span>06</span>Medal Round</button>
+        <button class="nav-item" data-view="settings"><span>07</span>Settings</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="sync-dot"></div><span>Saved on this device</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+        <div class="event-mini"><strong id="eventMiniName"></strong><span id="eventMiniMeta"></span></div>
+        <div class="top-actions">
+          <button class="btn btn-quiet" id="printBtn">Print</button>
+          <button class="btn btn-primary" id="quickScoreBtn">Enter score</button>
+        </div>
+      </header>
+
+      <section class="view active" id="view-overview">
+        <div class="hero-panel">
+          <div class="hero-copy">
+            <div class="eyebrow">Dual meet tournament</div>
+            <h1 id="eventName"></h1>
+            <p id="eventDetails"></p>
+            <div class="hero-actions"><button class="btn btn-lime" data-go="courts">Open live desk</button><button class="btn btn-outline-light" data-go="schedule">View full draw</button></div>
+          </div>
+          <div class="match-clock"><span>Round robin</span><strong id="heroMatchCount">121</strong><small>matches across five courts</small></div>
+        </div>
+        <div class="metric-grid" id="metricGrid"></div>
+        <div class="dashboard-grid">
+          <article class="panel next-panel"><div class="panel-head"><div><span class="section-label">Rolling dispatch</span><h2>Next matches</h2></div><button class="text-btn" data-go="courts">Manage queue</button></div><div id="overviewWave"></div></article>
+          <article class="panel"><div class="panel-head"><div><span class="section-label">Advancement</span><h2>Category leaders</h2></div><button class="text-btn" data-go="standings">All standings</button></div><div class="leader-list" id="leaderList"></div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-courts">
+        <div class="page-head"><div><span class="eyebrow dark">Rolling match control</span><h1>Live Courts</h1><p>When a court opens, send the next eligible match or choose one manually.</p></div><button class="btn btn-primary" id="fillCourtsBtn">Fill available courts</button></div>
+        <div class="live-desk-layout"><div class="court-grid" id="courtGrid"></div><aside class="queue-panel"><div class="panel-head"><div><span class="section-label">Dispatch order</span><h2>Waiting queue</h2></div><span class="queue-count" id="queueCount"></span></div><p class="queue-help">Move any match up or down. The first eligible match goes to the next free court.</p><div class="dispatch-queue" id="dispatchQueue"></div></aside></div>
+        <div class="control-strip"><div><span class="section-label">Court desk note</span><p id="scoringNote"></p></div><div class="timer-legend"><span><i class="timer-safe"></i>Under 9 min</span><span><i class="timer-warn"></i>9-14 min</span><span><i class="timer-danger"></i>Final minute / overtime</span></div></div>
+      </section>
+
+      <section class="view" id="view-schedule">
+        <div class="page-head"><div><span class="eyebrow dark" id="scheduleMatchCount">All 121 matches</span><h1>Schedule & Scores</h1><p>Filter the draw, enter results, or print a clean scorekeeping list.</p></div></div>
+        <div class="filter-bar"><select id="scheduleCategory"><option value="all">All categories</option></select><select id="scheduleStatus"><option value="all">All statuses</option><option value="pending">Pending</option><option value="complete">Complete</option></select><input id="scheduleSearch" type="search" placeholder="Search pair or player"></div>
+        <div class="table-wrap"><table><thead><tr><th>ID</th><th>Time</th><th>Court</th><th>Category</th><th>OCPC pair</th><th class="score-col">Score</th><th>Rally Rebels pair</th><th>Status</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
+      </section>
+
+      <section class="view" id="view-standings">
+        <div class="page-head"><div><span class="eyebrow dark">Live calculations</span><h1>Standings</h1><p>Ranked by wins, point differential, then points scored within each club.</p></div></div>
+        <div class="category-tabs" id="standingsTabs"></div><div class="standings-grid" id="standingsGrid"></div>
+      </section>
+
+      <section class="view" id="view-teams">
+        <div class="page-head"><div><span class="eyebrow dark">Tournament roster</span><h1>Teams</h1><p>Enter pair names once. They update throughout the schedule and standings.</p></div><button class="btn btn-primary" id="saveTeamsBtn">Save teams</button></div>
+        <div class="category-tabs" id="teamTabs"></div><div class="team-grid" id="teamGrid"></div>
+      </section>
+
+      <section class="view" id="view-medals">
+        <div class="page-head"><div><span class="eyebrow dark">Final four</span><h1>Medal Round</h1><p>The top two pairs from each club advance into cross-club semifinals.</p></div><button class="btn btn-primary" id="seedMedalsBtn">Seed from standings</button></div>
+        <div class="medal-board" id="medalBoard"></div>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="page-head"><div><span class="eyebrow dark">Event controls</span><h1>Settings</h1><p>Back up event data, restore another device, or prepare a fresh event.</p></div></div>
+        <div class="settings-grid">
+          <article class="panel"><span class="section-label">White label</span><h2>Brand configuration</h2><p>Event name, organizer, club names, colors, logo, courts, and categories are isolated in <code>tournament/config.js</code>.</p><div class="config-list" id="configList"></div></article>
+          <article class="panel"><span class="section-label">Data portability</span><h2>Backup and restore</h2><p>Use a JSON backup to move the live tournament state between devices.</p><div class="stack-actions"><button class="btn btn-primary" id="exportBtn">Export backup</button><label class="btn btn-quiet file-btn">Import backup<input id="importInput" type="file" accept="application/json"></label></div></article>
+          <article class="panel"><span class="section-label">Draw structure</span><h2>Pairs per category</h2><p>Add or remove pairs for either club. Applying a change regenerates the round-robin draw because every pair must face every opposing pair.</p><div class="stack-form" id="pairCountSettings"></div><button class="btn btn-primary" id="applyPairCountsBtn">Apply and regenerate draw</button></article>
+          <article class="panel"><span class="section-label">Officials</span><h2>Referee assignments</h2><p>Assign an email to a match. That official will see it after signing in to the referee view.</p><div class="stack-form"><input id="refereeEmail" type="email" placeholder="referee@email.com"><select id="refereeMatch"></select><button class="btn btn-primary" id="assignRefereeBtn">Assign referee</button></div><div class="config-list" id="refereeList"></div></article>
+          <article class="panel"><span class="section-label">Field apps</span><h2>Dedicated views</h2><p>Open purpose-built screens for officials, spectators, and registration staff.</p><div class="stack-actions"><a class="btn btn-primary" href="referee/">Referee app</a><a class="btn btn-quiet" href="broadcast/">Live broadcast</a><a class="btn btn-quiet" href="check-in/">Player check-in</a></div></article>
+          <article class="panel danger-panel"><span class="section-label">Danger zone</span><h2>Reset tournament</h2><p>Clear all scores, team names, standings, and medal results on this device.</p><button class="btn btn-danger" id="resetBtn">Reset all event data</button></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="scoreModal" hidden>
+    <div class="score-modal" role="dialog" aria-modal="true" aria-labelledby="scoreTitle">
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+      <span class="section-label" id="scoreMeta"></span><h2 id="scoreTitle">Enter score</h2>
+      <div class="score-matchup"><div><span id="sideALabel"></span><strong id="sideAName"></strong><input id="scoreA" type="number" min="0" max="11" inputmode="numeric" placeholder="0" aria-label="OCPC score"></div><span class="versus">VS</span><div><span id="sideBLabel"></span><strong id="sideBName"></strong><input id="scoreB" type="number" min="0" max="11" inputmode="numeric" placeholder="0" aria-label="Rally Rebels score"></div></div>
+      <div class="modal-actions"><button class="btn btn-quiet" id="clearScoreBtn">Clear score</button><button class="btn btn-primary" id="saveScoreBtn">Save result</button></div><p class="form-message" id="scoreMessage"></p>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="config.js"></script><script type="module" src="app.js"></script>
+</body>
+</html>
