@@ -904,7 +904,7 @@
           </form>
         </div>
 
-        <div class="dash-card" style="max-width:560px;">
+        <template data-archived-admin-feature="cheer-wall">
           <div class="dash-card-head"><h3>Cheer Wall — First Serve</h3></div>
           <p style="font-size:13px; color:var(--ink-soft); margin:-8px 0 18px; line-height:1.6;">
             The "Cheer Them On" button, emoji reactions, and message wall on the homepage's Representing OCPC section. Remove anything inappropriate below.
@@ -919,7 +919,7 @@
             </table>
             <div class="signup-empty" id="cheerMessagesEmpty" style="display:none;">No messages yet.</div>
           </div>
-        </div>
+        </template>
       </section>
 
     </main>
@@ -1266,7 +1266,6 @@
         loadDiscounts();
         loadCoachingRequests();
         loadAnnounceSettings();
-        loadCheerWall();
         loadFundraiserSettings();
         loadDonations();
         loadTestimonials();
@@ -2009,7 +2008,9 @@
     }
   });
 
-  // ================= CHEER WALL MODERATION =================
+  // ================= ARCHIVED CHEER WALL MODERATION =================
+  // Kept ready for the next special event. Restore its admin card and call
+  // loadCheerWall() when a new event-specific cheer wall is activated.
   const cheerCountAdmin = document.getElementById('cheerCountAdmin');
   const cheerMessagesTableBody = document.getElementById('cheerMessagesTableBody');
   const cheerMessagesEmpty = document.getElementById('cheerMessagesEmpty');

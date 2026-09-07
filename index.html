@@ -988,81 +988,9 @@
   }
   .fb-feed-wrap iframe{ max-width:100%; }
 
-  /* ---- ANNOUNCEMENT POSTER POPUP ---- */
-  body.poster-modal-open .site-nav,
-  body.poster-modal-open .wrap,
-  body.poster-modal-open footer,
-  body.poster-modal-open .announce-bar{
-    filter: blur(10px);
-    transition: filter .35s ease;
-    pointer-events:none;
-    user-select:none;
-  }
-  .poster-modal-overlay{
-    display:none;
-    position:fixed; inset:0;
-    background: rgba(4,12,18,0.72);
-    z-index:500;
-    align-items:center;
-    justify-content:center;
-    padding:24px;
-    opacity:0;
-    transition: opacity .35s ease;
-  }
-  .poster-modal-overlay.open{ display:flex; }
-  .poster-modal-overlay.visible{ opacity:1; }
-  .poster-modal-box{
-    position:relative;
-    display:inline-block;
-    max-width:92vw;
-    max-height:88vh;
-    transform: scale(0.92);
-    opacity:0;
-    transition: transform .4s cubic-bezier(.2,.8,.3,1.3), opacity .4s ease;
-    filter: drop-shadow(0 30px 70px rgba(0,0,0,0.55));
-  }
-  .poster-modal-overlay.visible .poster-modal-box{ transform: scale(1); opacity:1; }
-  .poster-modal-box img{
-    display:block;
-    width:auto;
-    height:auto;
-    max-width:92vw;
-    max-height:88vh;
-    border-radius:14px;
-  }
-  .poster-modal-close{
-    position:absolute;
-    top:-16px; right:-16px;
-    width:38px; height:38px;
-    border-radius:50%;
-    background: var(--paper);
-    border: none;
-    font-size:20px;
-    line-height:1;
-    cursor:pointer;
-    color: var(--ink);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
-    transition: transform .15s ease, background .15s ease;
-    flex-shrink:0;
-  }
-  .poster-modal-close:hover{ background:#FFC24B; transform: scale(1.08); }
-
-  @media (max-width:480px){
-    .poster-modal-box{ max-width:94vw; max-height:88vh; }
-    .poster-modal-box img{ max-width:94vw; max-height:88vh; }
-    .poster-modal-close{ top:-12px; right:-4px; width:34px; height:34px; }
-  }
 </style>
 </head>
 <body>
-<!-- GOLDEN DAY PADDLE CLASH TEAM POSTER (one-time popup, shown once per browser session) -->
-<div class="poster-modal-overlay" id="posterModalOverlay">
-  <div class="poster-modal-box">
-    <button class="poster-modal-close" id="posterModalClose" type="button" aria-label="Close">&times;</button>
-    <img src="/assets/events/golden-day-team-poster.jpg" alt="Team OCPC: James, Ria, Uzz, Des, Jerome, Raf, Heart, and Ann representing at the Golden Day Pickleball Paddle Clash Team Event, August 31, 2026">
-  </div>
-</div>
-
 <div class="announce-bar" style="display:none;">
   <div class="announce-track"></div>
 </div>
@@ -1206,9 +1134,8 @@
     </div>
   </div>
 
-  <!-- SPECIAL EVENT: Golden Day Pickleball Court, Kawit debut, Aug 27, 2026.
-       Remove or update this block once the event has passed. -->
-  <div class="event-banner">
+  <!-- Archived homepage promotion: Golden Day Pickleball Court, Kawit, Aug 27, 2026. -->
+  <template data-archived-homepage-event="golden-day-kawit-open-play">
     <div class="event-banner-copy">
       <span class="event-banner-badge">First Open Play Outside SM Rosario!</span>
       <h3 class="event-banner-title">Golden Day Pickleball Court, Kawit</h3>
@@ -1238,7 +1165,7 @@
       </div>
       <div class="event-banner-photo-tag">Golden Day Pickleball</div>
     </div>
-  </div>
+  </template>
 
   <!-- BIRTHDAY BANNER (shown only when a member's birthday is today) -->
   <div class="bday-banner" id="bdayBanner" style="display:none;">
@@ -1289,8 +1216,8 @@
     </div>
   </div>
 
-  <!-- REPRESENTING OCPC -->
-  <div class="section reveal">
+  <!-- Archived homepage tournament: First Serve Grand Opening, Aug 29–30, 2026. -->
+  <template data-archived-homepage-event="first-serve-grand-opening">
     <div class="section-head">
       <span class="section-index">03</span>
       <h2>Representing OCPC</h2>
@@ -1372,10 +1299,10 @@
         </div>
       </div>
     </div>
-  </div>
+  </template>
 
-  <!-- REPRESENTING OCPC: GOLDEN DAY PADDLE CLASH -->
-  <div class="section reveal">
+  <!-- Archived homepage tournament: Golden Day Paddle Clash, Aug 31, 2026. -->
+  <template data-archived-homepage-event="golden-day-paddle-clash">
     <div class="roster-hype-card">
       <div class="roster-hype-intro">
         <span class="event-tag">🏆 Golden Day Pickleball Paddle Clash · Aug 31, 2026</span>
@@ -1444,12 +1371,12 @@
         <a class="btn-gold" href="/events/">🎊 See Tournament Details →</a>
       </div>
     </div>
-  </div>
+  </template>
 
   <!-- PLAYER SPOTLIGHT -->
   <div class="section reveal">
     <div class="section-head">
-      <span class="section-index">05</span>
+      <span class="section-index">03</span>
       <h2>Player Spotlight</h2>
       <span class="section-rule"></span>
     </div>
@@ -1487,7 +1414,7 @@
   <!-- GALLERY TEASER -->
   <div class="section reveal">
     <div class="section-head">
-      <span class="section-index">07</span>
+      <span class="section-index">05</span>
       <h2>On The Courts</h2>
       <span class="section-rule"></span>
       <a class="btn btn-ghost" href="/gallery/" style="padding:10px 18px; font-size:12px;">View All</a>
@@ -1505,7 +1432,7 @@
   <!-- MERCH TEASER -->
   <div class="section reveal">
     <div class="section-head">
-      <span class="section-index">08</span>
+      <span class="section-index">06</span>
       <h2>New Drop</h2>
       <span class="section-rule"></span>
     </div>
@@ -1527,7 +1454,7 @@
   <!-- FEATURED COURT -->
   <div class="section reveal">
     <div class="section-head">
-      <span class="section-index">09</span>
+      <span class="section-index">07</span>
       <h2>Featured Court</h2>
       <span class="section-rule"></span>
       <a class="btn btn-ghost" href="/featured-courts/" style="padding:10px 18px; font-size:12px;">View All</a>
@@ -1574,7 +1501,7 @@
   <!-- TESTIMONIALS -->
   <div class="section reveal">
     <div class="section-head">
-      <span class="section-index">10</span>
+      <span class="section-index">09</span>
       <h2>Why We Love OCPC</h2>
       <span class="section-rule"></span>
     </div>
@@ -1589,7 +1516,7 @@
   <!-- FACEBOOK FEED -->
   <div class="section reveal">
     <div class="section-head">
-      <span class="section-index">11</span>
+      <span class="section-index">10</span>
       <h2>From Our Facebook Page</h2>
       <span class="section-rule"></span>
     </div>
@@ -2314,7 +2241,10 @@
     }
   }
 
-  const CHEER_ID = 'first-serve-2026';
+  // Assign a new event-specific ID when the archived cheer wall is reactivated.
+  // This fresh inactive key prevents the concluded tournament's totals and
+  // messages from carrying into the next event.
+  const CHEER_ID = 'inactive-next-event';
   const CHEERED_KEY = `ocpc-cheered-${CHEER_ID}`;
 
   const cheerBtn = document.getElementById('cheerBtn');
@@ -2599,73 +2529,6 @@
   }
 
   loadTestimonialsCarousel();
-</script>
-
-<script>
-  // ---- Homepage announcement poster popup: once per browser session, with confetti ----
-  (function(){
-    const SEEN_KEY = 'ocpc-seen-poster-golden-day-paddle-clash';
-    const overlay = document.getElementById('posterModalOverlay');
-    const closeBtn = document.getElementById('posterModalClose');
-    if (!overlay || !closeBtn) return;
-    if (sessionStorage.getItem(SEEN_KEY)) return;
-
-    function spawnConfetti(){
-      const colors = ['#B6FF3C', '#FFC24B', '#4FB6FF', '#FFFFFF', '#2E9E5B'];
-      const container = document.createElement('div');
-      container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:520;overflow:hidden;';
-      document.body.appendChild(container);
-      const count = 90;
-      for (let i = 0; i < count; i++){
-        const piece = document.createElement('div');
-        const size = 6 + Math.random() * 8;
-        const startX = Math.random() * window.innerWidth;
-        piece.style.cssText = `
-          position:absolute; top:-20px; left:${startX}px;
-          width:${size}px; height:${size * 0.4}px;
-          background:${colors[Math.floor(Math.random() * colors.length)]};
-          border-radius:2px;
-        `;
-        const drift = (Math.random() - 0.5) * 200;
-        const fallDist = window.innerHeight + 60;
-        const duration = 2200 + Math.random() * 1800;
-        const delay = Math.random() * 500;
-        piece.animate([
-          { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
-          { transform: `translate(${drift}px, ${fallDist}px) rotate(${360 + Math.random() * 540}deg)`, opacity: 0.9, offset: 0.9 },
-          { transform: `translate(${drift}px, ${fallDist + 20}px) rotate(${420 + Math.random() * 540}deg)`, opacity: 0 }
-        ], { duration, delay, easing: 'cubic-bezier(.25,.46,.45,.94)', fill: 'forwards' });
-        container.appendChild(piece);
-      }
-      setTimeout(() => container.remove(), 4600);
-    }
-
-    function openModal(){
-      document.body.classList.add('poster-modal-open');
-      overlay.classList.add('open');
-      requestAnimationFrame(() => {
-        overlay.classList.add('visible');
-        spawnConfetti();
-      });
-    }
-
-    function closeModal(){
-      overlay.classList.remove('visible');
-      document.body.classList.remove('poster-modal-open');
-      sessionStorage.setItem(SEEN_KEY, '1');
-      setTimeout(() => overlay.classList.remove('open'), 350);
-    }
-
-    closeBtn.addEventListener('click', closeModal);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
-    });
-
-    setTimeout(openModal, 700);
-  })();
 </script>
 
 </body>
