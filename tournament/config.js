@@ -31,9 +31,9 @@ window.TOURNAMENT_CONFIG = {
   ],
   categories: ["Novice", "Low Intermediate", "High Intermediate"],
   pairsPerCategory: {
-    "Novice": 6,
-    "Low Intermediate": 7,
-    "High Intermediate": 6
+    "Novice": { ocpc: 6, rebels: 6 },
+    "Low Intermediate": { ocpc: 6, rebels: 7 },
+    "High Intermediate": { ocpc: 6, rebels: 6 }
   },
   scoring: {
     type: "Side-out scoring",

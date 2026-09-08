@@ -6,7 +6,7 @@ const { watchAuth, login, logout, watchControl, watchRegistrations, createRegist
   let state = null, registrations = [], editingId = '';
   const toast = message => { const el = $('#officialToast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 1800); };
   const club = () => config.clubs.find(item => item.id === $('#regClub').value);
-  function fillPairSlots() { if (!state) return; const count = state.pairCounts?.[$('#regCategory').value] || 6, prefix = club()?.pairPrefix || 'O'; $('#regPair').innerHTML = Array.from({length: count}, (_, i) => `<option value="${prefix}${i+1}">${prefix}${i+1}</option>`).join(''); }
+  function fillPairSlots() { if (!state) return; const selectedClub = club(), value = state.pairCounts?.[$('#regCategory').value], count = Number(typeof value === 'object' ? value?.[selectedClub?.id] : value) || 6, prefix = selectedClub?.pairPrefix || 'O'; $('#regPair').innerHTML = Array.from({length: count}, (_, i) => `<option value="${prefix}${i+1}">${prefix}${i+1}</option>`).join(''); }
   function applyPairToRoster(registration, previous = null) {
     if (previous) {
       const previousKey = `${previous.category}|${previous.pairCode}`;
