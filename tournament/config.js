@@ -23,7 +23,7 @@ window.TOURNAMENT_CONFIG = {
     courts: 5,
     slotMinutes: 15,
     roundRobinStartMinutes: 600,
-    roundRobinWaves: 25
+    roundRobinWaves: 19
   },
   clubs: [
     { id: "ocpc", name: "One Cavite Pickleball Club", short: "OCPC", pairPrefix: "O" },
