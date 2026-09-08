@@ -438,7 +438,7 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email])
         );
         allow create, update: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin');
-        allow delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
+        allow delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin');
       }
     }
   }

@@ -17,6 +17,7 @@ export function watchMatches(onData, onError) { return onSnapshot(matchesRef, sn
 export function watchRegistrations(onData, onError) { return onSnapshot(registrationsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
 export function watchCheckins(onData, onError) { return onSnapshot(checkinsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
 export function publishCheckin(id, data) { return setDoc(doc(checkinsRef, id), { ...structuredClone(data), updatedAt: serverTimestamp() }, { merge: true }); }
+export function deleteCheckin(id) { return deleteDoc(doc(checkinsRef, id)); }
 export function createRegistration(data) { return addDoc(registrationsRef, { ...structuredClone(data), createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); }
 export function updateRegistration(id, data) { return updateDoc(doc(registrationsRef, id), { ...structuredClone(data), updatedAt: serverTimestamp() }); }
 export function deleteRegistration(id) { return deleteDoc(doc(registrationsRef, id)); }
