@@ -43,17 +43,27 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
     const total = totalMatchCount(pairCounts), fullWaves = Math.floor(total / config.event.courts), remainder = total % config.event.courts;
     const capacities = [...Array(fullWaves).fill(config.event.courts), ...(remainder ? [remainder] : [])];
     const source = generateMatches(pairCounts);
-    for (let attempt = 1; attempt <= 20000; attempt++) {
+    const categoryTotals = Object.fromEntries(config.categories.map(category => [category, pairCount(category, pairCounts) ** 2]));
+    for (let attempt = 1; attempt <= 50000; attempt++) {
       const random = seededRandom(20260919 + attempt * 7919), remaining = [...source], waves = [];
+      const lastPlayed = new Map(), appearances = new Map(), completedByCategory = Object.fromEntries(config.categories.map(category => [category, 0]));
       let previous = new Set(), failed = false;
       for (let w = 0; w < capacities.length; w++) {
         const selected = [], used = new Set(), counts = Object.fromEntries(config.categories.map(c => [c, 0]));
         while (selected.length < capacities[w]) {
-          const candidates = remaining.filter(m => !m.players.some(p => used.has(p) || previous.has(p)));
+          const eligible = remaining.filter(m => !m.players.some(p => used.has(p) || previous.has(p))), preferredCategories = w === 0 ? ['Novice'] : w === 1 ? ['Low Intermediate'] : w < 4 ? ['Novice', 'Low Intermediate'] : config.categories;
+          const preferred = eligible.filter(match => preferredCategories.includes(match.category)), candidates = preferred.length >= capacities[w] - selected.length ? preferred : eligible;
           if (!candidates.length) { failed = true; break; }
           candidates.sort((x, y) => {
-            const xs = remaining.filter(m => m.category === x.category).length * 8 - counts[x.category] * 14 + random() * 12;
-            const ys = remaining.filter(m => m.category === y.category).length * 8 - counts[y.category] * 14 + random() * 12;
+            const phase = w < 8 ? 'Novice' : w < 17 ? 'Low Intermediate' : 'High Intermediate';
+            const score = match => {
+              const playerWait = Math.max(...match.players.map(player => lastPlayed.has(player) ? w - lastPlayed.get(player) : 5));
+              const playerLoad = match.players.reduce((sum, player) => sum + (appearances.get(player) || 0), 0);
+              const phaseBonus = match.category === phase ? 88 : config.categories.indexOf(match.category) === config.categories.indexOf(phase) + 1 ? 28 : 8;
+              const completionRatio = completedByCategory[match.category] / categoryTotals[match.category];
+              return phaseBonus + playerWait * 36 - playerLoad * 7 - counts[match.category] * 10 - completionRatio * 35 + random() * 8;
+            };
+            const xs = score(x), ys = score(y);
             return ys - xs;
           });
           const match = candidates[0];
@@ -62,6 +72,7 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
         }
         if (failed) break;
         waves.push(selected); previous = new Set(selected.flatMap(m => m.players));
+        selected.forEach(match => { completedByCategory[match.category]++; match.players.forEach(player => { lastPlayed.set(player, w); appearances.set(player, (appearances.get(player) || 0) + 1); }); });
       }
       if (!failed && !remaining.length) {
         let number = 0;
@@ -97,10 +108,12 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
   function initialCourtSchedules(matches) { return Object.fromEntries(Array.from({ length: config.event.courts }, (_, i) => [i + 1, matches.filter(match => match.court === i + 1).sort((a, b) => a.wave - b.wave).map(match => match.id)])); }
   function freshState(pairCounts = defaultPairCounts()) {
     const matches = generateSchedule(pairCounts);
-    return { version: 7, pairCounts, currentWave: 1, matches, queue: matches.map(m => m.id), courtSchedules: initialCourtSchedules(matches), courts: emptyCourts(), matchSettings: {}, scores: {}, scoreAudit: [], refereeAssignments: {}, checkins: {}, pairs: emptyPairs(pairCounts), medals: blankMedals(), dreamBreaker: blankDreamBreaker(), updatedAt: new Date().toISOString() };
+    return { version: 7, schedulerVersion: 2, pairCounts, currentWave: 1, matches, queue: matches.map(m => m.id), courtSchedules: initialCourtSchedules(matches), courts: emptyCourts(), matchSettings: {}, scores: {}, scoreAudit: [], refereeAssignments: {}, checkins: {}, pairs: emptyPairs(pairCounts), medals: blankMedals(), dreamBreaker: blankDreamBreaker(), updatedAt: new Date().toISOString() };
   }
   function normalizeState(incoming) {
     const normalized = { ...freshState(incoming?.pairCounts || defaultPairCounts()), ...(incoming || {}) };
+    const safeToReschedule = !Object.keys(incoming?.scores || {}).length && !Object.values(incoming?.courts || {}).some(court => court?.matchId);
+    if (incoming?.schedulerVersion !== 2 && safeToReschedule) { const matches = generateSchedule(normalized.pairCounts); normalized.matches = matches; normalized.queue = matches.map(match => match.id); normalized.courtSchedules = initialCourtSchedules(matches); normalized.courts = emptyCourts(); normalized.schedulerVersion = 2; }
     normalized.courts = { ...emptyCourts(), ...(normalized.courts || {}) }; normalized.matchSettings ||= {}; normalized.scores ||= {}; normalized.scoreAudit ||= []; normalized.refereeAssignments ||= {}; normalized.checkins ||= {}; normalized.pairs = { ...emptyPairs(normalized.pairCounts), ...(normalized.pairs || {}) }; normalized.medals = { ...blankMedals(), ...(normalized.medals || {}) }; normalized.dreamBreaker = { ...blankDreamBreaker(), ...(normalized.dreamBreaker || {}), scores: { ...blankDreamBreaker().scores, ...(normalized.dreamBreaker?.scores || {}) }, history: normalized.dreamBreaker?.history || [] };
     normalized.courtSchedules ||= initialCourtSchedules(normalized.matches);
     const scheduled = new Set();
@@ -131,6 +144,7 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
   function pairNames(category, code) { const p = pairData(category, code); return [p.player1, p.player2].filter(Boolean).join(' / ') || 'Players not assigned'; }
   function categoryPrefix(category) { return category === 'Novice' ? 'NOV' : category === 'Low Intermediate' ? 'LOW' : 'HIGH'; }
   function displayPair(category, code) { return `${categoryPrefix(category)}-${code}`; }
+  function categoryClass(category) { return `category-${slug(category)}`; }
   function scoreFor(id) { return state.scores[id] || { a: '', b: '' }; }
   function isComplete(id) { const s = scoreFor(id); return s.a !== '' && s.b !== ''; }
   function winnerCode(match) { const score = scoreFor(match.id); if (!isComplete(match.id) || Number(score.a) === Number(score.b)) return ''; return Number(score.a) > Number(score.b) ? match.a : match.b; }
@@ -246,13 +260,13 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
   function scheduleCellMarkup(courtNo, row) {
     const id = state.courtSchedules[courtNo]?.[row], match = state.matches.find(item => item.id === id), active = Object.values(state.courts).some(court => court.matchId === id), done = id && isComplete(id), conflicts = id ? conflictsFor(id, courtNo) : [];
     if (!match) return `<div class="calendar-cell empty" data-drop-court="${courtNo}" data-drop-index="${row}"></div>`;
-    return `<div class="calendar-cell" data-drop-court="${courtNo}" data-drop-index="${row}"><article class="timeline-match ${conflicts.length ? 'has-conflict' : ''} ${active ? 'on-court' : ''} ${done ? 'completed' : ''}" draggable="${!active && !done}" data-drag-match="${id}" title="${esc(conflicts.join(' · '))}"><div class="timeline-pairs"><small>${match.id} · ${esc(match.category)}</small><b>${esc(pairNames(match.category, match.a))}</b><span>vs</span><b>${esc(pairNames(match.category, match.b))}</b>${active ? '<em>Currently on court</em>' : done ? `<em>Final ${scoreFor(id).a}-${scoreFor(id).b}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : ''}</div>${conflicts.length ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
+    return `<div class="calendar-cell" data-drop-court="${courtNo}" data-drop-index="${row}"><article class="timeline-match ${categoryClass(match.category)} ${conflicts.length ? 'has-conflict' : ''} ${active ? 'on-court' : ''} ${done ? 'completed' : ''}" draggable="${!active && !done}" data-drag-match="${id}" title="${esc(conflicts.join(' · '))}"><div class="timeline-pairs"><small>${match.id} · ${esc(match.category)}</small><b>${esc(pairNames(match.category, match.a))}</b><span>vs</span><b>${esc(pairNames(match.category, match.b))}</b>${active ? '<em>Currently on court</em>' : done ? `<em>Final ${scoreFor(id).a}-${scoreFor(id).b}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : ''}</div>${conflicts.length ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
   }
   function activeCourtMarkup(courtNo) {
     const court = state.courts[courtNo], match = state.matches.find(item => item.id === court.matchId), next = nextForCourt(courtNo);
     if (!match) return `<section class="active-court empty"><b>Court vacant</b><small>${next ? `${next} is next at ${plannedLabel(courtNo, next).split('-')[0]}` : 'Schedule complete'}</small>${next ? `<button class="btn btn-primary" data-promote-court="${courtNo}">Promote next match</button>` : ''}</section>`;
     const live = state.liveScoring?.[match.id] || court, rules = rulesFor(match.id), seconds = elapsedSeconds(live), done = isComplete(match.id), started = seconds > 0 || live.running || Number(live.a) > 0 || Number(live.b) > 0;
-    return `<section class="active-court ${timerClass(seconds)}"><div class="active-court-top"><span>${match.id} · ${esc(match.category)}</span><b>${live.running ? 'LIVE' : done ? 'FINAL' : 'READY'}</b></div><div class="active-score"><div class="active-team"><div>${playerPortraits(match, 'a')}</div><strong>${esc(pairNames(match.category, match.a))}</strong></div><b>${live.a ?? 0}<small>–</small>${live.b ?? 0}</b><div class="active-team"><div>${playerPortraits(match, 'b')}</div><strong>${esc(pairNames(match.category, match.b))}</strong></div></div><div class="court-rule-bar"><select data-rule-mode="${courtNo}" ${started ? 'disabled' : ''}><option value="round-robin" ${rules.mode === 'round-robin' ? 'selected' : ''}>Round Robin</option><option value="gold-final" ${rules.mode === 'gold-final' ? 'selected' : ''}>Gold / Silver</option><option value="custom" ${rules.mode === 'custom' ? 'selected' : ''}>Custom</option></select><select data-rule-scoring="${courtNo}" ${rules.mode !== 'custom' || started ? 'disabled' : ''}><option value="side-out" ${rules.scoring === 'side-out' ? 'selected' : ''}>Side-out</option><option value="rally" ${rules.scoring === 'rally' ? 'selected' : ''}>Rally</option></select><label>To <input data-rule-target="${courtNo}" type="number" min="1" max="30" value="${rules.target}" ${rules.mode !== 'custom' || started ? 'disabled' : ''}></label><label>Sudden death <input data-rule-sudden="${courtNo}" type="number" min="1" max="30" value="${rules.suddenDeathAt}" ${rules.mode !== 'custom' || started ? 'disabled' : ''}></label><label><input data-rule-timer="${courtNo}" type="checkbox" ${rules.timer ? 'checked' : ''} ${started ? 'disabled' : ''}> Timer</label></div><div class="active-actions">${rules.timer ? `<button data-timer-toggle="${courtNo}">${live.running ? 'Pause' : seconds ? 'Resume' : 'Start'} · ${timerText(seconds)}</button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${match.id}">${done ? 'Override score' : 'Enter score'}</button><button data-court-tools="${courtNo}">Match tools</button><button class="vacate" data-vacate-court="${courtNo}">${done ? 'Confirm court vacant' : 'Remove from court'}</button></div></section>`;
+    return `<section class="active-court ${categoryClass(match.category)} ${timerClass(seconds)}"><div class="active-court-top"><span>${match.id} · ${esc(match.category)}</span><b>${live.running ? 'LIVE' : done ? 'FINAL' : 'READY'}</b></div><div class="active-score"><div class="active-team"><div>${playerPortraits(match, 'a')}</div><strong>${esc(pairNames(match.category, match.a))}</strong></div><b>${live.a ?? 0}<small>–</small>${live.b ?? 0}</b><div class="active-team"><div>${playerPortraits(match, 'b')}</div><strong>${esc(pairNames(match.category, match.b))}</strong></div></div><div class="court-rule-bar"><select data-rule-mode="${courtNo}" ${started ? 'disabled' : ''}><option value="round-robin" ${rules.mode === 'round-robin' ? 'selected' : ''}>Round Robin</option><option value="gold-final" ${rules.mode === 'gold-final' ? 'selected' : ''}>Gold / Silver</option><option value="custom" ${rules.mode === 'custom' ? 'selected' : ''}>Custom</option></select><select data-rule-scoring="${courtNo}" ${rules.mode !== 'custom' || started ? 'disabled' : ''}><option value="side-out" ${rules.scoring === 'side-out' ? 'selected' : ''}>Side-out</option><option value="rally" ${rules.scoring === 'rally' ? 'selected' : ''}>Rally</option></select><label>To <input data-rule-target="${courtNo}" type="number" min="1" max="30" value="${rules.target}" ${rules.mode !== 'custom' || started ? 'disabled' : ''}></label><label>Sudden death <input data-rule-sudden="${courtNo}" type="number" min="1" max="30" value="${rules.suddenDeathAt}" ${rules.mode !== 'custom' || started ? 'disabled' : ''}></label><label><input data-rule-timer="${courtNo}" type="checkbox" ${rules.timer ? 'checked' : ''} ${started ? 'disabled' : ''}> Timer</label></div><div class="active-actions">${rules.timer ? `<button data-timer-toggle="${courtNo}">${live.running ? 'Pause' : seconds ? 'Resume' : 'Start'} · ${timerText(seconds)}</button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${match.id}">${done ? 'Override score' : 'Enter score'}</button><button data-court-tools="${courtNo}">Match tools</button><button class="vacate" data-vacate-court="${courtNo}">${done ? 'Confirm court vacant' : 'Remove from court'}</button></div></section>`;
   }
   function moveScheduledMatch(id, courtNo, targetIndex) {
     if (!id || isComplete(id) || Object.values(state.courts).some(court => court.matchId === id)) return toast('Only waiting matches can be moved.');
