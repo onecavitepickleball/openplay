@@ -1,3 +1,5 @@
+---
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../field.css">
+  <link rel="stylesheet" href="../field.css?v={{ site.github.build_revision }}">
 </head>
 <body>
   <header class="field-header">
@@ -25,7 +27,7 @@
     <section id="scorekeeperView" hidden></section>
   </main>
   <div class="official-toast" id="officialToast" role="status"></div>
-  <script src="../config.js"></script>
-  <script type="module" src="referee.js"></script>
+  <script src="../config.js?v={{ site.github.build_revision }}"></script>
+  <script type="module" src="referee.js?v={{ site.github.build_revision }}"></script>
 </body>
 </html>

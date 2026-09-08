@@ -1,4 +1,5 @@
-import { watchAuth, login, logout, watchControl, watchMatches, publishMatch } from '../firebase-sync.js';
+const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
+const { watchAuth, login, logout, watchControl, watchMatches, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   const config=window.TOURNAMENT_CONFIG,$=selector=>document.querySelector(selector),esc=value=>String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); let state=null,user=null;

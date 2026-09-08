@@ -1,4 +1,5 @@
-import { watchAuth, login, watchControl, watchMatches, publishMatch } from '../firebase-sync.js';
+const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
+const { watchAuth, login, watchControl, watchMatches, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
