@@ -18,11 +18,11 @@ window.TOURNAMENT_CONFIG = {
     displayDate: "September 19, 2026",
     venue: "Rally District PH",
     location: "Kawit, Cavite",
-    startTime: "10:00 AM",
+    startTime: "10:30 AM",
     endTime: "5:00 PM",
     courts: 5,
     slotMinutes: 15,
-    roundRobinStartMinutes: 600,
+    roundRobinStartMinutes: 630,
     roundRobinWaves: 19
   },
   clubs: [
