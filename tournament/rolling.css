@@ -56,3 +56,4 @@
 .demo-mode-banner{flex-wrap:wrap;justify-content:center}
 .draw-matrix-head,.draw-matrix-row{grid-template-columns:repeat(var(--draw-cols,7),minmax(130px,1fr));min-width:calc(var(--draw-cols,7) * 140px)}
 .current-time-needle{top:0}
+.current-time-needle{transition:none}.current-time-needle.is-live{transition:top .95s linear}.current-time-needle span{min-width:72px;text-align:center;font-variant-numeric:tabular-nums}
