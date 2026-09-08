@@ -220,7 +220,7 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
     const scheduledMinutes = state.matches.map(match => Number(match.startMinutes)).filter(Number.isFinite), firstScheduled = scheduledMinutes.length ? Math.max(0, Math.floor(Math.min(...scheduledMinutes) / 5) * 5) : 0, start = demoMode ? Math.min(firstScheduled, 600) : firstScheduled, end = 24 * 60, rows = Math.max(1, Math.ceil((end - start) / 5) + 1);
     const headers = `<div class="calendar-corner">Time</div>${Array.from({ length: config.event.courts }, (_, i) => { const courtNo = i + 1, status = courtScheduleStatus(courtNo); return `<header class="timeline-head ${status.tone}" data-court-schedule-status="${courtNo}"><div><b>Court ${courtNo}</b><small>${scheduledWaiting(courtNo).length} scheduled</small></div><strong>${status.text}</strong></header>`; }).join('')}`;
     const liveRow = `<div class="calendar-live-label">LIVE<br>COURT</div>${Array.from({ length: config.event.courts }, (_, i) => activeCourtMarkup(i + 1)).join('')}`;
-    const scheduleRows = Array.from({ length: rows }, (_, row) => { const minute = start + row * 5; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}">${minute % 15 === 0 ? timeLabel(minute) : ''}</div>${Array.from({ length: config.event.courts }, (_, i) => scheduleCellMarkup(i + 1, minute)).join('')}`; }).join('');
+    const scheduleRows = Array.from({ length: rows }, (_, row) => { const minute = start + row * 5; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}" data-calendar-minute="${minute}">${minute % 15 === 0 ? timeLabel(minute) : ''}</div>${Array.from({ length: config.event.courts }, (_, i) => scheduleCellMarkup(i + 1, minute)).join('')}`; }).join('');
     const minute = operationalClock().minute, showNeedle = minute >= start && minute < end;
     const needleKey = `<div class="time-needle-key"><i></i><span>Live time needle</span></div>`;
     $('#courtTimeline').dataset.calendarStart = start; $('#courtTimeline').innerHTML = `${headers}${liveRow}${scheduleRows}${showNeedle ? `<div class="current-time-needle"><span>${clockLabel(minute)}</span></div>` : ''}${needleKey}`; positionTimeNeedle($('#courtTimeline'), minute, start);
@@ -235,7 +235,24 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
     return `<div class="calendar-cell occupied" data-drop-court="${courtNo}" data-drop-minute="${minute}"><article class="timeline-match ${categoryClass(match.category)} ${conflicts.length || matches.length > 1 ? 'has-conflict' : ''} ${active ? 'on-court' : ''} ${done ? 'completed' : ''}" draggable="${!active && !done}" data-drag-match="${id}" title="${esc(conflicts.join(' · '))}"><div class="timeline-pairs"><small>${match.id} · ${esc(match.category)} · ${timeLabel(minute)}</small>${calendarPairLine(match, 'a', active)}<span>vs</span>${calendarPairLine(match, 'b', active)}${active ? '<em>Currently on court</em>' : done ? `<em>Final ${scoreFor(id).a}-${scoreFor(id).b}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : ''}</div>${conflicts.length || matches.length > 1 ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
   }
   function calendarPairLine(match, side, active) { const code = side === 'a' ? match.a : match.b, pair = pairData(match.category, code), names = [pair.player1, pair.player2].filter(Boolean), live = state.liveScoring?.[match.id], showServer = active && !!state.refereeAssignments?.[match.id] && live?.serving === side, serverIndex = Number(live?.serverPlayer) || 0; return `<b>${(names.length ? names : ['Players not assigned']).map((name, index) => `${showServer && index === serverIndex ? '<i class="serving-ball" title="Currently serving"></i>' : ''}${esc(name)}`).join(' / ')}</b>`; }
-  function positionTimeNeedle(timeline, minute, start) { const needle = timeline ? $('.current-time-needle', timeline) : null, rows = timeline ? $$('.calendar-time', timeline) : []; if (!needle || !rows.length || !Number.isFinite(start)) return; const rowStep = rows[1] ? rows[1].offsetTop - rows[0].offsetTop : rows[0].offsetHeight + 1; needle.style.top = `${rows[0].offsetTop + ((minute - start) / 5) * rowStep}px`; if (!needle.classList.contains('is-live')) requestAnimationFrame(() => needle.classList.add('is-live')); }
+  function positionTimeNeedle(timeline, minute, start) {
+    const needle = timeline ? $('.current-time-needle', timeline) : null;
+    const rows = timeline ? $$('.calendar-time', timeline) : [];
+    if (!needle || !rows.length || !Number.isFinite(start)) return;
+
+    const exactRow = Math.max(0, Math.min(rows.length - 1, (minute - start) / 5));
+    const lowerIndex = Math.floor(exactRow);
+    const upperIndex = Math.min(rows.length - 1, lowerIndex + 1);
+    const lowerTop = rows[lowerIndex].offsetTop;
+    const upperTop = rows[upperIndex].offsetTop;
+    const fraction = exactRow - lowerIndex;
+
+    // Anchor to the surrounding rendered rows instead of projecting the first
+    // row's height across the day. Grid rows can differ by a pixel, and that
+    // difference otherwise accumulates into a large late-evening drift.
+    needle.style.top = `${lowerTop + (upperTop - lowerTop) * fraction}px`;
+    if (!needle.classList.contains('is-live')) requestAnimationFrame(() => needle.classList.add('is-live'));
+  }
   function activeCourtMarkup(courtNo) {
     const court = state.courts[courtNo], match = state.matches.find(item => item.id === court.matchId), next = nextForCourt(courtNo);
     if (!match) return `<section class="active-court empty"><b>Court vacant</b><small>${next ? `${next} is next at ${plannedLabel(courtNo, next).split('-')[0]}` : 'Schedule complete'}</small>${next ? `<button class="btn btn-primary" data-promote-court="${courtNo}">Promote next match</button>` : ''}</section>`;
