@@ -249,8 +249,17 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
   function rebuildCourtSchedules() { state.courtSchedules = Object.fromEntries(Array.from({ length: config.event.courts }, (_, index) => { const court = index + 1; return [court, state.matches.filter(match => Number(match.court) === court).sort((a, b) => a.startMinutes - b.startMinutes || a.id.localeCompare(b.id)).map(match => match.id)]; })); syncQueueFromCourtSchedules(); }
   function moveScheduledMatch(id, courtNo, targetMinute) {
     if (!id || isComplete(id) || Object.values(state.courts).some(court => court.matchId === id)) return toast('Only waiting matches can be moved.');
-    pushScheduleHistory(`Move ${id}`); const match = state.matches.find(item => item.id === id); match.court = courtNo; match.startMinutes = Math.max(0, Math.min(1435, Math.round(targetMinute / 5) * 5)); match.time = `${timeLabel(match.startMinutes)}-${timeLabel(match.startMinutes + config.event.slotMinutes)}`; rebuildCourtSchedules(); const conflicts = conflictsFor(id, courtNo); saveState(); renderAll();
-    toast(conflicts.length ? `Moved with warning: ${conflicts[0]}` : `Moved ${id} to Court ${courtNo}.`);
+    const match = state.matches.find(item => item.id === id), oldCourt = Number(match.court), oldMinute = Number(match.startMinutes), snappedMinute = Math.max(0, Math.min(1435, Math.round(targetMinute / 5) * 5));
+    if (oldCourt === Number(courtNo) && oldMinute === snappedMinute) return;
+    const occupying = state.matches.filter(other => other.id !== id && Number(other.court) === Number(courtNo) && Math.abs(Number(other.startMinutes) - snappedMinute) < config.event.slotMinutes);
+    if (occupying.length > 1) return toast('This area already has multiple overlapping matches. Resolve it before swapping.');
+    const target = occupying[0], targetOldMinute = Number(target?.startMinutes);
+    if (target && (isComplete(target.id) || Object.values(state.courts).some(court => court.matchId === target.id))) return toast('An active or completed match cannot be swapped.');
+    pushScheduleHistory(target ? `Swap ${id} with ${target.id}` : `Move ${id}`);
+    if (target) { target.court = oldCourt; target.startMinutes = oldMinute; target.time = `${timeLabel(oldMinute)}-${timeLabel(oldMinute + config.event.slotMinutes)}`; match.court = Number(courtNo); match.startMinutes = targetOldMinute; }
+    else { match.court = Number(courtNo); match.startMinutes = snappedMinute; }
+    match.time = `${timeLabel(match.startMinutes)}-${timeLabel(match.startMinutes + config.event.slotMinutes)}`; rebuildCourtSchedules(); const conflicts = conflictsFor(id, Number(match.court)); saveState(); renderAll();
+    toast(target ? `Swapped ${id} with ${target.id}.` : conflicts.length ? `Moved with warning: ${conflicts[0]}` : `Moved ${id} to Court ${courtNo}.`);
   }
   function showScheduleContextMenu(x, y, courtNo, fromMinute) {
     $('#scheduleContextMenu')?.remove(); document.body.insertAdjacentHTML('beforeend', `<div class="schedule-context" id="scheduleContextMenu" style="left:${Math.min(x, innerWidth - 300)}px;top:${Math.min(y, innerHeight - 280)}px"><b>Court ${courtNo} · ${timeLabel(fromMinute)}</b><small>Move this court's remaining schedule in 5-minute steps.</small><label>Minutes<input id="bumpMinutes" type="number" step="5" value="5"></label><label>Apply to<select id="bumpScope"><option value="remaining">Matches from ${timeLabel(fromMinute)}</option><option value="all">All matches on Court ${courtNo}</option></select></label><div><button class="btn btn-primary" id="applyScheduleBump">Bump matches</button><button class="btn btn-quiet" id="undoScheduleBump" ${state.scheduleHistory?.length ? '' : 'disabled'}>Undo last change</button></div></div>`);
