@@ -55,3 +55,4 @@
 .dream-coin-overlay .dream-toss-exit{display:block;margin:12px auto 0;background:transparent;color:var(--muted);padding:10px 16px}
 .demo-mode-banner{flex-wrap:wrap;justify-content:center}
 .draw-matrix-head,.draw-matrix-row{grid-template-columns:repeat(var(--draw-cols,7),minmax(130px,1fr));min-width:calc(var(--draw-cols,7) * 140px)}
+.current-time-needle{top:0}

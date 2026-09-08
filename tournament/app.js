@@ -106,7 +106,11 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
     return demoMode ? freshDemoState() : freshState();
   }
   let state = loadState(), registrations = [], controlReady = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, dreamTossDismissed = false, demoClockMinutes = 600;
-  function operationalNow() { if (!demoMode) return new Date(); const date = new Date(`${config.event.date}T00:00:00`); date.setMinutes(demoClockMinutes); return date; }
+  function operationalClock() {
+    if (demoMode) return { dateKey: config.event.date, minute: demoClockMinutes };
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
+    return { dateKey: `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`, minute: parts.hour * 60 + parts.minute + parts.second / 60 };
+  }
   function saveState() { state.updatedAt = new Date().toISOString(); localStorage.setItem(storageKey, JSON.stringify(state)); if (!demoMode && cloudUser && !cloudApplying) { clearTimeout(cloudSaveTimer); cloudSaveTimer = setTimeout(() => publishControl(state).catch(() => toast('Cloud sync failed. Check Firebase access.')), 180); } }
   function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2200); }
   function pairData(category, code) { return state.pairs[`${category}|${code}`] || { player1: '', player2: '' }; }
@@ -200,7 +204,7 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
   function conflictsFor(id, courtNo) {
     const players = matchPlayers(id), conflicts = [], schedule = state.courtSchedules[courtNo] || [], index = schedule.indexOf(id), slot = slotMinutesFor(courtNo, id);
     schedule.filter(otherId => otherId !== id && !isComplete(otherId) && Math.abs(slotMinutesFor(courtNo, otherId) - slot) < config.event.slotMinutes).forEach(() => conflicts.push(`Overlapping match on Court ${courtNo}`));
-    const eventDate = new Date(`${config.event.date}T00:00:00`), now = operationalNow(), current = now.getHours() * 60 + now.getMinutes(), operationallyNear = now.toDateString() === eventDate.toDateString() && Math.abs(slot - current) <= 30;
+    const now = operationalClock(), current = Math.floor(now.minute), operationallyNear = now.dateKey === config.event.date && Math.abs(slot - current) <= 30;
     if (operationallyNear) {
       Object.entries(state.courts).forEach(([otherCourt, active]) => { if (Number(otherCourt) !== Number(courtNo) && active.matchId && matchPlayers(active.matchId).some(player => players.includes(player))) conflicts.push(`Player currently active on Court ${otherCourt}`); });
       state.matches.filter(match => match.id !== id && isComplete(match.id) && matchPlayers(match.id).some(player => players.includes(player))).forEach(match => { const finished = Date.parse(scoreFor(match.id).completedAt || ''); if (Number.isFinite(finished) && Date.now() - finished < config.event.slotMinutes * 60000) conflicts.push('Player just finished and needs a rest slot'); });
@@ -211,19 +215,19 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
   }
   function courtScheduleStatus(courtNo) {
     const next = scheduledWaiting(courtNo)[0]; if (!next) return { tone: 'safe', text: 'Schedule complete', minutes: 0 };
-    const eventDate = new Date(`${config.event.date}T00:00:00`), now = operationalNow();
-    if (now.toDateString() !== eventDate.toDateString()) return { tone: 'safe', text: 'On schedule', minutes: 0 };
-    const current = now.getHours() * 60 + now.getMinutes(), delta = current - slotMinutesFor(courtNo, next);
+    const now = operationalClock();
+    if (now.dateKey !== config.event.date) return { tone: 'safe', text: 'On schedule', minutes: 0 };
+    const current = Math.floor(now.minute), delta = current - slotMinutesFor(courtNo, next);
     return delta > 4 ? { tone: delta >= 15 ? 'danger' : 'warn', text: `${delta} min delayed`, minutes: delta } : delta < -4 ? { tone: 'safe', text: `${Math.abs(delta)} min ahead`, minutes: delta } : { tone: 'safe', text: 'On schedule', minutes: delta };
   }
   function renderCourtTimeline() {
-    const scheduledMinutes = state.matches.map(match => Number(match.startMinutes)).filter(Number.isFinite), firstScheduled = scheduledMinutes.length ? Math.max(0, Math.floor(Math.min(...scheduledMinutes) / 5) * 5) : 0, start = demoMode ? Math.min(firstScheduled, demoClockMinutes) : firstScheduled, end = 24 * 60, rows = Math.max(1, Math.ceil((end - start) / 5) + 1);
+    const scheduledMinutes = state.matches.map(match => Number(match.startMinutes)).filter(Number.isFinite), firstScheduled = scheduledMinutes.length ? Math.max(0, Math.floor(Math.min(...scheduledMinutes) / 5) * 5) : 0, start = demoMode ? Math.min(firstScheduled, 600) : firstScheduled, end = 24 * 60, rows = Math.max(1, Math.ceil((end - start) / 5) + 1);
     const headers = `<div class="calendar-corner">Time</div>${Array.from({ length: config.event.courts }, (_, i) => { const courtNo = i + 1, status = courtScheduleStatus(courtNo); return `<header class="timeline-head ${status.tone}" data-court-schedule-status="${courtNo}"><div><b>Court ${courtNo}</b><small>${scheduledWaiting(courtNo).length} scheduled</small></div><strong>${status.text}</strong></header>`; }).join('')}`;
     const liveRow = `<div class="calendar-live-label">LIVE<br>COURT</div>${Array.from({ length: config.event.courts }, (_, i) => activeCourtMarkup(i + 1)).join('')}`;
     const scheduleRows = Array.from({ length: rows }, (_, row) => { const minute = start + row * 5; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}">${minute % 15 === 0 ? timeLabel(minute) : ''}</div>${Array.from({ length: config.event.courts }, (_, i) => scheduleCellMarkup(i + 1, minute)).join('')}`; }).join('');
-    const now = operationalNow(), minute = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60, showNeedle = minute >= start && minute < end;
+    const minute = operationalClock().minute, showNeedle = minute >= start && minute < end;
     const needleKey = `<div class="time-needle-key"><i></i><span>Live time needle</span></div>`;
-    $('#courtTimeline').dataset.calendarStart = start; $('#courtTimeline').innerHTML = `${headers}${liveRow}${scheduleRows}${showNeedle ? `<div class="current-time-needle" style="--needle-row:${(minute - start) / 5}"><span>${timeLabel(Math.floor(minute))}</span></div>` : ''}${needleKey}`;
+    $('#courtTimeline').dataset.calendarStart = start; $('#courtTimeline').innerHTML = `${headers}${liveRow}${scheduleRows}${showNeedle ? `<div class="current-time-needle"><span>${timeLabel(Math.floor(minute))}</span></div>` : ''}${needleKey}`; positionTimeNeedle($('#courtTimeline'), minute, start);
     $$('[data-drag-match]').forEach(card => card.ondragstart = event => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', card.dataset.dragMatch); card.classList.add('dragging'); });
     $$('[data-drag-match]').forEach(card => card.ondragend = () => card.classList.remove('dragging'));
     $$('[data-drop-court]').forEach(cell => { cell.ondragover = event => { event.preventDefault(); cell.classList.add('drag-over'); }; cell.ondragleave = () => cell.classList.remove('drag-over'); cell.ondrop = event => { event.preventDefault(); cell.classList.remove('drag-over'); moveScheduledMatch(event.dataTransfer.getData('text/plain'), Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); }; cell.oncontextmenu = event => { event.preventDefault(); showScheduleContextMenu(event.clientX, event.clientY, Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); }; });
@@ -234,6 +238,7 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
     if (!match) return `<div class="calendar-cell empty" data-drop-court="${courtNo}" data-drop-minute="${minute}"></div>`;
     return `<div class="calendar-cell occupied" data-drop-court="${courtNo}" data-drop-minute="${minute}"><article class="timeline-match ${categoryClass(match.category)} ${conflicts.length || matches.length > 1 ? 'has-conflict' : ''} ${active ? 'on-court' : ''} ${done ? 'completed' : ''}" draggable="${!active && !done}" data-drag-match="${id}" title="${esc(conflicts.join(' · '))}"><div class="timeline-pairs"><small>${match.id} · ${esc(match.category)} · ${timeLabel(minute)}</small><b>${esc(pairNames(match.category, match.a))}</b><span>vs</span><b>${esc(pairNames(match.category, match.b))}</b>${active ? '<em>Currently on court</em>' : done ? `<em>Final ${scoreFor(id).a}-${scoreFor(id).b}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : ''}</div>${conflicts.length || matches.length > 1 ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
   }
+  function positionTimeNeedle(timeline, minute, start) { const needle = timeline ? $('.current-time-needle', timeline) : null, rows = timeline ? $$('.calendar-time', timeline) : []; if (!needle || !rows.length || !Number.isFinite(start)) return; const rowStep = rows[1] ? rows[1].offsetTop - rows[0].offsetTop : rows[0].offsetHeight + 1; needle.style.top = `${rows[0].offsetTop + ((minute - start) / 5) * rowStep}px`; }
   function activeCourtMarkup(courtNo) {
     const court = state.courts[courtNo], match = state.matches.find(item => item.id === court.matchId), next = nextForCourt(courtNo);
     if (!match) return `<section class="active-court empty"><b>Court vacant</b><small>${next ? `${next} is next at ${plannedLabel(courtNo, next).split('-')[0]}` : 'Schedule complete'}</small>${next ? `<button class="btn btn-primary" data-promote-court="${courtNo}">Promote next match</button>` : ''}</section>`;
@@ -488,7 +493,7 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
   }
   function tickLiveDisplay() {
     Object.entries(state.courts).forEach(([courtNo, court]) => { const live = state.liveScoring?.[court.matchId] || court, seconds = elapsedSeconds(live), clock = $(`[data-court-clock="${courtNo}"]`), card = $(`[data-active-court="${courtNo}"]`); if (clock) clock.textContent = timerText(seconds); if (card) { card.classList.toggle('timer-warning', seconds >= config.scoring.warningSeconds && seconds < config.scoring.dangerSeconds); card.classList.toggle('timer-danger', seconds >= config.scoring.dangerSeconds); } const interruptionClock = $(`[data-interruption-clock="${courtNo}"]`); if (interruptionClock && live.interruption?.active) interruptionClock.textContent = clockText(elapsedSeconds(live.interruption)); });
-    const timeline = $('#courtTimeline'), start = Number(timeline?.dataset.calendarStart), now = operationalNow(), minute = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60, needle = timeline ? $('.current-time-needle', timeline) : null; if (needle && Number.isFinite(start)) { needle.style.setProperty('--needle-row', (minute - start) / 5); const label = $('span', needle); if (label) label.textContent = timeLabel(Math.floor(minute)); } $$('[data-court-schedule-status]').forEach(header => { const status = courtScheduleStatus(Number(header.dataset.courtScheduleStatus)); header.classList.remove('safe', 'warn', 'danger'); header.classList.add(status.tone); const label = $('strong', header); if (label) label.textContent = status.text; }); const demoClock = $('#demoClockValue'); if (demoClock) demoClock.textContent = timeLabel(Math.floor(minute));
+    const timeline = $('#courtTimeline'), start = Number(timeline?.dataset.calendarStart), minute = operationalClock().minute, needle = timeline ? $('.current-time-needle', timeline) : null; if (needle && Number.isFinite(start)) { positionTimeNeedle(timeline, minute, start); const label = $('span', needle); if (label) label.textContent = timeLabel(Math.floor(minute)); } $$('[data-court-schedule-status]').forEach(header => { const status = courtScheduleStatus(Number(header.dataset.courtScheduleStatus)); header.classList.remove('safe', 'warn', 'danger'); header.classList.add(status.tone); const label = $('strong', header); if (label) label.textContent = status.text; }); const demoClock = $('#demoClockValue'); if (demoClock) demoClock.textContent = timeLabel(Math.floor(minute));
   }
   function applyPairCounts() {
     const counts = Object.fromEntries($$('[data-pair-count]').map(input => [input.dataset.pairCount, Math.max(2, Math.min(12, Number(input.value) || 2))]));
