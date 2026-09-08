@@ -1044,7 +1044,7 @@
   };
 
   const SUPER_ADMIN_EMAILS = ["ocpc.pickleball@gmail.com", "jamescastillo37@gmail.com"];
-  const ROLE_LABELS = { admin: 'Admin', coach: 'Coach', court_manager: 'Court Manager' };
+  const ROLE_LABELS = { admin: 'Admin', coach: 'Coach', court_manager: 'Court Manager', match_control: 'Match Control' };
 
   // A player can hold more than one staff role. roles[] is the source of
   // truth; a legacy single "role" string (from before multi-role support)
@@ -3310,9 +3310,10 @@
       ${p.status === 'active' && !isProtected ? `
         <div class="member-detail-section-title">Membership</div>
         <div class="form-row">
-          <label>Roles <span class="optional-tag">(check all that apply. Coach and Court Manager each unlock a limited staff dashboard: Coach sees only their assigned coaching requests with no payment info, Court Manager can only log/view attendance. Admin gets full access regardless of the other two)</span></label>
+          <label>Roles <span class="optional-tag">(check all that apply. Coach and Court Manager unlock their limited staff dashboards. Match Control grants access only to the private tournament operations page. Admin gets full access.)</span></label>
           <label class="settings-check" style="margin-bottom:8px;"><input type="checkbox" class="memberRoleCheck" value="coach" ${currentRoles.includes('coach') ? 'checked' : ''}> <span>Coach</span></label>
           <label class="settings-check" style="margin-bottom:8px;"><input type="checkbox" class="memberRoleCheck" value="court_manager" ${currentRoles.includes('court_manager') ? 'checked' : ''}> <span>Court Manager</span></label>
+          <label class="settings-check" style="margin-bottom:8px;"><input type="checkbox" class="memberRoleCheck" value="match_control" ${currentRoles.includes('match_control') ? 'checked' : ''}> <span>Match Control</span></label>
           <label class="settings-check" style="margin-bottom:8px;"><input type="checkbox" class="memberRoleCheck" value="admin" ${currentRoles.includes('admin') ? 'checked' : ''}> <span>Admin</span></label>
           <button class="signup-btn approve" id="memberRoleSaveBtn" type="button" style="margin-top:4px;">Save Roles</button>
           <div class="admin-msg" id="memberRoleMsg"></div>
