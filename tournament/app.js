@@ -1,5 +1,5 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, login, logout, watchControl, watchMatches, publishControl, publishMatch, deleteMatch, clearMatches, listTournamentStaff, changeTournamentStaffRole } = await import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, deleteMatch, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole } = await import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
@@ -92,20 +92,27 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
       bronze: { scoreA: '', scoreB: '' }, final: { scoreA: '', scoreB: '' }
     }]));
   }
+  function blankDreamBreaker() { return { enabled: false, target: 52, scores: { ocpc: 0, rebels: 0 }, history: [] }; }
   function emptyCourts() { return Object.fromEntries(Array.from({ length: config.event.courts }, (_, i) => [i + 1, { matchId: '', running: false, startedAt: null, elapsed: 0 }])); }
+  function initialCourtSchedules(matches) { return Object.fromEntries(Array.from({ length: config.event.courts }, (_, i) => [i + 1, matches.filter(match => match.court === i + 1).sort((a, b) => a.wave - b.wave).map(match => match.id)])); }
   function freshState(pairCounts = defaultPairCounts()) {
     const matches = generateSchedule(pairCounts);
-    return { version: 3, pairCounts, currentWave: 1, matches, queue: matches.map(m => m.id), courts: emptyCourts(), scores: {}, scoreAudit: [], refereeAssignments: {}, checkins: {}, pairs: emptyPairs(pairCounts), medals: blankMedals(), updatedAt: new Date().toISOString() };
+    return { version: 7, pairCounts, currentWave: 1, matches, queue: matches.map(m => m.id), courtSchedules: initialCourtSchedules(matches), courts: emptyCourts(), matchSettings: {}, scores: {}, scoreAudit: [], refereeAssignments: {}, checkins: {}, pairs: emptyPairs(pairCounts), medals: blankMedals(), dreamBreaker: blankDreamBreaker(), updatedAt: new Date().toISOString() };
   }
   function normalizeState(incoming) {
     const normalized = { ...freshState(incoming?.pairCounts || defaultPairCounts()), ...(incoming || {}) };
-    normalized.courts = { ...emptyCourts(), ...(normalized.courts || {}) }; normalized.scores ||= {}; normalized.scoreAudit ||= []; normalized.refereeAssignments ||= {}; normalized.checkins ||= {}; normalized.pairs = { ...emptyPairs(normalized.pairCounts), ...(normalized.pairs || {}) }; normalized.medals = { ...blankMedals(), ...(normalized.medals || {}) };
+    normalized.courts = { ...emptyCourts(), ...(normalized.courts || {}) }; normalized.matchSettings ||= {}; normalized.scores ||= {}; normalized.scoreAudit ||= []; normalized.refereeAssignments ||= {}; normalized.checkins ||= {}; normalized.pairs = { ...emptyPairs(normalized.pairCounts), ...(normalized.pairs || {}) }; normalized.medals = { ...blankMedals(), ...(normalized.medals || {}) }; normalized.dreamBreaker = { ...blankDreamBreaker(), ...(normalized.dreamBreaker || {}), scores: { ...blankDreamBreaker().scores, ...(normalized.dreamBreaker?.scores || {}) }, history: normalized.dreamBreaker?.history || [] };
+    normalized.courtSchedules ||= initialCourtSchedules(normalized.matches);
+    const scheduled = new Set();
+    Object.keys(normalized.courtSchedules).forEach(no => { normalized.courtSchedules[no] = (normalized.courtSchedules[no] || []).filter(id => validMatch(normalized, id) && !scheduled.has(id) && (scheduled.add(id) || true)); });
+    normalized.matches.forEach(match => { if (!scheduled.has(match.id)) (normalized.courtSchedules[match.court] ||= []).push(match.id); });
     const validIds = new Set(normalized.matches.map(match => match.id)), assigned = new Set(Object.values(normalized.courts).map(court => court.matchId).filter(Boolean));
     const preserved = Array.isArray(normalized.queue) ? normalized.queue.filter((id, index, list) => validIds.has(id) && list.indexOf(id) === index && !assigned.has(id) && !(normalized.scores[id]?.a !== '' && normalized.scores[id]?.a !== undefined && normalized.scores[id]?.b !== '' && normalized.scores[id]?.b !== undefined)) : [];
     const missing = normalized.matches.filter(match => !preserved.includes(match.id) && !assigned.has(match.id) && !(normalized.scores[match.id]?.a !== '' && normalized.scores[match.id]?.a !== undefined && normalized.scores[match.id]?.b !== '' && normalized.scores[match.id]?.b !== undefined)).map(match => match.id);
-    normalized.queue = [...preserved, ...missing]; normalized.version = 4;
+    normalized.queue = [...preserved, ...missing]; normalized.version = 7;
     return normalized;
   }
+  function validMatch(target, id) { return target.matches.some(match => match.id === id); }
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(config.storageKey));
@@ -117,7 +124,7 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
     } catch (_) {}
     return freshState();
   }
-  let state = loadState(), activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer;
+  let state = loadState(), registrations = [], controlReady = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer;
   function saveState() { state.updatedAt = new Date().toISOString(); localStorage.setItem(config.storageKey, JSON.stringify(state)); if (cloudUser && !cloudApplying) { clearTimeout(cloudSaveTimer); cloudSaveTimer = setTimeout(() => publishControl(state).catch(() => toast('Cloud sync failed. Check Firebase access.')), 180); } }
   function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2200); }
   function pairData(category, code) { return state.pairs[`${category}|${code}`] || { player1: '', player2: '' }; }
@@ -127,6 +134,13 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
   function scoreFor(id) { return state.scores[id] || { a: '', b: '' }; }
   function isComplete(id) { const s = scoreFor(id); return s.a !== '' && s.b !== ''; }
   function winnerCode(match) { const score = scoreFor(match.id); if (!isComplete(match.id) || Number(score.a) === Number(score.b)) return ''; return Number(score.a) > Number(score.b) ? match.a : match.b; }
+  function hydrateRegisteredTeams(shouldSave = true) {
+    if (!controlReady) return false;
+    const pairs = emptyPairs(state.pairCounts);
+    registrations.filter(item => item.status === 'confirmed' && item.category && item.pairCode && item.players?.length >= 2).forEach(item => { const key = `${item.category}|${item.pairCode}`; if (pairs[key]) pairs[key] = { player1: item.players[0].fullName || '', player2: item.players[1].fullName || '', registrationId: item.id }; });
+    if (JSON.stringify(pairs) === JSON.stringify(state.pairs)) return false;
+    state.pairs = pairs; if (shouldSave) saveState(); return true;
+  }
 
   function standingsFor(category, clubId) {
     const club = config.clubs.find(c => c.id === clubId), opponentPrefix = clubId === 'ocpc' ? 'R' : 'O';
@@ -184,27 +198,110 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
   function timerText(seconds) { const sign = seconds > config.scoring.targetSeconds ? '+' : ''; const value = seconds > config.scoring.targetSeconds ? seconds - config.scoring.targetSeconds : seconds; return `${sign}${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`; }
   function timerClass(seconds) { return seconds >= config.scoring.dangerSeconds ? 'timer-danger' : seconds >= config.scoring.warningSeconds ? 'timer-warning' : ''; }
   function waitingIds() { const assigned = new Set(Object.values(state.courts).map(c => c.matchId).filter(Boolean)); return state.queue.filter(id => !isComplete(id) && !assigned.has(id)); }
+  function scheduledWaiting(courtNo) { const waiting = new Set(waitingIds()); return (state.courtSchedules?.[courtNo] || []).filter(id => waiting.has(id)); }
+  function nextForCourt(courtNo) { return scheduledWaiting(courtNo)[0] || waitingIds()[0]; }
+  function syncQueueFromCourtSchedules() {
+    const waiting = new Set(waitingIds()), ordered = [];
+    const longest = Math.max(0, ...Object.values(state.courtSchedules).map(ids => ids.length));
+    for (let row = 0; row < longest; row++) for (let court = 1; court <= config.event.courts; court++) { const id = state.courtSchedules[court]?.[row]; if (id && waiting.has(id)) { ordered.push(id); waiting.delete(id); } }
+    state.queue = [...ordered, ...waiting];
+  }
+  function slotMinutesFor(courtNo, id) { const index = (state.courtSchedules[courtNo] || []).indexOf(id); return config.event.roundRobinStartMinutes + Math.max(0, index) * config.event.slotMinutes; }
+  function plannedLabel(courtNo, id) { const start = slotMinutesFor(courtNo, id); return `${timeLabel(start)}-${timeLabel(start + config.event.slotMinutes)}`; }
+  function matchPlayers(id) { return state.matches.find(match => match.id === id)?.players || []; }
+  function checkinPhoto(category, code, clubId, index) { return Object.values(state.checkins || {}).find(item => item.category === category && item.pair === code && item.club === clubId && Number(item.playerIndex) === index)?.photoThumb || ''; }
+  function playerPortraits(match, side) { const code = side === 'a' ? match.a : match.b, clubId = side === 'a' ? 'ocpc' : 'rebels', pair = pairData(match.category, code); return [pair.player1, pair.player2].map((name, index) => { const photo = checkinPhoto(match.category, code, clubId, index); return `<span>${photo ? `<img src="${photo}" alt="">` : '<i class="court-photo-placeholder"></i>'}<b>${esc(name || 'Player pending')}</b></span>`; }).join(''); }
+  function defaultMatchRules(mode = 'round-robin') { return mode === 'gold-final' ? { mode, label: 'Gold / Silver', scoring: 'side-out', target: 15, suddenDeathAt: 19, timer: false } : mode === 'custom' ? { mode, label: 'Custom', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true } : { mode: 'round-robin', label: 'Round Robin', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true }; }
+  function rulesFor(id) { return state.matchSettings[id] ||= defaultMatchRules(); }
+  function conflictsFor(id, courtNo) {
+    const players = matchPlayers(id), conflicts = [], schedule = state.courtSchedules[courtNo] || [], index = schedule.indexOf(id), slot = slotMinutesFor(courtNo, id);
+    const eventDate = new Date(`${config.event.date}T00:00:00`), now = new Date(), current = now.getHours() * 60 + now.getMinutes(), operationallyNear = now.toDateString() === eventDate.toDateString() && Math.abs(slot - current) <= 30;
+    if (operationallyNear) {
+      Object.entries(state.courts).forEach(([otherCourt, active]) => { if (Number(otherCourt) !== Number(courtNo) && active.matchId && matchPlayers(active.matchId).some(player => players.includes(player))) conflicts.push(`Player currently active on Court ${otherCourt}`); });
+      state.matches.filter(match => match.id !== id && isComplete(match.id) && matchPlayers(match.id).some(player => players.includes(player))).forEach(match => { const finished = Date.parse(scoreFor(match.id).completedAt || ''); if (Number.isFinite(finished) && Date.now() - finished < config.event.slotMinutes * 60000) conflicts.push('Player just finished and needs a rest slot'); });
+      Object.entries(state.courtSchedules).forEach(([otherCourt, ids]) => ids.forEach(otherId => { if (otherId === id || isComplete(otherId)) return; if (slotMinutesFor(Number(otherCourt), otherId) === slot && matchPlayers(otherId).some(player => players.includes(player))) conflicts.push(`Player also scheduled on Court ${otherCourt} at ${timeLabel(slot)}`); }));
+      [schedule[index - 1], schedule[index + 1]].filter(Boolean).forEach(otherId => { if (matchPlayers(otherId).some(player => players.includes(player))) conflicts.push('Back-to-back match with no rest slot'); });
+    }
+    return [...new Set(conflicts)];
+  }
+  function courtScheduleStatus(courtNo) {
+    const next = scheduledWaiting(courtNo)[0]; if (!next) return { tone: 'safe', text: 'Schedule complete', minutes: 0 };
+    const eventDate = new Date(`${config.event.date}T00:00:00`), now = new Date();
+    if (now.toDateString() !== eventDate.toDateString()) return { tone: 'safe', text: 'On schedule', minutes: 0 };
+    const current = now.getHours() * 60 + now.getMinutes(), delta = current - slotMinutesFor(courtNo, next);
+    return delta > 4 ? { tone: delta >= 15 ? 'danger' : 'warn', text: `${delta} min delayed`, minutes: delta } : delta < -4 ? { tone: 'safe', text: `${Math.abs(delta)} min ahead`, minutes: delta } : { tone: 'safe', text: 'On schedule', minutes: delta };
+  }
+  function renderCourtTimeline() {
+    const rows = Math.max(0, ...Object.values(state.courtSchedules).map(ids => ids.length)), start = config.event.roundRobinStartMinutes;
+    const headers = `<div class="calendar-corner">Time</div>${Array.from({ length: config.event.courts }, (_, i) => { const courtNo = i + 1, status = courtScheduleStatus(courtNo); return `<header class="timeline-head ${status.tone}"><div><b>Court ${courtNo}</b><small>${scheduledWaiting(courtNo).length} scheduled</small></div><strong>${status.text}</strong></header>`; }).join('')}`;
+    const liveRow = `<div class="calendar-live-label">LIVE<br>COURT</div>${Array.from({ length: config.event.courts }, (_, i) => activeCourtMarkup(i + 1)).join('')}`;
+    const scheduleRows = Array.from({ length: rows }, (_, row) => `<div class="calendar-time">${timeLabel(start + row * config.event.slotMinutes)}</div>${Array.from({ length: config.event.courts }, (_, i) => scheduleCellMarkup(i + 1, row)).join('')}`).join('');
+    const eventDate = new Date(`${config.event.date}T00:00:00`), now = new Date(), minute = now.getHours() * 60 + now.getMinutes(), showNeedle = now.toDateString() === eventDate.toDateString() && minute >= start && minute <= start + rows * config.event.slotMinutes;
+    $('#courtTimeline').innerHTML = `${headers}${liveRow}${scheduleRows}${showNeedle ? `<div class="current-time-needle" style="--needle-row:${(minute - start) / config.event.slotMinutes}"><span>${timeLabel(minute)}</span></div>` : ''}`;
+    $$('[data-drag-match]').forEach(card => card.ondragstart = event => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', card.dataset.dragMatch); card.classList.add('dragging'); });
+    $$('[data-drag-match]').forEach(card => card.ondragend = () => card.classList.remove('dragging'));
+    $$('[data-drop-court]').forEach(cell => { cell.ondragover = event => { event.preventDefault(); cell.classList.add('drag-over'); }; cell.ondragleave = () => cell.classList.remove('drag-over'); cell.ondrop = event => { event.preventDefault(); cell.classList.remove('drag-over'); moveScheduledMatch(event.dataTransfer.getData('text/plain'), Number(cell.dataset.dropCourt), Number(cell.dataset.dropIndex)); }; });
+    bindCourtControls();
+  }
+  function scheduleCellMarkup(courtNo, row) {
+    const id = state.courtSchedules[courtNo]?.[row], match = state.matches.find(item => item.id === id), active = Object.values(state.courts).some(court => court.matchId === id), done = id && isComplete(id), conflicts = id ? conflictsFor(id, courtNo) : [];
+    if (!match) return `<div class="calendar-cell empty" data-drop-court="${courtNo}" data-drop-index="${row}"></div>`;
+    return `<div class="calendar-cell" data-drop-court="${courtNo}" data-drop-index="${row}"><article class="timeline-match ${conflicts.length ? 'has-conflict' : ''} ${active ? 'on-court' : ''} ${done ? 'completed' : ''}" draggable="${!active && !done}" data-drag-match="${id}" title="${esc(conflicts.join(' · '))}"><div class="timeline-pairs"><small>${match.id} · ${esc(match.category)}</small><b>${esc(pairNames(match.category, match.a))}</b><span>vs</span><b>${esc(pairNames(match.category, match.b))}</b>${active ? '<em>Currently on court</em>' : done ? `<em>Final ${scoreFor(id).a}-${scoreFor(id).b}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : ''}</div>${conflicts.length ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
+  }
+  function activeCourtMarkup(courtNo) {
+    const court = state.courts[courtNo], match = state.matches.find(item => item.id === court.matchId), next = nextForCourt(courtNo);
+    if (!match) return `<section class="active-court empty"><b>Court vacant</b><small>${next ? `${next} is next at ${plannedLabel(courtNo, next).split('-')[0]}` : 'Schedule complete'}</small>${next ? `<button class="btn btn-primary" data-promote-court="${courtNo}">Promote next match</button>` : ''}</section>`;
+    const live = state.liveScoring?.[match.id] || court, rules = rulesFor(match.id), seconds = elapsedSeconds(live), done = isComplete(match.id), started = seconds > 0 || live.running || Number(live.a) > 0 || Number(live.b) > 0;
+    return `<section class="active-court ${timerClass(seconds)}"><div class="active-court-top"><span>${match.id} · ${esc(match.category)}</span><b>${live.running ? 'LIVE' : done ? 'FINAL' : 'READY'}</b></div><div class="active-score"><div class="active-team"><div>${playerPortraits(match, 'a')}</div><strong>${esc(pairNames(match.category, match.a))}</strong></div><b>${live.a ?? 0}<small>–</small>${live.b ?? 0}</b><div class="active-team"><div>${playerPortraits(match, 'b')}</div><strong>${esc(pairNames(match.category, match.b))}</strong></div></div><div class="court-rule-bar"><select data-rule-mode="${courtNo}" ${started ? 'disabled' : ''}><option value="round-robin" ${rules.mode === 'round-robin' ? 'selected' : ''}>Round Robin</option><option value="gold-final" ${rules.mode === 'gold-final' ? 'selected' : ''}>Gold / Silver</option><option value="custom" ${rules.mode === 'custom' ? 'selected' : ''}>Custom</option></select><select data-rule-scoring="${courtNo}" ${rules.mode !== 'custom' || started ? 'disabled' : ''}><option value="side-out" ${rules.scoring === 'side-out' ? 'selected' : ''}>Side-out</option><option value="rally" ${rules.scoring === 'rally' ? 'selected' : ''}>Rally</option></select><label>To <input data-rule-target="${courtNo}" type="number" min="1" max="30" value="${rules.target}" ${rules.mode !== 'custom' || started ? 'disabled' : ''}></label><label>Sudden death <input data-rule-sudden="${courtNo}" type="number" min="1" max="30" value="${rules.suddenDeathAt}" ${rules.mode !== 'custom' || started ? 'disabled' : ''}></label><label><input data-rule-timer="${courtNo}" type="checkbox" ${rules.timer ? 'checked' : ''} ${started ? 'disabled' : ''}> Timer</label></div><div class="active-actions">${rules.timer ? `<button data-timer-toggle="${courtNo}">${live.running ? 'Pause' : seconds ? 'Resume' : 'Start'} · ${timerText(seconds)}</button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${match.id}">${done ? 'Override score' : 'Enter score'}</button><button data-court-tools="${courtNo}">Match tools</button><button class="vacate" data-vacate-court="${courtNo}">${done ? 'Confirm court vacant' : 'Remove from court'}</button></div></section>`;
+  }
+  function moveScheduledMatch(id, courtNo, targetIndex) {
+    if (!id || isComplete(id) || Object.values(state.courts).some(court => court.matchId === id)) return toast('Only waiting matches can be moved.');
+    Object.keys(state.courtSchedules).forEach(no => state.courtSchedules[no] = state.courtSchedules[no].filter(item => item !== id));
+    const target = state.courtSchedules[courtNo] ||= []; target.splice(Math.max(0, Math.min(target.length, targetIndex)), 0, id);
+    Object.entries(state.courtSchedules).forEach(([no, ids]) => ids.forEach((matchId, index) => { const match = state.matches.find(item => item.id === matchId); if (match) { const start = config.event.roundRobinStartMinutes + index * config.event.slotMinutes; match.court = Number(no); match.wave = index + 1; match.time = `${timeLabel(start)}-${timeLabel(start + config.event.slotMinutes)}`; } }));
+    syncQueueFromCourtSchedules(); const conflicts = conflictsFor(id, courtNo); saveState(); renderAll();
+    toast(conflicts.length ? `Moved with warning: ${conflicts[0]}` : `Moved ${id} to Court ${courtNo}.`);
+  }
   function renderCourts() {
-    $('#courtGrid').innerHTML = Array.from({ length: config.event.courts }, (_, index) => {
-      const courtNo = index + 1, court = state.courts[courtNo], match = state.matches.find(m => m.id === court.matchId);
-      if (!match) return `<article class="court-card empty-court"><div><b>Court ${courtNo} available</b><p>Dispatch the next scheduled match.</p><button class="btn btn-primary" data-assign-next="${courtNo}">Send next match</button></div></article>`;
-      const live = state.liveScoring?.[match.id], timerSource = live || court, seconds = elapsedSeconds(timerSource), score = live && !isComplete(match.id) ? live : scoreFor(match.id), done = isComplete(match.id), running = Boolean(timerSource.running);
-      return `<article class="court-card ${timerClass(seconds)}"><div class="court-head"><b>Court ${courtNo}</b><span class="category-badge">${esc(match.category)}</span></div><div class="court-timer"><span>${running ? 'Match timer · live' : seconds ? 'Timer paused' : 'Ready to start'}</span><strong data-timer-court="${courtNo}">${timerText(seconds)}</strong></div><div class="court-body"><div class="court-pair"><span>OCPC · ${displayPair(match.category, match.a)}</span><strong>${esc(pairNames(match.category, match.a))}</strong></div><div class="court-vs">${live ? `${live.a} · ${live.b}` : 'VS'}</div><div class="court-pair"><span>Rally Rebels · ${displayPair(match.category, match.b)}</span><strong>${esc(pairNames(match.category, match.b))}</strong></div><div class="court-actions"><button class="btn btn-quiet" data-timer-toggle="${courtNo}">${running ? 'Pause' : seconds ? 'Resume' : 'Start timer'}</button><button class="btn btn-quiet" data-release-court="${courtNo}">Return to queue</button><button class="btn ${done ? 'btn-lime' : 'btn-primary'} court-score" data-score-id="${match.id}">${done ? `Result ${score.a}-${score.b}` : 'Finish & enter score'}</button></div></div></article>`;
-    }).join('');
-    const queued = waitingIds(); $('#queueCount').textContent = `${queued.length} waiting`;
-    $('#dispatchQueue').innerHTML = queued.map((id, index) => { const match = state.matches.find(m => m.id === id); return `<div class="queue-match"><span class="queue-order">${index + 1}</span><div><b>${displayPair(match.category, match.a)} vs ${displayPair(match.category, match.b)}</b><small>${esc(match.category)} · planned wave ${match.wave}</small></div><div class="queue-actions"><button data-queue-move="up" data-match-id="${id}" aria-label="Move up">↑</button><button data-queue-move="down" data-match-id="${id}" aria-label="Move down">↓</button><button class="send-court" data-send-match="${id}">Send</button></div></div>`; }).join('');
+    renderCourtTimeline();
+  }
+  function bindCourtControls() {
     bindScoreButtons();
-    $$('[data-assign-next]').forEach(btn => btn.onclick = () => assignNext(Number(btn.dataset.assignNext)));
-    $$('[data-timer-toggle]').forEach(btn => btn.onclick = () => toggleTimer(Number(btn.dataset.timerToggle)));
-    $$('[data-release-court]').forEach(btn => btn.onclick = () => releaseCourt(Number(btn.dataset.releaseCourt)));
-    $$('[data-queue-move]').forEach(btn => btn.onclick = () => moveQueue(btn.dataset.matchId, btn.dataset.queueMove === 'up' ? -1 : 1));
-    $$('[data-send-match]').forEach(btn => btn.onclick = () => sendMatchToFreeCourt(btn.dataset.sendMatch));
+    $$('[data-promote-court]').forEach(button => button.onclick = () => assignNext(Number(button.dataset.promoteCourt)));
+    $$('[data-timer-toggle]').forEach(button => button.onclick = () => toggleTimer(Number(button.dataset.timerToggle)));
+    $$('[data-vacate-court]').forEach(button => button.onclick = () => vacateCourt(Number(button.dataset.vacateCourt)));
+    $$('[data-court-tools]').forEach(button => button.onclick = () => showCourtTools(Number(button.dataset.courtTools)));
+    $$('[data-rule-mode]').forEach(select => select.onchange = () => { const courtNo = Number(select.dataset.ruleMode), matchId = state.courts[courtNo]?.matchId; if (!matchId) return; state.matchSettings[matchId] = defaultMatchRules(select.value); saveState(); renderCourts(); });
+    $$('[data-rule-scoring]').forEach(select => select.onchange = () => { const matchId = state.courts[Number(select.dataset.ruleScoring)]?.matchId; if (matchId) { rulesFor(matchId).scoring = select.value; saveState(); renderCourts(); } });
+    $$('[data-rule-target]').forEach(input => input.onchange = () => updateCustomRule(Number(input.dataset.ruleTarget), 'target', input.value));
+    $$('[data-rule-sudden]').forEach(input => input.onchange = () => updateCustomRule(Number(input.dataset.ruleSudden), 'suddenDeathAt', input.value));
+    $$('[data-rule-timer]').forEach(input => input.onchange = () => { const matchId = state.courts[Number(input.dataset.ruleTimer)]?.matchId; if (matchId) { rulesFor(matchId).timer = input.checked; saveState(); renderCourts(); } });
+  }
+  function updateCustomRule(courtNo, field, value) { const matchId = state.courts[courtNo]?.matchId; if (!matchId) return; rulesFor(matchId)[field] = Math.max(1, Math.min(30, Number(value) || 1)); saveState(); renderCourts(); }
+  function vacateCourt(courtNo) {
+    const court = state.courts[courtNo]; if (!court?.matchId) return; const id = court.matchId, done = isComplete(id);
+    if (!confirm(done ? `Confirm Court ${courtNo} is vacant after ${id}? The next match will remain scheduled until you promote it.` : `Remove ${id} from Court ${courtNo} before it is complete? Its live timer and scoring progress will be reset.`)) return;
+    if (!done) { if (!state.queue.includes(id)) state.queue.unshift(id); delete state.liveScoring?.[id]; if (cloudUser) deleteMatch(id).catch(() => toast('Court cleared locally, but cloud cleanup failed.')); }
+    state.courts[courtNo] = { matchId: '', running: false, startedAt: null, elapsed: 0 }; saveState(); renderAll(); toast(`Court ${courtNo} is vacant.`);
+  }
+  function showCourtTools(courtNo) {
+    const court = state.courts[courtNo], match = state.matches.find(item => item.id === court?.matchId); if (!match) return;
+    state.liveScoring ||= {}; const live = state.liveScoring[match.id] ||= { a: 0, b: 0, timeouts: { a: 0, b: 0 }, medical: 0, technicalTimeouts: 0, refereeTimeouts: 0, equipmentTimeouts: 0, log: [], running: false, startedAt: null, elapsed: 0 };
+    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="courtToolsModal"><section><button class="modal-close" data-close-tools>×</button><span class="section-label">Court ${courtNo} · ${match.id}</span><h2>Guarded match tools</h2><p>Every interruption requires confirmation to prevent accidental taps.</p><div class="guarded-tools"><button data-guarded-tool="timeout-a">OCPC timeout <b>${live.timeouts?.a || 0}/2</b></button><button data-guarded-tool="timeout-b">Rally Rebels timeout <b>${live.timeouts?.b || 0}/2</b></button><button data-guarded-tool="medical">Medical timeout <b>${live.medical || 0}</b></button><button data-guarded-tool="technical">Technical timeout <b>${live.technicalTimeouts || 0}</b></button><button data-guarded-tool="referee">Referee timeout <b>${live.refereeTimeouts || 0}</b></button><button data-guarded-tool="equipment">Equipment timeout <b>${live.equipmentTimeouts || 0}</b></button></div></section></div>`);
+    $('#courtToolsModal').onclick = event => { if (event.target.id === 'courtToolsModal' || event.target.closest('[data-close-tools]')) $('#courtToolsModal').remove(); };
+    $$('[data-guarded-tool]', $('#courtToolsModal')).forEach(button => button.onclick = () => applyGuardedTool(courtNo, button.dataset.guardedTool));
+  }
+  function applyGuardedTool(courtNo, type) {
+    const id = state.courts[courtNo]?.matchId, live = state.liveScoring[id]; if (!id || !live) return; const labels = { 'timeout-a': 'OCPC timeout', 'timeout-b': 'Rally Rebels timeout', medical: 'medical timeout', technical: 'technical timeout', referee: 'referee timeout', equipment: 'equipment timeout' }, label = labels[type];
+    if (!confirm(`Record ${label} for ${id} on Court ${courtNo}?`)) return;
+    live.timeouts ||= { a: 0, b: 0 }; if (type === 'timeout-a' && live.timeouts.a < 2) live.timeouts.a++; else if (type === 'timeout-b' && live.timeouts.b < 2) live.timeouts.b++; else if (type === 'medical') live.medical = (live.medical || 0) + 1; else if (type === 'technical') live.technicalTimeouts = (live.technicalTimeouts || 0) + 1; else if (type === 'referee') live.refereeTimeouts = (live.refereeTimeouts || 0) + 1; else if (type === 'equipment') live.equipmentTimeouts = (live.equipmentTimeouts || 0) + 1;
+    live.log ||= []; live.log.unshift({ at: new Date().toISOString(), text: `${label} recorded by Match Control` }); saveState(); if (cloudUser) publishMatch(id, live, state.scores[id] || null); $('#courtToolsModal')?.remove(); renderCourts(); toast(`${label} recorded.`);
   }
   function assignMatch(courtNo, matchId) { if (!state.courts[courtNo] || state.courts[courtNo].matchId) return false; state.courts[courtNo] = { matchId, running: false, startedAt: null, elapsed: 0 }; state.queue = state.queue.filter(id => id !== matchId); saveState(); renderAll(); return true; }
-  function assignNext(courtNo) { const id = waitingIds()[0]; if (!id) return toast('No waiting matches.'); assignMatch(courtNo, id); }
+  function assignNext(courtNo) { const id = nextForCourt(courtNo); if (!id) return toast('No waiting matches.'); assignMatch(courtNo, id); }
   function sendMatchToFreeCourt(id) { const free = Object.keys(state.courts).find(no => !state.courts[no].matchId); if (!free) return toast('No court is currently available.'); assignMatch(Number(free), id); }
-  function fillCourts() { Object.keys(state.courts).forEach(no => { if (!state.courts[no].matchId) { const id = waitingIds()[0]; if (id) state.courts[no] = { matchId: id, running: false, startedAt: null, elapsed: 0 }; } }); state.queue = state.queue.filter(id => !Object.values(state.courts).some(c => c.matchId === id)); saveState(); renderAll(); }
-  function toggleTimer(courtNo) { const court = state.courts[courtNo]; if (!court?.matchId) return; const timer = state.liveScoring?.[court.matchId] || court; if (timer.running) { timer.elapsed = elapsedSeconds(timer); timer.running = false; timer.startedAt = null; } else { timer.running = true; timer.startedAt = Date.now(); } saveState(); if (cloudUser && timer !== court) publishMatch(court.matchId, timer, state.scores[court.matchId] || null); renderCourts(); }
+  function fillCourts() { Object.keys(state.courts).forEach(no => { if (!state.courts[no].matchId) { const id = nextForCourt(Number(no)); if (id) state.courts[no] = { matchId: id, running: false, startedAt: null, elapsed: 0 }; } }); state.queue = state.queue.filter(id => !Object.values(state.courts).some(c => c.matchId === id)); saveState(); renderAll(); }
+  function toggleTimer(courtNo) { const court = state.courts[courtNo]; if (!court?.matchId) return; state.liveScoring ||= {}; const timer = state.liveScoring[court.matchId] ||= { a: 0, b: 0, timeouts: { a: 0, b: 0 }, medical: 0, technicalTimeouts: 0, refereeTimeouts: 0, equipmentTimeouts: 0, log: [], running: false, startedAt: null, elapsed: 0 }; if (timer.running) { timer.elapsed = elapsedSeconds(timer); timer.running = false; timer.startedAt = null; } else { timer.running = true; timer.startedAt = Date.now(); } saveState(); if (cloudUser) publishMatch(court.matchId, timer, state.scores[court.matchId] || null); renderCourts(); }
   function releaseCourt(courtNo) {
     const court = state.courts[courtNo];
     if (!court?.matchId) return;
@@ -233,12 +330,36 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
     bindScoreButtons();
   }
   function renderStandings() {
+    renderClubStandings();
     $('#standingsTabs').innerHTML = config.categories.map(category => `<button class="category-tab ${category === standingsCategory ? 'active' : ''}" data-standing-category="${esc(category)}">${esc(category)}</button>`).join('');
     $('#standingsGrid').innerHTML = config.clubs.map(club => {
       const rows = standingsFor(standingsCategory, club.id);
       return `<article class="standing-card"><div class="card-title"><h2>${esc(club.name)}</h2><span>Top 2 advance</span></div><div class="standing-row header"><span>#</span><span>Pair</span><span class="num">P</span><span class="num">W</span><span class="num">L</span><span class="num">+/-</span><span class="num">PF</span></div>${rows.map(r => `<div class="standing-row"><span class="rank">${r.rank}</span><span class="team-name"><b>${r.code}</b><small>${esc(r.names)}</small></span><span class="num">${r.played}</span><span class="num">${r.wins}</span><span class="num">${r.losses}</span><span class="num">${r.diff > 0 ? '+' : ''}${r.diff}</span><span class="num">${r.pointsFor}</span></div>`).join('')}</article>`;
     }).join('');
     $$('[data-standing-category]').forEach(btn => btn.onclick = () => { standingsCategory = btn.dataset.standingCategory; renderStandings(); });
+  }
+  function clubTotals() {
+    const wins = { ocpc: 0, rebels: 0 };
+    state.matches.forEach(match => { const winner = winnerCode(match); if (winner.startsWith('O')) wins.ocpc++; if (winner.startsWith('R')) wins.rebels++; });
+    const dream = state.dreamBreaker.enabled ? state.dreamBreaker.scores : { ocpc: 0, rebels: 0 };
+    return config.clubs.map(club => ({ ...club, matchWins: wins[club.id], dreamPoints: Number(dream[club.id]) || 0, total: wins[club.id] + (Number(dream[club.id]) || 0) })).sort((a, b) => b.total - a.total || b.matchWins - a.matchWins);
+  }
+  function renderClubStandings() {
+    const totals = clubTotals(), leader = totals[0], tied = totals.length > 1 && totals[0].total === totals[1].total;
+    $('#clubStandings').innerHTML = `<section class="club-scoreboard"><div class="club-scoreboard-title"><div><span class="section-label">Club championship</span><h2>Overall club standings</h2></div><strong>${tied ? 'Currently tied' : `${esc(leader.short)} leads`}</strong></div><div class="club-rank-grid">${totals.map((club, index) => `<article class="club-rank-card ${index === 0 && !tied ? 'leading' : ''}"><span>${index + 1}</span><div><h3>${esc(club.name)}</h3><small>${club.matchWins} match wins${state.dreamBreaker.enabled ? ` + ${club.dreamPoints} Dream Breaker points` : ''}</small></div><b>${club.total}<small>club points</small></b></article>`).join('')}</div><p>The club with the most combined club points is awarded Champion Club.</p></section>`;
+    $('#dreamBreakerSummary').innerHTML = `<section class="dream-summary"><div><span class="section-label">Dream Breaker</span><b>${state.dreamBreaker.enabled ? `${state.dreamBreaker.scores.ocpc}-${state.dreamBreaker.scores.rebels} · first to ${state.dreamBreaker.target}` : 'Optional · currently disabled'}</b></div><button class="btn btn-quiet" data-open-dream>Open scoring desk</button></section>`;
+    $('[data-open-dream]').onclick = () => showView('dream');
+  }
+  function rosterPlayers(clubId) { const prefix = config.clubs.find(club => club.id === clubId)?.pairPrefix; return Object.entries(state.pairs).filter(([key]) => key.split('|')[1]?.startsWith(prefix)).flatMap(([, pair]) => [pair.player1, pair.player2]).filter(Boolean).filter((name, index, all) => all.indexOf(name) === index); }
+  function playerOptions(clubId, selected) { return `<option value="">Select player</option>${rosterPlayers(clubId).map(name => `<option ${name === selected ? 'selected' : ''}>${esc(name)}</option>`).join('')}`; }
+  function renderDreamBreakerBoard() {
+    const board = $('#dreamBreakerBoard'), dream = state.dreamBreaker;
+    if (!dream.enabled) { board.innerHTML = `<section class="dream-board disabled"><span class="section-label">Optional tiebreaker</span><h2>Dream Breaker is not enabled</h2><p>Match Control can activate it in Settings if tournament time permits.</p></section>`; return; }
+    const totalRallies = Number(dream.scores.ocpc) + Number(dream.scores.rebels), remainder = totalRallies % 4, nextSwitch = remainder ? 4 - remainder : 4, switchNow = totalRallies > 0 && remainder === 0, winner = Number(dream.scores.ocpc) >= dream.target ? 'ocpc' : Number(dream.scores.rebels) >= dream.target ? 'rebels' : '';
+    board.innerHTML = `<section class="dream-board scoring"><div class="club-scoreboard-title"><div><span class="section-label">Rally-scoring desk</span><h2>Dream Breaker · First to ${dream.target}</h2></div><strong class="${switchNow && !winner ? 'switch-alert' : ''}">${winner ? `${esc(config.clubs.find(club => club.id === winner).short)} wins` : switchNow ? 'Switch players now' : `Switch in ${nextSwitch} rallies`}</strong></div><div class="dream-live-score">${config.clubs.map(club => `<article class="${winner === club.id ? 'winner' : ''}"><span>${esc(club.name)}</span><b>${dream.scores[club.id]}</b><button data-dream-point="${club.id}" ${winner ? 'disabled' : ''}>+1 rally</button></article>`).join('')}</div><div class="dream-progress"><span style="width:${Math.min(100, totalRallies / Math.max(1, dream.target * 2) * 100)}%"></span></div><p>${totalRallies} total rallies logged. Both clubs switch to their next captain-selected players after every fourth rally.</p><div class="stack-actions"><button class="btn btn-quiet" id="undoDreamPoint" ${dream.history?.length ? '' : 'disabled'}>Undo last rally</button><button class="btn btn-danger" id="resetDreamScore">Reset Dream Breaker score</button></div></section>`;
+    $$('[data-dream-point]').forEach(button => button.onclick = () => { const clubId = button.dataset.dreamPoint; dream.history ||= []; dream.history.push({ ...dream.scores }); dream.scores[clubId] = Math.min(dream.target, Number(dream.scores[clubId]) + 1); saveState(); renderAll(); const rallies = dream.scores.ocpc + dream.scores.rebels; if (rallies % 4 === 0 && dream.scores[clubId] < dream.target) alert('Four rallies completed. Switch players for both clubs before the next serve.'); });
+    $('#undoDreamPoint').onclick = () => { const prior = dream.history?.pop(); if (!prior) return; dream.scores = prior; saveState(); renderAll(); toast('Last Dream Breaker rally undone.'); };
+    $('#resetDreamScore').onclick = () => { if (!confirm('Reset both Dream Breaker scores to zero?')) return; dream.scores = { ocpc: 0, rebels: 0 }; dream.history = []; saveState(); renderAll(); };
   }
   function renderTeams() {
     $('#teamTabs').innerHTML = config.categories.map(category => `<button class="category-tab ${category === teamCategory ? 'active' : ''}" data-team-category="${esc(category)}">${esc(category)}</button>`).join('');
@@ -281,29 +402,37 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
     try { const staff = await listTournamentStaff(); list.innerHTML = staff.length ? staff.map(person => { const roles = Array.isArray(person.roles) ? person.roles : [person.role].filter(Boolean); return `<div class="config-row"><span>${esc(person.email || `${person.firstName || ''} ${person.lastName || ''}`)}</span><b>${roles.filter(role => role.startsWith('tournament_') || role === 'match_control').map(role => ({match_control:'Match Control',tournament_registration:'Registration',tournament_checkin:'Check-In',tournament_score_desk:'Score Kiosk'}[role])).filter(Boolean).join(', ')}</b></div>`; }).join('') : '<div class="config-row"><span>No tournament staff assigned</span></div>'; }
     catch (_) { list.innerHTML = '<div class="config-row"><span>Only an administrator can view and change staff access.</span></div>'; }
   }
+  function renderDreamBreakerSettings() {
+    const dream = state.dreamBreaker; $('#dreamBreakerEnabled').checked = dream.enabled; $('#dreamBreakerTarget').value = dream.target;
+  }
+  function saveDreamBreakerSetup() {
+    state.dreamBreaker.enabled = $('#dreamBreakerEnabled').checked; state.dreamBreaker.target = Math.max(1, Math.min(200, Number($('#dreamBreakerTarget').value) || 52));
+    state.dreamBreaker.scores.ocpc = Math.min(state.dreamBreaker.scores.ocpc, state.dreamBreaker.target); state.dreamBreaker.scores.rebels = Math.min(state.dreamBreaker.scores.rebels, state.dreamBreaker.target); saveState(); renderAll(); toast('Dream Breaker setup saved.');
+  }
   function renderSettings() {
     $('#configList').innerHTML = [['Organizer', config.brand.organizer], ['Event', config.event.name], ['Venue', `${config.event.venue}, ${config.event.location}`], ['Courts', config.event.courts], ['Categories', config.categories.join(', ')], ['Storage', 'Firebase live sync with local cache']].map(([a, b]) => `<div class="config-row"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join('');
     const assignedIds = Object.keys(state.refereeAssignments);
     $('#refereeMatch').innerHTML = state.matches.filter(m => !isComplete(m.id)).map(m => `<option value="${m.id}">${m.id} · ${displayPair(m.category,m.a)} vs ${displayPair(m.category,m.b)}</option>`).join('');
     $('#refereeList').innerHTML = assignedIds.length ? assignedIds.map(id => `<div class="config-row"><span>${id}</span><b>${esc(state.refereeAssignments[id])}</b></div>`).join('') : '<div class="config-row"><span>No referees assigned yet</span></div>';
     $('#pairCountSettings').innerHTML = config.categories.map(category => `<label>${esc(category)}<input type="number" min="2" max="12" value="${pairCount(category)}" data-pair-count="${esc(category)}"></label>`).join('');
+    renderDreamBreakerSettings();
     renderTournamentStaff();
   }
-  function renderAll() { const total = totalMatchCount(); $('#heroMatchCount').textContent = total; $('#scheduleMatchCount').textContent = `All ${total} matches`; renderOverview(); renderCourts(); renderSchedule(); renderStandings(); renderTeams(); renderMedals(); renderSettings(); }
+  function renderAll() { const total = totalMatchCount(); $('#heroMatchCount').textContent = total; $('#scheduleMatchCount').textContent = `All ${total} matches`; renderOverview(); renderCourts(); renderSchedule(); renderStandings(); renderDreamBreakerBoard(); renderTeams(); renderMedals(); renderSettings(); }
   function changeWave(delta) { const waves = Math.ceil(totalMatchCount() / config.event.courts); state.currentWave = Math.max(1, Math.min(waves, state.currentWave + delta)); saveState(); renderOverview(); renderCourts(); }
   function showView(name) {
     activeView = name; $$('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`)); $$('.nav-item').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name)); $('#sidebar').classList.remove('open');
-    if (name === 'schedule') renderSchedule(); if (name === 'standings') renderStandings(); if (name === 'medals') renderMedals();
+    if (name === 'schedule') renderSchedule(); if (name === 'standings') renderStandings(); if (name === 'dream') renderDreamBreakerBoard(); if (name === 'medals') renderMedals();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function bindScoreButtons() { $$('[data-score-id]').forEach(button => button.onclick = () => openScore(button.dataset.scoreId)); }
   function openScore(id) {
     const match = state.matches.find(m => m.id === id); if (!match) return;
-    activeMatchId = id; const score = scoreFor(id);
+    activeMatchId = id; const score = scoreFor(id), rules = rulesFor(id), maximum = rules.suddenDeathAt + 1;
     $('#scoreMeta').textContent = `${match.id} · Wave ${match.wave} · Court ${match.court} · ${match.category}`;
     $('#scoreTitle').textContent = match.time; $('#sideALabel').textContent = `OCPC · ${match.a}`; $('#sideBLabel').textContent = `Rally Rebels · ${match.b}`;
     $('#sideAName').textContent = pairNames(match.category, match.a); $('#sideBName').textContent = pairNames(match.category, match.b);
-    $('#scoreA').value = score.a; $('#scoreB').value = score.b; $('#scoreMessage').textContent = ''; $('#scoreModal').hidden = false; setTimeout(() => $('#scoreA').focus(), 30);
+    $('#scoreA').max = maximum; $('#scoreB').max = maximum; $('#scoreA').value = score.a; $('#scoreB').value = score.b; $('#scoreMessage').textContent = `${rules.label}: first to ${rules.target}, win by 2; sudden death at ${rules.suddenDeathAt}-${rules.suddenDeathAt}.`; $('#scoreModal').hidden = false; setTimeout(() => $('#scoreA').focus(), 30);
   }
   function closeScore() { $('#scoreModal').hidden = true; activeMatchId = null; }
   function saveScore() {
@@ -311,16 +440,15 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
     if (a === '' || b === '') { $('#scoreMessage').textContent = 'Enter both scores, or choose Clear score.'; return; }
     const na = Number(a), nb = Number(b);
     if (na === nb) { $('#scoreMessage').textContent = 'Matches need a winner. Play one deciding rally.'; return; }
-    if (na < 0 || nb < 0 || na > config.scoring.hardCap || nb > config.scoring.hardCap) { $('#scoreMessage').textContent = `Scores must be between 0 and ${config.scoring.hardCap}.`; return; }
-    if (Math.max(na, nb) !== config.scoring.target) { $('#scoreMessage').textContent = `The winning score must be ${config.scoring.target}. At 10-10, the next point wins 11-10.`; return; }
+    const rules = rulesFor(activeMatchId), high = Math.max(na, nb), low = Math.min(na, nb), maximum = rules.suddenDeathAt + 1, validSuddenDeath = high === maximum && low === rules.suddenDeathAt, validRegular = high >= rules.target && high <= rules.suddenDeathAt && high - low >= 2;
+    if (na < 0 || nb < 0 || high > maximum) { $('#scoreMessage').textContent = `Scores must be between 0 and ${maximum}.`; return; }
+    if (!validRegular && !validSuddenDeath) { $('#scoreMessage').textContent = `First to ${rules.target}, win by 2. At ${rules.suddenDeathAt}-${rules.suddenDeathAt}, the next rally wins ${maximum}-${rules.suddenDeathAt}.`; return; }
     const prior = state.scores[activeMatchId];
     if (prior && (Number(prior.a) !== na || Number(prior.b) !== nb) && !confirm(`Warning: this revises a recorded result from ${prior.a}-${prior.b} to ${na}-${nb}. Continue?`)) return;
     if (prior) state.scoreAudit.push({ matchId: activeMatchId, previous: prior, revised: { a: na, b: nb }, revisedAt: new Date().toISOString(), source: 'match-control' });
-    state.scores[activeMatchId] = { a: na, b: nb };
+    state.scores[activeMatchId] = { a: na, b: nb, completedAt: prior?.completedAt || new Date().toISOString() };
     if (cloudUser) publishMatch(activeMatchId, state.liveScoring?.[activeMatchId] || { a: na, b: nb, complete: true }, state.scores[activeMatchId]).catch(() => toast('Result saved locally; cloud sync failed.'));
-    const courtNo = Object.keys(state.courts).find(no => state.courts[no].matchId === activeMatchId);
-    if (courtNo) { state.courts[courtNo] = { matchId: '', running: false, startedAt: null, elapsed: 0 }; const nextId = waitingIds()[0]; if (nextId) state.courts[courtNo] = { matchId: nextId, running: false, startedAt: null, elapsed: 0 }; state.queue = state.queue.filter(id => id !== nextId); }
-    saveState(); closeScore(); renderAll(); toast('Result saved. The next match is ready.');
+    saveState(); closeScore(); renderAll(); toast('Result saved. Confirm the court is vacant when players have cleared it.');
   }
   function clearScore() { if (activeMatchId) delete state.scores[activeMatchId]; saveState(); closeScore(); renderAll(); toast('Score cleared.'); }
   function exportBackup() {
@@ -347,7 +475,9 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
       cloudUser = user;
       if (!user) return showCloudGate();
       $('#cloudGate')?.remove();
-      watchControl(incoming => { if (!incoming) { publishControl(state).catch(() => showCloudGate('Your account cannot initialize this event.')); return; } cloudApplying = true; state = { ...normalizeState(incoming), liveScoring: state.liveScoring || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => showCloudGate('Your account does not have Match Control access.'));
+      watchControl(incoming => { if (!incoming) { publishControl(state).catch(() => showCloudGate('Your account cannot initialize this event.')); return; } cloudApplying = true; const localCheckins = state.checkins || {}, normalized = normalizeState(incoming); state = { ...normalized, checkins: { ...normalized.checkins, ...localCheckins }, liveScoring: state.liveScoring || {} }; controlReady = true; hydrateRegisteredTeams(false); localStorage.setItem(config.storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => showCloudGate('Your account does not have Match Control access.'));
+      watchRegistrations(items => { registrations = items; if (hydrateRegisteredTeams()) renderAll(); }, () => toast('Player registrations could not be loaded.'));
+      watchCheckins(items => { state.checkins = Object.fromEntries(items.map(item => [item.id, item])); localStorage.setItem(config.storageKey, JSON.stringify(state)); renderCourts(); }, () => toast('Player photos could not be loaded.'));
       $('#cloudSessionBtn').textContent = 'Sign out'; $('#cloudSessionBtn').title = `Signed in as ${user.email}`;
       watchMatches(items => { cloudApplying = true; state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => toast('Live match feed unavailable.'));
     });
@@ -358,7 +488,6 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
   config.categories.forEach(category => $('#medalCategorySelect').insertAdjacentHTML('beforeend', `<option value="${esc(category)}">${esc(category)}</option>`));
   $$('.nav-item').forEach(button => button.onclick = () => showView(button.dataset.view)); $$('[data-go]').forEach(button => button.onclick = () => showView(button.dataset.go));
   $('#menuBtn').onclick = () => $('#sidebar').classList.toggle('open');
-  $('#fillCourtsBtn').onclick = fillCourts;
   $('#scheduleCategory').onchange = renderSchedule; $('#scheduleStatus').onchange = renderSchedule; $('#scheduleSearch').oninput = renderSchedule;
   $('#quickScoreBtn').onclick = () => { const next = state.matches.find(m => m.wave === state.currentWave && !isComplete(m.id)) || state.matches.find(m => !isComplete(m.id)); next ? openScore(next.id) : toast('All round-robin results are complete.'); };
   $('#seedMedalsBtn').onclick = seedMedals; $('#printBtn').onclick = () => window.print(); $('#exportBtn').onclick = exportBackup; $('#importInput').onchange = event => { if (event.target.files[0]) importBackup(event.target.files[0]); event.target.value = ''; };
@@ -366,8 +495,9 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishControl, pu
   $('#assignRefereeBtn').onclick = () => { const email = $('#refereeEmail').value.trim().toLowerCase(), matchId = $('#refereeMatch').value; if (!email || !matchId) return toast('Choose a match and enter a referee email.'); state.refereeAssignments[matchId] = email; saveState(); renderSettings(); toast('Referee assigned.'); };
   $('#staffAccessBtn').onclick = async () => { const email = $('#staffAccessEmail').value.trim().toLowerCase(), role = $('#staffAccessRole').value, enabled = $('#staffAccessAction').value === 'grant'; if (!email) return toast('Enter the staff member’s website account email.'); $('#staffAccessBtn').disabled = true; try { await changeTournamentStaffRole(email, role, enabled); $('#staffAccessEmail').value = ''; await renderTournamentStaff(); toast(enabled ? 'Tournament access granted.' : 'Tournament access removed.'); } catch (error) { alert(error.message === 'NO_ACCOUNT' ? 'No OCPC website account uses that email yet. The staff member must create an account first.' : 'Only a site administrator can change tournament staff access.'); } finally { $('#staffAccessBtn').disabled = false; } };
   $('#applyPairCountsBtn').onclick = applyPairCounts;
+  $('#saveDreamBreakerBtn').onclick = saveDreamBreakerSetup;
   $('#cloudSessionBtn').onclick = () => logout();
-  $('#resetBtn').onclick = async () => { if (!confirm('Permanently reset every roster, score, timer, queue position, court assignment, referee assignment, check-in, standing, and medal result for this event?')) return; $('#resetBtn').disabled = true; try { if (cloudUser) await clearMatches(); state = freshState(); localStorage.removeItem(config.storageKey); saveState(); if (cloudUser) await publishControl(state); renderAll(); toast('Tournament and all cloud match data reset.'); } catch (_) { alert('The reset did not fully complete. Check your connection and try again.'); } finally { $('#resetBtn').disabled = false; } };
+  $('#resetBtn').onclick = async () => { if (!confirm('Reset all match-day results, timers, queues, court assignments, officials, check-ins, standings, medal results, and Dream Breaker data? Retained player registrations will stay saved and repopulate Teams.')) return; $('#resetBtn').disabled = true; try { if (cloudUser) await Promise.all([clearMatches(), clearCheckins()]); state = freshState(); hydrateRegisteredTeams(false); localStorage.removeItem(config.storageKey); saveState(); if (cloudUser) await publishControl(state); renderAll(); toast('Event data reset. Registered teams restored.'); } catch (_) { alert('The reset did not fully complete. Check your connection and try again.'); } finally { $('#resetBtn').disabled = false; } };
   $('#modalClose').onclick = closeScore; $('#scoreModal').onclick = event => { if (event.target === $('#scoreModal')) closeScore(); }; $('#saveScoreBtn').onclick = saveScore; $('#clearScoreBtn').onclick = clearScore;
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#scoreModal').hidden) closeScore(); });
   window.addEventListener('storage', event => { if (event.key !== config.storageKey || !event.newValue) return; try { state = JSON.parse(event.newValue); renderAll(); } catch (_) {} });

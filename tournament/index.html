@@ -27,9 +27,10 @@
         <button class="nav-item" data-view="courts"><span>02</span>Live Courts</button>
         <button class="nav-item" data-view="schedule"><span>03</span>Schedule & Scores</button>
         <button class="nav-item" data-view="standings"><span>04</span>Standings</button>
-        <button class="nav-item" data-view="teams"><span>05</span>Teams</button>
-        <button class="nav-item" data-view="medals"><span>06</span>Medal Round</button>
-        <button class="nav-item" data-view="settings"><span>07</span>Settings</button>
+        <button class="nav-item" data-view="dream"><span>05</span>Dream Breaker</button>
+        <button class="nav-item" data-view="teams"><span>06</span>Teams</button>
+        <button class="nav-item" data-view="medals"><span>07</span>Medal Round</button>
+        <button class="nav-item" data-view="settings"><span>08</span>Settings</button>
       </nav>
       <div class="sidebar-foot">
         <div class="sync-dot"></div><span>Firebase live sync</span>
@@ -65,8 +66,8 @@
       </section>
 
       <section class="view" id="view-courts">
-        <div class="page-head"><div><span class="eyebrow dark">Rolling match control</span><h1>Live Courts</h1><p>When a court opens, send the next eligible match or choose one manually.</p></div><button class="btn btn-primary" id="fillCourtsBtn">Fill available courts</button></div>
-        <div class="live-desk-layout"><div class="court-grid" id="courtGrid"></div><aside class="queue-panel"><div class="panel-head"><div><span class="section-label">Dispatch order</span><h2>Waiting queue</h2></div><span class="queue-count" id="queueCount"></span></div><p class="queue-help">Move any match up or down. The first eligible match goes to the next free court.</p><div class="dispatch-queue" id="dispatchQueue"></div></aside></div>
+        <div class="page-head"><div><span class="eyebrow dark">Live schedule control</span><h1>Live Court Calendar</h1><p>Each court's live controls and aligned schedule are now one workspace. Vacate a completed court, then promote its next scheduled match when ready.</p></div></div>
+        <section class="court-timeline-panel"><div class="panel-head"><div><span class="section-label">Live courts & planned flow</span><h2>Matchday calendar</h2></div><div class="timeline-key"><span><i class="schedule-safe"></i>On time / ahead</span><span><i class="schedule-warn"></i>Delayed</span><span><i class="schedule-conflict"></i>Relevant conflict</span></div></div><p class="queue-help">Drag scheduled cards between aligned court/time cells. Player warnings appear only when the slot is close enough to affect current operations.</p><div class="calendar-scroll"><div class="calendar-stage" id="courtTimeline"></div></div></section>
         <div class="control-strip"><div><span class="section-label">Court desk note</span><p id="scoringNote"></p></div><div class="timer-legend"><span><i class="timer-safe"></i>Under 9 min</span><span><i class="timer-warn"></i>9-14 min</span><span><i class="timer-danger"></i>Final minute / overtime</span></div></div>
       </section>
 
@@ -78,7 +79,14 @@
 
       <section class="view" id="view-standings">
         <div class="page-head"><div><span class="eyebrow dark">Live calculations</span><h1>Standings</h1><p>Ranked by wins, point differential, then points scored within each club.</p></div></div>
+        <div id="clubStandings"></div>
         <div class="category-tabs" id="standingsTabs"></div><div class="standings-grid" id="standingsGrid"></div>
+        <div id="dreamBreakerSummary"></div>
+      </section>
+
+      <section class="view" id="view-dream">
+        <div class="page-head"><div><span class="eyebrow dark">Optional club decider</span><h1>Dream Breaker</h1><p>Dedicated rally-scoring desk with automatic four-rally player-switch reminders.</p></div></div>
+        <div id="dreamBreakerBoard"></div>
       </section>
 
       <section class="view" id="view-teams">
@@ -97,10 +105,11 @@
           <article class="panel"><span class="section-label">White label</span><h2>Brand configuration</h2><p>Event name, organizer, club names, colors, logo, courts, and categories are isolated in <code>tournament/config.js</code>.</p><div class="config-list" id="configList"></div></article>
           <article class="panel"><span class="section-label">Data portability</span><h2>Backup and restore</h2><p>Use a JSON backup to move the live tournament state between devices.</p><div class="stack-actions"><button class="btn btn-primary" id="exportBtn">Export backup</button><label class="btn btn-quiet file-btn">Import backup<input id="importInput" type="file" accept="application/json"></label></div></article>
           <article class="panel"><span class="section-label">Draw structure</span><h2>Pairs per category</h2><p>Add or remove pairs for either club. Applying a change regenerates the round-robin draw because every pair must face every opposing pair.</p><div class="stack-form" id="pairCountSettings"></div><button class="btn btn-primary" id="applyPairCountsBtn">Apply and regenerate draw</button></article>
+          <article class="panel"><span class="section-label">Optional decider</span><h2>Dream Breaker</h2><p>Enable only if time permits and choose the rally-score target. Player combinations are decided by the team captains during play; the scoring tab provides switch reminders every four rallies.</p><div class="stack-form"><label class="setting-check"><input id="dreamBreakerEnabled" type="checkbox"> Enable Dream Breaker</label><label>Winning target<input id="dreamBreakerTarget" type="number" min="1" max="200" value="52"></label><button class="btn btn-primary" id="saveDreamBreakerBtn" type="button">Save Dream Breaker setup</button></div></article>
           <article class="panel"><span class="section-label">Officials</span><h2>Referee assignments</h2><p>Assign an email to a match. That official will see it after signing in to the referee view.</p><div class="stack-form"><input id="refereeEmail" type="email" placeholder="referee@email.com"><select id="refereeMatch"></select><button class="btn btn-primary" id="assignRefereeBtn">Assign referee</button></div><div class="config-list" id="refereeList"></div></article>
           <article class="panel"><span class="section-label">Security</span><h2>Tournament staff access</h2><p>Grant a role to an existing OCPC website account. Registration, Check-In, and Score Kiosk access can be separated; Match Control grants the full tournament desk.</p><div class="stack-form"><input id="staffAccessEmail" type="email" placeholder="Staff website account email"><select id="staffAccessRole"><option value="tournament_registration">Registration Desk</option><option value="tournament_checkin">Player Check-In</option><option value="tournament_score_desk">Score Kiosk</option><option value="match_control">Full Match Control</option></select><select id="staffAccessAction"><option value="grant">Grant access</option><option value="remove">Remove access</option></select><button class="btn btn-primary" id="staffAccessBtn">Update staff access</button></div><div class="config-list" id="tournamentStaffList"></div></article>
           <article class="panel"><span class="section-label">Field apps</span><h2>Dedicated views</h2><p>Open purpose-built screens for registration, officials, spectators, and unattended matches.</p><div class="stack-actions"><a class="btn btn-primary" href="registration/">Player registration</a><a class="btn btn-quiet" href="check-in/">Player check-in</a><a class="btn btn-quiet" href="referee/">Referee app</a><a class="btn btn-quiet" href="score-kiosk/">Score kiosk</a><a class="btn btn-quiet" href="broadcast/">Live broadcast</a></div></article>
-          <article class="panel danger-panel"><span class="section-label">Danger zone</span><h2>Reset tournament</h2><p>Clear all cloud and local rosters, scores, timers, queues, court assignments, officials, check-ins, standings, and medal results.</p><button class="btn btn-danger" id="resetBtn">Reset all event data</button></article>
+          <article class="panel danger-panel"><span class="section-label">Danger zone</span><h2>Reset tournament</h2><p>Clear scores, timers, queues, court assignments, officials, check-ins, standings, and medal results. Retained Player Registration records will automatically repopulate Teams.</p><button class="btn btn-danger" id="resetBtn">Reset all event data</button></article>
         </div>
       </section>
     </main>

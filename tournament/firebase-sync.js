@@ -7,7 +7,7 @@ const firebaseConfig = {
 };
 const eventId = window.TOURNAMENT_CONFIG.firebaseEventId;
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournamentEvents', eventId), matchesRef = collection(db, 'tournamentEvents', eventId, 'matches'), registrationsRef = collection(db, 'tournamentEvents', eventId, 'registrations');
+const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournamentEvents', eventId), matchesRef = collection(db, 'tournamentEvents', eventId, 'matches'), registrationsRef = collection(db, 'tournamentEvents', eventId, 'registrations'), checkinsRef = collection(db, 'tournamentEvents', eventId, 'checkins');
 
 export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
 export function login(email, password) { return signInWithEmailAndPassword(auth, email, password); }
@@ -15,6 +15,8 @@ export function logout() { return signOut(auth); }
 export function watchControl(onData, onError) { return onSnapshot(controlRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
 export function watchMatches(onData, onError) { return onSnapshot(matchesRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
 export function watchRegistrations(onData, onError) { return onSnapshot(registrationsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
+export function watchCheckins(onData, onError) { return onSnapshot(checkinsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
+export function publishCheckin(id, data) { return setDoc(doc(checkinsRef, id), { ...structuredClone(data), updatedAt: serverTimestamp() }, { merge: true }); }
 export function createRegistration(data) { return addDoc(registrationsRef, { ...structuredClone(data), createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); }
 export function updateRegistration(id, data) { return updateDoc(doc(registrationsRef, id), { ...structuredClone(data), updatedAt: serverTimestamp() }); }
 export function deleteRegistration(id) { return deleteDoc(doc(registrationsRef, id)); }
@@ -50,4 +52,7 @@ export async function clearMatches() {
     snapshot.docs.slice(offset, offset + 450).forEach(item => batch.delete(item.ref));
     await batch.commit();
   }
+}
+export async function clearCheckins() {
+  const snapshot = await getDocs(checkinsRef), batch = writeBatch(db); snapshot.docs.forEach(item => batch.delete(item.ref)); if (!snapshot.empty) await batch.commit();
 }
