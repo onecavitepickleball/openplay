@@ -1,4 +1,4 @@
-import { watchAuth, login, logout, watchControl, watchMatches, publishControl, publishMatch, deleteMatch, clearMatches } from './firebase-sync.js';
+import { watchAuth, login, logout, watchControl, watchMatches, publishControl, publishMatch, deleteMatch, clearMatches, listTournamentStaff, changeTournamentStaffRole } from './firebase-sync.js';
 
 (() => {
   'use strict';
@@ -96,13 +96,22 @@ import { watchAuth, login, logout, watchControl, watchMatches, publishControl, p
     const matches = generateSchedule(pairCounts);
     return { version: 3, pairCounts, currentWave: 1, matches, queue: matches.map(m => m.id), courts: emptyCourts(), scores: {}, scoreAudit: [], refereeAssignments: {}, checkins: {}, pairs: emptyPairs(pairCounts), medals: blankMedals(), updatedAt: new Date().toISOString() };
   }
+  function normalizeState(incoming) {
+    const normalized = { ...freshState(incoming?.pairCounts || defaultPairCounts()), ...(incoming || {}) };
+    normalized.courts = { ...emptyCourts(), ...(normalized.courts || {}) }; normalized.scores ||= {}; normalized.scoreAudit ||= []; normalized.refereeAssignments ||= {}; normalized.checkins ||= {}; normalized.pairs = { ...emptyPairs(normalized.pairCounts), ...(normalized.pairs || {}) }; normalized.medals = { ...blankMedals(), ...(normalized.medals || {}) };
+    const validIds = new Set(normalized.matches.map(match => match.id)), assigned = new Set(Object.values(normalized.courts).map(court => court.matchId).filter(Boolean));
+    const preserved = Array.isArray(normalized.queue) ? normalized.queue.filter((id, index, list) => validIds.has(id) && list.indexOf(id) === index && !assigned.has(id) && !(normalized.scores[id]?.a !== '' && normalized.scores[id]?.a !== undefined && normalized.scores[id]?.b !== '' && normalized.scores[id]?.b !== undefined)) : [];
+    const missing = normalized.matches.filter(match => !preserved.includes(match.id) && !assigned.has(match.id) && !(normalized.scores[match.id]?.a !== '' && normalized.scores[match.id]?.a !== undefined && normalized.scores[match.id]?.b !== '' && normalized.scores[match.id]?.b !== undefined)).map(match => match.id);
+    normalized.queue = [...preserved, ...missing]; normalized.version = 4;
+    return normalized;
+  }
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(config.storageKey));
       if (saved?.pairCounts && saved?.matches?.length === totalMatchCount(saved.pairCounts) && saved.pairs && saved.scores) {
         saved.queue ||= saved.matches.filter(m => !saved.scores[m.id]).map(m => m.id);
         saved.courts ||= emptyCourts(); saved.scoreAudit ||= []; saved.refereeAssignments ||= {}; saved.checkins ||= {}; saved.version = 3;
-        return saved;
+        return normalizeState(saved);
       }
     } catch (_) {}
     return freshState();
@@ -261,8 +270,15 @@ import { watchAuth, login, logout, watchControl, watchMatches, publishControl, p
   function renderMedals() {
     const category = medalCategory, index = config.categories.indexOf(category), medal = state.medals[category], sf1 = medalResult(medal.sf1), sf2 = medalResult(medal.sf2), high = index === 2;
     const bronzeA = sf1.loser, bronzeB = sf2.loser, finalA = sf1.winner, finalB = sf2.winner;
-    $('#medalBoard').innerHTML = `<article class="playoff-bracket"><header><span class="section-label">Playoff bracket</span><h2>${esc(category)}</h2><p>Semifinal winners advance to the championship. Losing pairs play for bronze.</p></header><div class="playoff-grid"><section class="playoff-stage"><h3>Semifinals</h3>${bracketMatch(category, 'sf1', 'Semifinal 1', '3:30 PM', index * 2 + 1, medal.sf1.a, medal.sf1.b, medal.sf1)}${bracketMatch(category, 'sf2', 'Semifinal 2', high ? '3:45 PM' : '3:30 PM', high ? 1 : index * 2 + 2, medal.sf2.a, medal.sf2.b, medal.sf2)}</section><div class="bracket-connector" aria-hidden="true"></div><section class="playoff-stage medal-stage"><h3>Medal matches</h3>${bracketMatch(category, 'final', 'Championship', high ? '4:15 PM' : '4:00 PM', index * 2 + 2 > 5 ? 2 : index * 2 + 2, finalA, finalB, medal.final)}<span class="bronze-label">Battle for third</span>${bracketMatch(category, 'bronze', 'Bronze medal', high ? '4:15 PM' : '4:00 PM', index * 2 + 1 > 5 ? 1 : index * 2 + 1, bronzeA, bronzeB, medal.bronze)}</section></div></article>`;
+    const finalResult = medalResult({ a: finalA, b: finalB, scoreA: medal.final.scoreA, scoreB: medal.final.scoreB }), bronzeResult = medalResult({ a: bronzeA, b: bronzeB, scoreA: medal.bronze.scoreA, scoreB: medal.bronze.scoreB });
+    const podium = (place, code, tone) => `<div class="podium-card ${tone}"><span>${place}</span><strong>${esc(code || 'TBD')}</strong><small>${code ? esc(pairNames(category, code)) : 'Awaiting medal results'}</small></div>`;
+    $('#medalBoard').innerHTML = `<article class="playoff-bracket"><header><div><span class="section-label">Championship pathway</span><h2>${esc(category)}</h2><p>Cross-club semifinals feed the championship and battle for third.</p></div><div class="bracket-key"><span>Semifinals</span><b>→</b><span>Medal matches</span></div></header><div class="podium-preview">${podium('Silver', finalResult.loser, 'silver')}${podium('Champion', finalResult.winner, 'gold')}${podium('Bronze', bronzeResult.winner, 'bronze')}</div><div class="playoff-grid"><section class="playoff-stage"><h3>Semifinals</h3>${bracketMatch(category, 'sf1', 'Semifinal 1', '3:30 PM', index * 2 + 1, medal.sf1.a, medal.sf1.b, medal.sf1)}${bracketMatch(category, 'sf2', 'Semifinal 2', high ? '3:45 PM' : '3:30 PM', high ? 1 : index * 2 + 2, medal.sf2.a, medal.sf2.b, medal.sf2)}</section><div class="bracket-connector" aria-hidden="true"></div><section class="playoff-stage medal-stage"><h3>Medal matches</h3>${bracketMatch(category, 'final', 'Championship', high ? '4:15 PM' : '4:00 PM', index * 2 + 2 > 5 ? 2 : index * 2 + 2, finalA, finalB, medal.final)}<span class="bronze-label">Battle for third</span>${bracketMatch(category, 'bronze', 'Bronze medal', high ? '4:15 PM' : '4:00 PM', index * 2 + 1 > 5 ? 1 : index * 2 + 1, bronzeA, bronzeB, medal.bronze)}</section></div></article>`;
     $$('[data-medal-category]').forEach(input => input.onchange = () => { const match = state.medals[input.dataset.medalCategory][input.dataset.medalMatch]; match[input.dataset.medalSide] = input.value === '' ? '' : Number(input.value); saveState(); renderMedals(); });
+  }
+  async function renderTournamentStaff() {
+    const list = $('#tournamentStaffList'); if (!list) return;
+    try { const staff = await listTournamentStaff(); list.innerHTML = staff.length ? staff.map(person => { const roles = Array.isArray(person.roles) ? person.roles : [person.role].filter(Boolean); return `<div class="config-row"><span>${esc(person.email || `${person.firstName || ''} ${person.lastName || ''}`)}</span><b>${roles.filter(role => role.startsWith('tournament_') || role === 'match_control').map(role => ({match_control:'Match Control',tournament_registration:'Registration',tournament_checkin:'Check-In',tournament_score_desk:'Score Kiosk'}[role])).filter(Boolean).join(', ')}</b></div>`; }).join('') : '<div class="config-row"><span>No tournament staff assigned</span></div>'; }
+    catch (_) { list.innerHTML = '<div class="config-row"><span>Only an administrator can view and change staff access.</span></div>'; }
   }
   function renderSettings() {
     $('#configList').innerHTML = [['Organizer', config.brand.organizer], ['Event', config.event.name], ['Venue', `${config.event.venue}, ${config.event.location}`], ['Courts', config.event.courts], ['Categories', config.categories.join(', ')], ['Storage', 'Firebase live sync with local cache']].map(([a, b]) => `<div class="config-row"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join('');
@@ -270,6 +286,7 @@ import { watchAuth, login, logout, watchControl, watchMatches, publishControl, p
     $('#refereeMatch').innerHTML = state.matches.filter(m => !isComplete(m.id)).map(m => `<option value="${m.id}">${m.id} · ${displayPair(m.category,m.a)} vs ${displayPair(m.category,m.b)}</option>`).join('');
     $('#refereeList').innerHTML = assignedIds.length ? assignedIds.map(id => `<div class="config-row"><span>${id}</span><b>${esc(state.refereeAssignments[id])}</b></div>`).join('') : '<div class="config-row"><span>No referees assigned yet</span></div>';
     $('#pairCountSettings').innerHTML = config.categories.map(category => `<label>${esc(category)}<input type="number" min="2" max="12" value="${pairCount(category)}" data-pair-count="${esc(category)}"></label>`).join('');
+    renderTournamentStaff();
   }
   function renderAll() { const total = totalMatchCount(); $('#heroMatchCount').textContent = total; $('#scheduleMatchCount').textContent = `All ${total} matches`; renderOverview(); renderCourts(); renderSchedule(); renderStandings(); renderTeams(); renderMedals(); renderSettings(); }
   function changeWave(delta) { const waves = Math.ceil(totalMatchCount() / config.event.courts); state.currentWave = Math.max(1, Math.min(waves, state.currentWave + delta)); saveState(); renderOverview(); renderCourts(); }
@@ -329,7 +346,7 @@ import { watchAuth, login, logout, watchControl, watchMatches, publishControl, p
       cloudUser = user;
       if (!user) return showCloudGate();
       $('#cloudGate')?.remove();
-      watchControl(incoming => { if (!incoming) { publishControl(state).catch(() => showCloudGate('Your account cannot initialize this event.')); return; } cloudApplying = true; state = { ...incoming, liveScoring: state.liveScoring || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => showCloudGate('Your account does not have Match Control access.'));
+      watchControl(incoming => { if (!incoming) { publishControl(state).catch(() => showCloudGate('Your account cannot initialize this event.')); return; } cloudApplying = true; state = { ...normalizeState(incoming), liveScoring: state.liveScoring || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => showCloudGate('Your account does not have Match Control access.'));
       $('#cloudSessionBtn').textContent = 'Sign out'; $('#cloudSessionBtn').title = `Signed in as ${user.email}`;
       watchMatches(items => { cloudApplying = true; state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => toast('Live match feed unavailable.'));
     });
@@ -346,6 +363,7 @@ import { watchAuth, login, logout, watchControl, watchMatches, publishControl, p
   $('#seedMedalsBtn').onclick = seedMedals; $('#printBtn').onclick = () => window.print(); $('#exportBtn').onclick = exportBackup; $('#importInput').onchange = event => { if (event.target.files[0]) importBackup(event.target.files[0]); event.target.value = ''; };
   $('#medalCategorySelect').onchange = event => { medalCategory = event.target.value; renderMedals(); };
   $('#assignRefereeBtn').onclick = () => { const email = $('#refereeEmail').value.trim().toLowerCase(), matchId = $('#refereeMatch').value; if (!email || !matchId) return toast('Choose a match and enter a referee email.'); state.refereeAssignments[matchId] = email; saveState(); renderSettings(); toast('Referee assigned.'); };
+  $('#staffAccessBtn').onclick = async () => { const email = $('#staffAccessEmail').value.trim().toLowerCase(), role = $('#staffAccessRole').value, enabled = $('#staffAccessAction').value === 'grant'; if (!email) return toast('Enter the staff member’s website account email.'); $('#staffAccessBtn').disabled = true; try { await changeTournamentStaffRole(email, role, enabled); $('#staffAccessEmail').value = ''; await renderTournamentStaff(); toast(enabled ? 'Tournament access granted.' : 'Tournament access removed.'); } catch (error) { alert(error.message === 'NO_ACCOUNT' ? 'No OCPC website account uses that email yet. The staff member must create an account first.' : 'Only a site administrator can change tournament staff access.'); } finally { $('#staffAccessBtn').disabled = false; } };
   $('#applyPairCountsBtn').onclick = applyPairCounts;
   $('#cloudSessionBtn').onclick = () => logout();
   $('#resetBtn').onclick = async () => { if (!confirm('Permanently reset every roster, score, timer, queue position, court assignment, referee assignment, check-in, standing, and medal result for this event?')) return; $('#resetBtn').disabled = true; try { if (cloudUser) await clearMatches(); state = freshState(); localStorage.removeItem(config.storageKey); saveState(); if (cloudUser) await publishControl(state); renderAll(); toast('Tournament and all cloud match data reset.'); } catch (_) { alert('The reset did not fully complete. Check your connection and try again.'); } finally { $('#resetBtn').disabled = false; } };

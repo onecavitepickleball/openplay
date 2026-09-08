@@ -403,11 +403,20 @@ service cloud.firestore {
     // match document explicitly assigned to their authenticated email.
     match /tournamentEvents/{eventId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
+      allow create, delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
+      allow update: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || (
+        hasRole('tournament_registration')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'updatedAt'])
+        && request.resource.data.state.diff(resource.data.state).affectedKeys().hasOnly(['pairs', 'updatedAt'])
+      ) || (
+        hasRole('tournament_checkin')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'updatedAt'])
+        && request.resource.data.state.diff(resource.data.state).affectedKeys().hasOnly(['checkins', 'updatedAt'])
+      );
 
       match /matches/{matchId} {
         allow read: if request.auth != null;
-        allow create, update: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || (
+        allow create, update: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_score_desk') || (
           request.auth != null
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.state.refereeAssignments[matchId] == request.auth.token.email
         );
@@ -418,7 +427,7 @@ service cloud.firestore {
       // DUPR IDs. Only tournament operations staff may access them. Public-
       // safe names and thumbnails are copied into the event state at check-in.
       match /registrations/{registrationId} {
-        allow read, create, update, delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
+        allow read, create, update, delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_registration') || hasRole('tournament_checkin');
       }
     }
   }

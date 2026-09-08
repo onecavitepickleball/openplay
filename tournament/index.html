@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="theme.css?v=20260908-3">
   <link rel="stylesheet" href="rolling.css">
 </head>
 <body>
@@ -96,6 +96,7 @@
           <article class="panel"><span class="section-label">Data portability</span><h2>Backup and restore</h2><p>Use a JSON backup to move the live tournament state between devices.</p><div class="stack-actions"><button class="btn btn-primary" id="exportBtn">Export backup</button><label class="btn btn-quiet file-btn">Import backup<input id="importInput" type="file" accept="application/json"></label></div></article>
           <article class="panel"><span class="section-label">Draw structure</span><h2>Pairs per category</h2><p>Add or remove pairs for either club. Applying a change regenerates the round-robin draw because every pair must face every opposing pair.</p><div class="stack-form" id="pairCountSettings"></div><button class="btn btn-primary" id="applyPairCountsBtn">Apply and regenerate draw</button></article>
           <article class="panel"><span class="section-label">Officials</span><h2>Referee assignments</h2><p>Assign an email to a match. That official will see it after signing in to the referee view.</p><div class="stack-form"><input id="refereeEmail" type="email" placeholder="referee@email.com"><select id="refereeMatch"></select><button class="btn btn-primary" id="assignRefereeBtn">Assign referee</button></div><div class="config-list" id="refereeList"></div></article>
+          <article class="panel"><span class="section-label">Security</span><h2>Tournament staff access</h2><p>Grant a role to an existing OCPC website account. Registration, Check-In, and Score Kiosk access can be separated; Match Control grants the full tournament desk.</p><div class="stack-form"><input id="staffAccessEmail" type="email" placeholder="Staff website account email"><select id="staffAccessRole"><option value="tournament_registration">Registration Desk</option><option value="tournament_checkin">Player Check-In</option><option value="tournament_score_desk">Score Kiosk</option><option value="match_control">Full Match Control</option></select><select id="staffAccessAction"><option value="grant">Grant access</option><option value="remove">Remove access</option></select><button class="btn btn-primary" id="staffAccessBtn">Update staff access</button></div><div class="config-list" id="tournamentStaffList"></div></article>
           <article class="panel"><span class="section-label">Field apps</span><h2>Dedicated views</h2><p>Open purpose-built screens for registration, officials, spectators, and unattended matches.</p><div class="stack-actions"><a class="btn btn-primary" href="registration/">Player registration</a><a class="btn btn-quiet" href="check-in/">Player check-in</a><a class="btn btn-quiet" href="referee/">Referee app</a><a class="btn btn-quiet" href="score-kiosk/">Score kiosk</a><a class="btn btn-quiet" href="broadcast/">Live broadcast</a></div></article>
           <article class="panel danger-panel"><span class="section-label">Danger zone</span><h2>Reset tournament</h2><p>Clear all cloud and local rosters, scores, timers, queues, court assignments, officials, check-ins, standings, and medal results.</p><button class="btn btn-danger" id="resetBtn">Reset all event data</button></article>
         </div>
@@ -112,6 +113,6 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status"></div>
-  <script src="config.js"></script><script type="module" src="app.js"></script>
+  <script src="config.js"></script><script type="module" src="app.js?v=20260908-3"></script>
 </body>
 </html>
