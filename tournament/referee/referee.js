@@ -114,8 +114,8 @@ import { watchAuth, login, watchControl, watchMatches, publishMatch } from '../f
     cloudUser = user;
     if (!user) return;
     email = user.email.toLowerCase(); $('#officialEmail').value = email; $('#loginError').textContent = '';
-    watchControl(incoming => { if (!incoming) return; const local = load(); state = { ...incoming, liveScoring: local?.liveScoring || {}, scores: { ...(incoming.scores || {}), ...(local?.scores || {}) } }; localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => { $('#loginError').textContent = 'This account cannot access the private tournament.'; });
-    watchMatches(items => { state ||= load(); state.liveScoring ||= {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => toast('Live match sync unavailable.'));
+    watchControl(incoming => { if (!incoming) return; const local = load(); state = { ...incoming, liveScoring: local?.liveScoring || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => { $('#loginError').textContent = 'This account cannot access the private tournament.'; });
+    watchMatches(items => { state ||= load(); state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => toast('Live match sync unavailable.'));
   });
   window.addEventListener('storage', () => { if (!email) return; activeId ? renderScorekeeper() : renderAssignments(); });
 })();

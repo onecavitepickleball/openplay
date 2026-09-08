@@ -1,4 +1,4 @@
-import { watchAuth, login, watchControl, watchMatches, publishControl, publishMatch } from './firebase-sync.js';
+import { watchAuth, login, logout, watchControl, watchMatches, publishControl, publishMatch, deleteMatch, clearMatches } from './firebase-sync.js';
 
 (() => {
   'use strict';
@@ -107,7 +107,7 @@ import { watchAuth, login, watchControl, watchMatches, publishControl, publishMa
     } catch (_) {}
     return freshState();
   }
-  let state = loadState(), activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer;
+  let state = loadState(), activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer;
   function saveState() { state.updatedAt = new Date().toISOString(); localStorage.setItem(config.storageKey, JSON.stringify(state)); if (cloudUser && !cloudApplying) { clearTimeout(cloudSaveTimer); cloudSaveTimer = setTimeout(() => publishControl(state).catch(() => toast('Cloud sync failed. Check Firebase access.')), 180); } }
   function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2200); }
   function pairData(category, code) { return state.pairs[`${category}|${code}`] || { player1: '', player2: '' }; }
@@ -201,7 +201,10 @@ import { watchAuth, login, watchControl, watchMatches, publishControl, publishMa
     const seconds = elapsedSeconds(state.liveScoring?.[court.matchId] || court);
     const timerWarning = seconds > 0 ? ` The court timer is at ${timerText(seconds)} and will be reset.` : '';
     if (!confirm(`Return ${court.matchId} from Court ${courtNo} to the queue?${timerWarning}`)) return;
-    if (!isComplete(court.matchId)) state.queue.unshift(court.matchId);
+    const releasedId = court.matchId;
+    if (!isComplete(releasedId)) state.queue.unshift(releasedId);
+    delete state.liveScoring?.[releasedId];
+    if (cloudUser) deleteMatch(releasedId).catch(() => toast('Returned locally, but cloud timer cleanup failed.'));
     state.courts[courtNo] = { matchId: '', running: false, startedAt: null, elapsed: 0 };
     saveState(); renderAll();
   }
@@ -214,7 +217,8 @@ import { watchAuth, login, watchControl, watchMatches, publishControl, publishMa
     });
     $('#scheduleBody').innerHTML = rows.map(match => {
       const score = scoreFor(match.id), done = isComplete(match.id);
-      return `<tr><td>${match.id}</td><td>Priority ${state.queue.indexOf(match.id) + 1}</td><td>${match.court}</td><td>${esc(match.category)}</td><td class="table-pair"><b>${displayPair(match.category, match.a)}</b><small>${esc(pairNames(match.category, match.a))}</small></td><td><button class="score-link ${done ? 'done' : ''}" data-score-id="${match.id}">${done ? `${score.a}-${score.b}` : '— : —'}</button></td><td class="table-pair"><b>${displayPair(match.category, match.b)}</b><small>${esc(pairNames(match.category, match.b))}</small></td><td><span class="status ${done ? 'complete' : ''}">${done ? 'Complete' : 'Pending'}</span></td></tr>`;
+      const queueIndex = state.queue.indexOf(match.id);
+      return `<tr><td>${match.id}</td><td><b>${match.time}</b><small class="table-priority">${queueIndex >= 0 ? `Queue priority ${queueIndex + 1}` : done ? 'Completed' : 'On court'}</small></td><td>${match.court}</td><td>${esc(match.category)}</td><td class="table-pair"><b>${displayPair(match.category, match.a)}</b><small>${esc(pairNames(match.category, match.a))}</small></td><td><button class="score-link ${done ? 'done' : ''}" data-score-id="${match.id}">${done ? `${score.a}-${score.b}` : '— : —'}</button></td><td class="table-pair"><b>${displayPair(match.category, match.b)}</b><small>${esc(pairNames(match.category, match.b))}</small></td><td><span class="status ${done ? 'complete' : ''}">${done ? 'Complete' : 'Pending'}</span></td></tr>`;
     }).join('') || `<tr><td colspan="8">No matches found.</td></tr>`;
     bindScoreButtons();
   }
@@ -250,18 +254,18 @@ import { watchAuth, login, watchControl, watchMatches, publishControl, publishMa
     }); saveState(); renderMedals(); toast('Medal brackets seeded from current standings.');
   }
   function bracketMatch(category, key, label, time, court, a, b, scores) {
-    return `<div class="bracket-meta"><span>${label}</span><span>${time} · Court ${court}</span></div><div class="bracket-match"><label class="bracket-side"><span>${esc(a || 'TBD')}</span><input type="number" min="0" max="17" data-medal-category="${esc(category)}" data-medal-match="${key}" data-medal-side="scoreA" value="${scores.scoreA}"></label><label class="bracket-side"><span>${esc(b || 'TBD')}</span><input type="number" min="0" max="17" data-medal-category="${esc(category)}" data-medal-match="${key}" data-medal-side="scoreB" value="${scores.scoreB}"></label></div>`;
+    const result = medalResult({ a, b, scoreA: scores.scoreA, scoreB: scores.scoreB });
+    const side = (code, score, scoreKey) => `<label class="bracket-side ${result.winner === code && code ? 'winner' : ''}"><span><b>${esc(code || 'TBD')}</b><small>${code ? esc(pairNames(category, code)) : 'Awaiting semifinal'}</small></span><input type="number" min="0" max="17" data-medal-category="${esc(category)}" data-medal-match="${key}" data-medal-side="${scoreKey}" value="${score}"></label>`;
+    return `<article class="playoff-match"><div class="bracket-meta"><span>${label}</span><span>${time} · Court ${court}</span></div><div class="bracket-match">${side(a, scores.scoreA, 'scoreA')}${side(b, scores.scoreB, 'scoreB')}</div></article>`;
   }
   function renderMedals() {
-    $('#medalBoard').innerHTML = config.categories.map((category, index) => {
-      const medal = state.medals[category], sf1 = medalResult(medal.sf1), sf2 = medalResult(medal.sf2), high = index === 2;
-      const bronzeA = sf1.loser, bronzeB = sf2.loser, finalA = sf1.winner, finalB = sf2.winner;
-      return `<article class="bracket"><span class="section-label">Category ${index + 1}</span><h2>${esc(category)}</h2><div class="bracket-stage">Semifinals</div>${bracketMatch(category, 'sf1', 'SF1', '3:30 PM', index * 2 + 1, medal.sf1.a, medal.sf1.b, medal.sf1)}${bracketMatch(category, 'sf2', 'SF2', high ? '3:45 PM' : '3:30 PM', high ? 1 : index * 2 + 2, medal.sf2.a, medal.sf2.b, medal.sf2)}<div class="bracket-stage">Medal matches</div>${bracketMatch(category, 'bronze', 'Bronze', high ? '4:15 PM' : '4:00 PM', index * 2 + 1 > 5 ? 1 : index * 2 + 1, bronzeA, bronzeB, medal.bronze)}${bracketMatch(category, 'final', 'Final', high ? '4:15 PM' : '4:00 PM', index * 2 + 2 > 5 ? 2 : index * 2 + 2, finalA, finalB, medal.final)}</article>`;
-    }).join('');
+    const category = medalCategory, index = config.categories.indexOf(category), medal = state.medals[category], sf1 = medalResult(medal.sf1), sf2 = medalResult(medal.sf2), high = index === 2;
+    const bronzeA = sf1.loser, bronzeB = sf2.loser, finalA = sf1.winner, finalB = sf2.winner;
+    $('#medalBoard').innerHTML = `<article class="playoff-bracket"><header><span class="section-label">Playoff bracket</span><h2>${esc(category)}</h2><p>Semifinal winners advance to the championship. Losing pairs play for bronze.</p></header><div class="playoff-grid"><section class="playoff-stage"><h3>Semifinals</h3>${bracketMatch(category, 'sf1', 'Semifinal 1', '3:30 PM', index * 2 + 1, medal.sf1.a, medal.sf1.b, medal.sf1)}${bracketMatch(category, 'sf2', 'Semifinal 2', high ? '3:45 PM' : '3:30 PM', high ? 1 : index * 2 + 2, medal.sf2.a, medal.sf2.b, medal.sf2)}</section><div class="bracket-connector" aria-hidden="true"></div><section class="playoff-stage medal-stage"><h3>Medal matches</h3>${bracketMatch(category, 'final', 'Championship', high ? '4:15 PM' : '4:00 PM', index * 2 + 2 > 5 ? 2 : index * 2 + 2, finalA, finalB, medal.final)}<span class="bronze-label">Battle for third</span>${bracketMatch(category, 'bronze', 'Bronze medal', high ? '4:15 PM' : '4:00 PM', index * 2 + 1 > 5 ? 1 : index * 2 + 1, bronzeA, bronzeB, medal.bronze)}</section></div></article>`;
     $$('[data-medal-category]').forEach(input => input.onchange = () => { const match = state.medals[input.dataset.medalCategory][input.dataset.medalMatch]; match[input.dataset.medalSide] = input.value === '' ? '' : Number(input.value); saveState(); renderMedals(); });
   }
   function renderSettings() {
-    $('#configList').innerHTML = [['Organizer', config.brand.organizer], ['Event', config.event.name], ['Venue', `${config.event.venue}, ${config.event.location}`], ['Courts', config.event.courts], ['Categories', config.categories.join(', ')], ['Storage', 'Local browser with JSON backup']].map(([a, b]) => `<div class="config-row"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join('');
+    $('#configList').innerHTML = [['Organizer', config.brand.organizer], ['Event', config.event.name], ['Venue', `${config.event.venue}, ${config.event.location}`], ['Courts', config.event.courts], ['Categories', config.categories.join(', ')], ['Storage', 'Firebase live sync with local cache']].map(([a, b]) => `<div class="config-row"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join('');
     const assignedIds = Object.keys(state.refereeAssignments);
     $('#refereeMatch').innerHTML = state.matches.filter(m => !isComplete(m.id)).map(m => `<option value="${m.id}">${m.id} · ${displayPair(m.category,m.a)} vs ${displayPair(m.category,m.b)}</option>`).join('');
     $('#refereeList').innerHTML = assignedIds.length ? assignedIds.map(id => `<div class="config-row"><span>${id}</span><b>${esc(state.refereeAssignments[id])}</b></div>`).join('') : '<div class="config-row"><span>No referees assigned yet</span></div>';
@@ -326,12 +330,14 @@ import { watchAuth, login, watchControl, watchMatches, publishControl, publishMa
       if (!user) return showCloudGate();
       $('#cloudGate')?.remove();
       watchControl(incoming => { if (!incoming) { publishControl(state).catch(() => showCloudGate('Your account cannot initialize this event.')); return; } cloudApplying = true; state = { ...incoming, liveScoring: state.liveScoring || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => showCloudGate('Your account does not have Match Control access.'));
-      watchMatches(items => { cloudApplying = true; state.liveScoring ||= {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => toast('Live match feed unavailable.'));
+      $('#cloudSessionBtn').textContent = 'Sign out'; $('#cloudSessionBtn').title = `Signed in as ${user.email}`;
+      watchMatches(items => { cloudApplying = true; state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => toast('Live match feed unavailable.'));
     });
   }
 
   setBrandContent();
   config.categories.forEach(category => $('#scheduleCategory').insertAdjacentHTML('beforeend', `<option value="${esc(category)}">${esc(category)}</option>`));
+  config.categories.forEach(category => $('#medalCategorySelect').insertAdjacentHTML('beforeend', `<option value="${esc(category)}">${esc(category)}</option>`));
   $$('.nav-item').forEach(button => button.onclick = () => showView(button.dataset.view)); $$('[data-go]').forEach(button => button.onclick = () => showView(button.dataset.go));
   $('#menuBtn').onclick = () => $('#sidebar').classList.toggle('open');
   $('#fillCourtsBtn').onclick = fillCourts;
@@ -339,9 +345,11 @@ import { watchAuth, login, watchControl, watchMatches, publishControl, publishMa
   $('#quickScoreBtn').onclick = () => { const next = state.matches.find(m => m.wave === state.currentWave && !isComplete(m.id)) || state.matches.find(m => !isComplete(m.id)); next ? openScore(next.id) : toast('All round-robin results are complete.'); };
   $('#saveTeamsBtn').onclick = () => { captureTeamInputs(); saveState(); renderAll(); toast('Team roster saved.'); };
   $('#seedMedalsBtn').onclick = seedMedals; $('#printBtn').onclick = () => window.print(); $('#exportBtn').onclick = exportBackup; $('#importInput').onchange = event => { if (event.target.files[0]) importBackup(event.target.files[0]); event.target.value = ''; };
+  $('#medalCategorySelect').onchange = event => { medalCategory = event.target.value; renderMedals(); };
   $('#assignRefereeBtn').onclick = () => { const email = $('#refereeEmail').value.trim().toLowerCase(), matchId = $('#refereeMatch').value; if (!email || !matchId) return toast('Choose a match and enter a referee email.'); state.refereeAssignments[matchId] = email; saveState(); renderSettings(); toast('Referee assigned.'); };
   $('#applyPairCountsBtn').onclick = applyPairCounts;
-  $('#resetBtn').onclick = () => { if (!confirm('Reset every team name, score, standing, and medal result for this event?')) return; state = freshState(); saveState(); renderAll(); toast('Tournament reset.'); };
+  $('#cloudSessionBtn').onclick = () => logout();
+  $('#resetBtn').onclick = async () => { if (!confirm('Permanently reset every roster, score, timer, queue position, court assignment, referee assignment, check-in, standing, and medal result for this event?')) return; $('#resetBtn').disabled = true; try { if (cloudUser) await clearMatches(); state = freshState(); localStorage.removeItem(config.storageKey); saveState(); if (cloudUser) await publishControl(state); renderAll(); toast('Tournament and all cloud match data reset.'); } catch (_) { alert('The reset did not fully complete. Check your connection and try again.'); } finally { $('#resetBtn').disabled = false; } };
   $('#modalClose').onclick = closeScore; $('#scoreModal').onclick = event => { if (event.target === $('#scoreModal')) closeScore(); }; $('#saveScoreBtn').onclick = saveScore; $('#clearScoreBtn').onclick = clearScore;
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#scoreModal').hidden) closeScore(); });
   window.addEventListener('storage', event => { if (event.key !== config.storageKey || !event.newValue) return; try { state = JSON.parse(event.newValue); renderAll(); } catch (_) {} });

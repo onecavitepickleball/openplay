@@ -30,7 +30,7 @@
         <button class="nav-item" data-view="settings"><span>07</span>Settings</button>
       </nav>
       <div class="sidebar-foot">
-        <div class="sync-dot"></div><span>Saved on this device</span>
+        <div class="sync-dot"></div><span>Firebase live sync</span>
       </div>
     </aside>
 
@@ -39,6 +39,7 @@
         <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
         <div class="event-mini"><strong id="eventMiniName"></strong><span id="eventMiniMeta"></span></div>
         <div class="top-actions">
+          <button class="btn btn-primary" id="cloudSessionBtn">Sign out</button>
           <button class="btn btn-quiet" id="printBtn">Print</button>
           <button class="btn btn-primary" id="quickScoreBtn">Enter score</button>
         </div>
@@ -84,7 +85,7 @@
       </section>
 
       <section class="view" id="view-medals">
-        <div class="page-head"><div><span class="eyebrow dark">Final four</span><h1>Medal Round</h1><p>The top two pairs from each club advance into cross-club semifinals.</p></div><button class="btn btn-primary" id="seedMedalsBtn">Seed from standings</button></div>
+        <div class="page-head"><div><span class="eyebrow dark">Final four</span><h1>Medal Round</h1><p>The top two pairs from each club advance into cross-club semifinals.</p></div><div class="medal-actions"><select id="medalCategorySelect" aria-label="Medal category"></select><button class="btn btn-primary" id="seedMedalsBtn">Seed from standings</button></div></div>
         <div class="medal-board" id="medalBoard"></div>
       </section>
 
@@ -96,7 +97,7 @@
           <article class="panel"><span class="section-label">Draw structure</span><h2>Pairs per category</h2><p>Add or remove pairs for either club. Applying a change regenerates the round-robin draw because every pair must face every opposing pair.</p><div class="stack-form" id="pairCountSettings"></div><button class="btn btn-primary" id="applyPairCountsBtn">Apply and regenerate draw</button></article>
           <article class="panel"><span class="section-label">Officials</span><h2>Referee assignments</h2><p>Assign an email to a match. That official will see it after signing in to the referee view.</p><div class="stack-form"><input id="refereeEmail" type="email" placeholder="referee@email.com"><select id="refereeMatch"></select><button class="btn btn-primary" id="assignRefereeBtn">Assign referee</button></div><div class="config-list" id="refereeList"></div></article>
           <article class="panel"><span class="section-label">Field apps</span><h2>Dedicated views</h2><p>Open purpose-built screens for officials, spectators, and registration staff.</p><div class="stack-actions"><a class="btn btn-primary" href="referee/">Referee app</a><a class="btn btn-quiet" href="broadcast/">Live broadcast</a><a class="btn btn-quiet" href="check-in/">Player check-in</a></div></article>
-          <article class="panel danger-panel"><span class="section-label">Danger zone</span><h2>Reset tournament</h2><p>Clear all scores, team names, standings, and medal results on this device.</p><button class="btn btn-danger" id="resetBtn">Reset all event data</button></article>
+          <article class="panel danger-panel"><span class="section-label">Danger zone</span><h2>Reset tournament</h2><p>Clear all cloud and local rosters, scores, timers, queues, court assignments, officials, check-ins, standings, and medal results.</p><button class="btn btn-danger" id="resetBtn">Reset all event data</button></article>
         </div>
       </section>
     </main>
