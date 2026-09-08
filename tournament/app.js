@@ -235,7 +235,7 @@ import { watchAuth, login, logout, watchControl, watchMatches, publishControl, p
     const count = pairCount(teamCategory);
     $('#teamGrid').innerHTML = config.clubs.map(club => `<article class="team-card"><div class="card-title"><h2>${esc(club.name)}</h2><span>${count} pairs</span></div>${Array.from({ length: count }, (_, i) => {
       const code = `${club.pairPrefix}${i + 1}`, key = `${teamCategory}|${code}`, pair = state.pairs[key];
-      return `<div class="team-row"><label>${code}</label><input data-pair-key="${esc(key)}" data-field="player1" value="${esc(pair.player1)}" placeholder="Player 1"><input data-pair-key="${esc(key)}" data-field="player2" value="${esc(pair.player2)}" placeholder="Player 2"></div>`;
+      return `<div class="team-row"><label>${code}</label><input value="${esc(pair.player1)}" placeholder="Awaiting registration" readonly><input value="${esc(pair.player2)}" placeholder="Awaiting registration" readonly></div>`;
     }).join('')}</article>`).join('');
     $$('[data-team-category]').forEach(btn => btn.onclick = () => { captureTeamInputs(); teamCategory = btn.dataset.teamCategory; renderTeams(); });
   }
@@ -343,7 +343,6 @@ import { watchAuth, login, logout, watchControl, watchMatches, publishControl, p
   $('#fillCourtsBtn').onclick = fillCourts;
   $('#scheduleCategory').onchange = renderSchedule; $('#scheduleStatus').onchange = renderSchedule; $('#scheduleSearch').oninput = renderSchedule;
   $('#quickScoreBtn').onclick = () => { const next = state.matches.find(m => m.wave === state.currentWave && !isComplete(m.id)) || state.matches.find(m => !isComplete(m.id)); next ? openScore(next.id) : toast('All round-robin results are complete.'); };
-  $('#saveTeamsBtn').onclick = () => { captureTeamInputs(); saveState(); renderAll(); toast('Team roster saved.'); };
   $('#seedMedalsBtn').onclick = seedMedals; $('#printBtn').onclick = () => window.print(); $('#exportBtn').onclick = exportBackup; $('#importInput').onchange = event => { if (event.target.files[0]) importBackup(event.target.files[0]); event.target.value = ''; };
   $('#medalCategorySelect').onchange = event => { medalCategory = event.target.value; renderMedals(); };
   $('#assignRefereeBtn').onclick = () => { const email = $('#refereeEmail').value.trim().toLowerCase(), matchId = $('#refereeMatch').value; if (!email || !matchId) return toast('Choose a match and enter a referee email.'); state.refereeAssignments[matchId] = email; saveState(); renderSettings(); toast('Referee assigned.'); };

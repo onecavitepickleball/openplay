@@ -413,6 +413,13 @@ service cloud.firestore {
         );
         allow delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
       }
+
+      // Registration records contain private email addresses and optional
+      // DUPR IDs. Only tournament operations staff may access them. Public-
+      // safe names and thumbnails are copied into the event state at check-in.
+      match /registrations/{registrationId} {
+        allow read, create, update, delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
+      }
     }
   }
 }

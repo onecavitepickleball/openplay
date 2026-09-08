@@ -1,19 +1,23 @@
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
-import { getFirestore, doc, collection, onSnapshot, setDoc, getDocs, writeBatch, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
+import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, updateDoc, getDocs, writeBatch, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo', authDomain: 'ocpc-website-faf5e.firebaseapp.com', projectId: 'ocpc-website-faf5e', storageBucket: 'ocpc-website-faf5e.firebasestorage.app', messagingSenderId: '15833259684', appId: '1:15833259684:web:0f2f4400f9995517ae5031'
 };
 const eventId = window.TOURNAMENT_CONFIG.firebaseEventId;
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournamentEvents', eventId), matchesRef = collection(db, 'tournamentEvents', eventId, 'matches');
+const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournamentEvents', eventId), matchesRef = collection(db, 'tournamentEvents', eventId, 'matches'), registrationsRef = collection(db, 'tournamentEvents', eventId, 'registrations');
 
 export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
 export function login(email, password) { return signInWithEmailAndPassword(auth, email, password); }
 export function logout() { return signOut(auth); }
 export function watchControl(onData, onError) { return onSnapshot(controlRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
 export function watchMatches(onData, onError) { return onSnapshot(matchesRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
+export function watchRegistrations(onData, onError) { return onSnapshot(registrationsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
+export function createRegistration(data) { return addDoc(registrationsRef, { ...structuredClone(data), createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); }
+export function updateRegistration(id, data) { return updateDoc(doc(registrationsRef, id), { ...structuredClone(data), updatedAt: serverTimestamp() }); }
+export function deleteRegistration(id) { return deleteDoc(doc(registrationsRef, id)); }
 export async function publishControl(state) {
   const safe = structuredClone(state); delete safe.liveScoring;
   Object.values(safe.checkins || {}).forEach(player => delete player.photo);

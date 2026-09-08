@@ -80,7 +80,7 @@
       </section>
 
       <section class="view" id="view-teams">
-        <div class="page-head"><div><span class="eyebrow dark">Tournament roster</span><h1>Teams</h1><p>Enter pair names once. They update throughout the schedule and standings.</p></div><button class="btn btn-primary" id="saveTeamsBtn">Save teams</button></div>
+        <div class="page-head"><div><span class="eyebrow dark">Tournament roster</span><h1>Teams</h1><p>This roster is linked from secure player registrations. Edit private registration records at the Registration Desk.</p></div><a class="btn btn-primary" href="registration/">Open registration desk</a></div>
         <div class="category-tabs" id="teamTabs"></div><div class="team-grid" id="teamGrid"></div>
       </section>
 
@@ -96,7 +96,7 @@
           <article class="panel"><span class="section-label">Data portability</span><h2>Backup and restore</h2><p>Use a JSON backup to move the live tournament state between devices.</p><div class="stack-actions"><button class="btn btn-primary" id="exportBtn">Export backup</button><label class="btn btn-quiet file-btn">Import backup<input id="importInput" type="file" accept="application/json"></label></div></article>
           <article class="panel"><span class="section-label">Draw structure</span><h2>Pairs per category</h2><p>Add or remove pairs for either club. Applying a change regenerates the round-robin draw because every pair must face every opposing pair.</p><div class="stack-form" id="pairCountSettings"></div><button class="btn btn-primary" id="applyPairCountsBtn">Apply and regenerate draw</button></article>
           <article class="panel"><span class="section-label">Officials</span><h2>Referee assignments</h2><p>Assign an email to a match. That official will see it after signing in to the referee view.</p><div class="stack-form"><input id="refereeEmail" type="email" placeholder="referee@email.com"><select id="refereeMatch"></select><button class="btn btn-primary" id="assignRefereeBtn">Assign referee</button></div><div class="config-list" id="refereeList"></div></article>
-          <article class="panel"><span class="section-label">Field apps</span><h2>Dedicated views</h2><p>Open purpose-built screens for officials, spectators, and registration staff.</p><div class="stack-actions"><a class="btn btn-primary" href="referee/">Referee app</a><a class="btn btn-quiet" href="broadcast/">Live broadcast</a><a class="btn btn-quiet" href="check-in/">Player check-in</a></div></article>
+          <article class="panel"><span class="section-label">Field apps</span><h2>Dedicated views</h2><p>Open purpose-built screens for registration, officials, spectators, and unattended matches.</p><div class="stack-actions"><a class="btn btn-primary" href="registration/">Player registration</a><a class="btn btn-quiet" href="check-in/">Player check-in</a><a class="btn btn-quiet" href="referee/">Referee app</a><a class="btn btn-quiet" href="score-kiosk/">Score kiosk</a><a class="btn btn-quiet" href="broadcast/">Live broadcast</a></div></article>
           <article class="panel danger-panel"><span class="section-label">Danger zone</span><h2>Reset tournament</h2><p>Clear all cloud and local rosters, scores, timers, queues, court assignments, officials, check-ins, standings, and medal results.</p><button class="btn btn-danger" id="resetBtn">Reset all event data</button></article>
         </div>
       </section>

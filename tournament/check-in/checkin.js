@@ -1,42 +1,19 @@
+import { watchAuth, login, logout, watchControl, watchRegistrations, publishControl } from '../firebase-sync.js';
+
 (() => {
-  const config = window.TOURNAMENT_CONFIG;
-  const $ = selector => document.querySelector(selector);
-  const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
-  let state;
-  function load() { try { state = JSON.parse(localStorage.getItem(config.storageKey)); } catch (_) { state = null; } }
-  function save() { localStorage.setItem(config.storageKey, JSON.stringify(state)); }
-  function categoryCount() { const category = $('#playerCategory').value; return state.pairCounts?.[category] || config.pairsPerCategory[category] || 6; }
-  function fillPairs() {
-    const club = config.clubs.find(item => item.id === $('#playerClub').value);
-    $('#pairNumber').innerHTML = Array.from({ length: categoryCount() }, (_, index) => `<option>${club.pairPrefix}${index + 1}</option>`).join('');
-  }
-  function render() {
-    const rows = Object.values(state.checkins || {}).sort((a, b) => b.checkedInAt.localeCompare(a.checkedInAt));
-    $('#checkinList').innerHTML = rows.length ? rows.map(player => `<div class="checkin-row"><img src="${player.photo || ''}" alt=""><div><b>${esc(player.name)}</b><small>${esc(player.category)} · ${esc(player.pair)} · ${esc(player.clubName)} · ${esc(player.shirtSize)}</small></div><span class="badge">${player.waiverSigned ? 'Waiver ✓' : 'Waiver pending'} · ${esc(player.payment)}</span></div>`).join('') : '<p class="sub">No players checked in yet.</p>';
-  }
-  async function photoData(file) {
-    if (!file) return '';
-    return new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const image = new Image();
-        image.onload = () => {
-          const canvas = document.createElement('canvas'), size = 240, scale = Math.max(size / image.width, size / image.height), width = image.width * scale, height = image.height * scale;
-          canvas.width = size; canvas.height = size; canvas.getContext('2d').drawImage(image, (size - width) / 2, (size - height) / 2, width, height); resolve(canvas.toDataURL('image/jpeg', .72));
-        };
-        image.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-  load(); state.checkins ||= {};
-  config.categories.forEach(category => $('#playerCategory').insertAdjacentHTML('beforeend', `<option>${esc(category)}</option>`));
-  fillPairs(); $('#playerClub').onchange = fillPairs; $('#playerCategory').onchange = fillPairs;
-  $('#checkinForm').onsubmit = async event => {
-    event.preventDefault();
-    const name = $('#playerName').value.trim(), club = config.clubs.find(item => item.id === $('#playerClub').value), id = `${$('#playerCategory').value}|${$('#pairNumber').value}|${name.toLowerCase()}`;
-    state.checkins[id] = { name, email: $('#playerEmail').value.trim(), shirtSize: $('#shirtSize').value, club: club.id, clubName: club.short, category: $('#playerCategory').value, pair: $('#pairNumber').value, payment: $('#paymentStatus').value, waiverSigned: $('#waiverSigned').checked, photo: await photoData($('#playerPhoto').files[0]), checkedInAt: new Date().toISOString() };
-    save(); event.target.reset(); fillPairs(); render();
-  };
-  render(); window.addEventListener('storage', () => { load(); render(); });
+  const config = window.TOURNAMENT_CONFIG, $ = selector => document.querySelector(selector), esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  let state = null, registrations = [], selected = null, photoThumb = '', stream = null;
+  const toast = message => { const el = $('#officialToast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 1800); };
+  function playerRecords() { return registrations.filter(reg => reg.status === 'confirmed').flatMap(reg => (reg.players || []).map((player, index) => ({ id: `${reg.id}:${index}`, registrationId: reg.id, playerIndex: index, fullName: player.fullName, category: reg.category, club: reg.club, clubName: reg.clubName, pairCode: reg.pairCode, dupr: player.dupr || '' }))).sort((a,b) => a.fullName.localeCompare(b.fullName)); }
+  function fillPlayers() { const current = $('#registeredPlayer').value; $('#registeredPlayer').innerHTML = '<option value="">Select player</option>' + playerRecords().map(player => `<option value="${player.id}">${esc(player.fullName)} · ${esc(player.category)} · ${esc(player.pairCode)}</option>`).join(''); $('#registeredPlayer').value = current; }
+  function choosePlayer() { selected = playerRecords().find(player => player.id === $('#registeredPlayer').value) || null; const prior = selected && state?.checkins?.[selected.id]; photoThumb = prior?.photoThumb || ''; $('#photoPreview').src = photoThumb; $('#photoPreview').classList.toggle('has-photo', Boolean(photoThumb)); $('#playerSummary').innerHTML = selected ? `<b>${esc(selected.fullName)}</b><small>${esc(selected.clubName)} · ${esc(selected.category)} · ${esc(selected.pairCode)}${selected.dupr ? ` · DUPR ${esc(selected.dupr)}` : ''}</small>` : '<span class="sub">Choose a player from the retained registration roster.</span>'; }
+  function render() { if (!state) return; const rows = Object.values(state.checkins || {}).sort((a,b) => String(b.checkedInAt).localeCompare(String(a.checkedInAt))); $('#checkinList').innerHTML = rows.length ? rows.map(player => `<div class="checkin-row"><img src="${player.photoThumb || ''}" alt=""><div><b>${esc(player.name)}</b><small>${esc(player.category)} · ${esc(player.pair)} · ${esc(player.clubName)} · ${esc(player.shirtSize)}</small></div><span class="badge">${player.waiverSigned ? 'Waiver ✓' : 'Waiver pending'} · ${esc(player.payment)}</span></div>`).join('') : '<p class="sub">No players checked in yet.</p>'; }
+  function drawImage(source, sourceWidth, sourceHeight) { const canvas = $('#photoCanvas'), size = 128; canvas.width = size; canvas.height = size; const context = canvas.getContext('2d'), scale = Math.max(size/sourceWidth,size/sourceHeight), width = sourceWidth*scale, height = sourceHeight*scale; context.clearRect(0,0,size,size); context.drawImage(source,(size-width)/2,(size-height)/2,width,height); photoThumb = canvas.toDataURL('image/jpeg',.58); $('#photoPreview').src = photoThumb; $('#photoPreview').classList.add('has-photo'); }
+  async function useFile(file) { if (!file) return; const image = new Image(); image.onload = () => drawImage(image,image.width,image.height); image.src = URL.createObjectURL(file); }
+  async function openCamera() { try { stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720},height:{ideal:720}},audio:false}); $('#cameraPreview').srcObject = stream; $('#cameraPreview').hidden = false; $('#capturePhoto').hidden = false; $('#photoPreview').hidden = true; } catch (_) { $('#formError').textContent = 'Camera access was not available. Use Upload photo instead.'; } }
+  function capture() { const video = $('#cameraPreview'); if (!video.videoWidth) return; drawImage(video,video.videoWidth,video.videoHeight); stream?.getTracks().forEach(track => track.stop()); stream = null; video.hidden = true; $('#capturePhoto').hidden = true; $('#photoPreview').hidden = false; }
+  $('#staffLogin').onclick = async () => { $('#loginError').textContent = 'Signing in…'; try { await login($('#staffEmail').value.trim(),$('#staffPassword').value); } catch (_) { $('#loginError').textContent = 'Sign-in failed or this account lacks check-in access.'; } };
+  $('#registeredPlayer').onchange = choosePlayer; $('#openCamera').onclick = openCamera; $('#capturePhoto').onclick = capture; $('#playerPhoto').onchange = event => useFile(event.target.files[0]);
+  $('#checkinForm').onsubmit = async event => { event.preventDefault(); if (!selected) return $('#formError').textContent = 'Select a registered player.'; if (!photoThumb) return $('#formError').textContent = 'Capture or upload the player photo first.'; state.checkins ||= {}; state.checkins[selected.id] = { registrationId:selected.registrationId, playerIndex:selected.playerIndex, name:selected.fullName, shirtSize:$('#shirtSize').value, club:selected.club, clubName:selected.clubName, category:selected.category, pair:selected.pairCode, payment:$('#paymentStatus').value, waiverSigned:$('#waiverSigned').checked, photoThumb, checkedInAt:new Date().toISOString() }; try { await publishControl(state); toast(`${selected.fullName} checked in.`); $('#checkinForm').reset(); selected=null; photoThumb=''; $('#photoPreview').src=''; $('#playerSummary').innerHTML=''; render(); } catch (_) { $('#formError').textContent = 'Check-in could not be synchronized to Match Control.'; } };
+  watchAuth(user => { if (!user) { $('#checkinWorkspace').hidden=true; return; } $('#staffEmail').value=user.email; $('#checkinLogin').innerHTML=`<div class="session-row"><div><span class="eyebrow">Signed in</span><b>${esc(user.email)}</b></div><button class="action alt" id="staffLogout">Sign out</button></div>`; $('#staffLogout').onclick=logout; $('#checkinWorkspace').hidden=false; watchControl(incoming => { state=incoming; state.checkins ||= {}; render(); choosePlayer(); }, () => $('#formError').textContent='Tournament access denied.'); watchRegistrations(items => { registrations=items; fillPlayers(); }, () => $('#formError').textContent='Registration roster unavailable.'); });
 })();

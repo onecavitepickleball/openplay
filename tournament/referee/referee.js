@@ -11,6 +11,7 @@ import { watchAuth, login, watchControl, watchMatches, publishMatch } from '../f
   function load() { try { return JSON.parse(localStorage.getItem(config.storageKey)); } catch (_) { return null; } }
   function save() { state.updatedAt = new Date().toISOString(); localStorage.setItem(config.storageKey, JSON.stringify(state)); if (cloudUser && activeId) publishMatch(activeId, state.liveScoring?.[activeId], state.scores?.[activeId] || null).catch(() => toast('Saved locally. Cloud sync failed.')); }
   function players(category, code) { const p = state.pairs[`${category}|${code}`] || {}; return [p.player1 || `${code} Player 1`, p.player2 || `${code} Player 2`]; }
+  function playerPhoto(category, code, clubId, index) { return Object.values(state.checkins || {}).find(item => item.category === category && item.pair === code && item.club === clubId && Number(item.playerIndex) === index)?.photoThumb || ''; }
   function names(category, code) { return players(category, code).join(' / '); }
   function prefix(category) { return category === 'Novice' ? 'NOV' : category === 'Low Intermediate' ? 'LOW' : 'HIGH'; }
   function toast(message) { const el = $('#officialToast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 1800); }
@@ -36,7 +37,8 @@ import { watchAuth, login, watchControl, watchMatches, publishMatch } from '../f
   function closeMatch() { activeId = null; clearInterval(tick); $('#scorekeeperView').hidden = true; $('#assignmentView').hidden = false; renderAssignments(); }
   function teamPanel(side, club, code, playerNames, live, category) {
     const serving = live.serving === side;
-    return `<article class="score-team ${serving ? 'serving' : ''}"><div class="team-heading"><span>${club}</span><b>${prefix(category)}-${code}</b></div><strong class="giant-score">${live[side]}</strong><div class="player-tags"><span class="${serving && live.serverPlayer === 0 ? 'server' : ''}">${esc(playerNames[0])}</span><span class="${serving && live.serverPlayer === 1 ? 'server' : ''}">${esc(playerNames[1])}</span></div><button class="point-button" data-point="${side}" ${serving && !live.complete ? '' : 'disabled'}>+ Point</button></article>`;
+    const clubId = side === 'a' ? 'ocpc' : 'rebels';
+    return `<article class="score-team ${serving ? 'serving' : ''}"><div class="team-heading"><span>${club}</span><b>${prefix(category)}-${code}</b></div><strong class="giant-score">${live[side]}</strong><div class="player-tags">${playerNames.map((name,index) => { const image = playerPhoto(category,code,clubId,index); return `<span class="${serving && live.serverPlayer === index ? 'server' : ''}">${image ? `<img src="${image}" alt="">` : '<i class="photo-placeholder"></i>'}<b>${esc(name)}</b></span>`; }).join('')}</div><button class="point-button" data-point="${side}" ${serving && !live.complete ? '' : 'disabled'}>+ Point</button></article>`;
   }
   function teamName(side) { return side === 'a' ? 'OCPC' : 'Rally Rebels'; }
   function renderPregame(match, live) {
