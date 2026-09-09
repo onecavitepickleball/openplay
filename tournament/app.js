@@ -203,7 +203,15 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
   }
   function slotMinutesFor(courtNo, id) { const match = state.matches.find(item => item.id === id); return Number.isFinite(Number(match?.startMinutes)) ? Number(match.startMinutes) : config.event.roundRobinStartMinutes; }
   function plannedLabel(courtNo, id) { const start = slotMinutesFor(courtNo, id); return `${timeLabel(start)}-${timeLabel(start + config.event.slotMinutes)}`; }
-  function matchPlayers(id) { const match = state.matches.find(item => item.id === id); if (!match) return []; const names = [pairData(match.category, match.a).player1, pairData(match.category, match.a).player2, pairData(match.category, match.b).player1, pairData(match.category, match.b).player2].filter(Boolean).map(name => name.trim().toLocaleLowerCase()); return names.length ? names : match.players; }
+  function registrationForPair(category, clubId, code) { return registrations.find(item => item.status === 'confirmed' && item.category === category && item.club === clubId && item.pairCode === code); }
+  function playerIdentity(category, clubId, code, playerIndex) {
+    const registration = registrationForPair(category, clubId, code), player = registration?.players?.[playerIndex], dupr = String(player?.dupr || '').trim().toLowerCase(), email = String(player?.email || '').trim().toLowerCase();
+    if (dupr) return `dupr:${dupr}`;
+    if (email) return `email:${email}`;
+    if (registration?.id) return `registration:${registration.id}:${playerIndex}`;
+    return `slot:${category}|${clubId}|${code}|${playerIndex}`;
+  }
+  function matchPlayers(id) { const match = state.matches.find(item => item.id === id); if (!match) return []; return [['ocpc', match.a], ['rebels', match.b]].flatMap(([clubId, code]) => [0, 1].map(index => playerIdentity(match.category, clubId, code, index))); }
   function checkinPhoto(category, code, clubId, index) { return Object.values(state.checkins || {}).find(item => item.category === category && item.pair === code && item.club === clubId && Number(item.playerIndex) === index)?.photoThumb || ''; }
   function playerPortraits(match, side) { const code = side === 'a' ? match.a : match.b, clubId = side === 'a' ? 'ocpc' : 'rebels', pair = pairData(match.category, code); return [pair.player1, pair.player2].map((name, index) => { const photo = checkinPhoto(match.category, code, clubId, index); return `<span>${photo ? `<img src="${photo}" alt="">` : '<i class="court-photo-placeholder"></i>'}<b>${esc(name || 'Player pending')}</b></span>`; }).join(''); }
   function defaultMatchRules(mode = 'round-robin') { return mode === 'gold-final' ? { mode, label: 'Gold / Silver', scoring: 'side-out', target: 15, suddenDeathAt: 19, timer: false } : mode === 'custom' ? { mode, label: 'Custom', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true } : { mode: 'round-robin', label: 'Round Robin', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true }; }
