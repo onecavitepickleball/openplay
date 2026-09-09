@@ -7,7 +7,7 @@ const firebaseConfig = {
 };
 const eventId = window.TOURNAMENT_CONFIG.firebaseEventId;
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournamentEvents', eventId), matchesRef = collection(db, 'tournamentEvents', eventId, 'matches'), registrationsRef = collection(db, 'tournamentEvents', eventId, 'registrations'), checkinsRef = collection(db, 'tournamentEvents', eventId, 'checkins');
+const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournamentEvents', eventId), refereeBoardRef = doc(db, 'tournamentRefereeBoards', eventId), matchesRef = collection(db, 'tournamentEvents', eventId, 'matches'), registrationsRef = collection(db, 'tournamentEvents', eventId, 'registrations'), checkinsRef = collection(db, 'tournamentEvents', eventId, 'checkins');
 
 export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
 export function login(email, password) { return signInWithEmailAndPassword(auth, email, password); }
@@ -15,6 +15,7 @@ export async function createAccount(email, password) { const credential = await 
 export function logout() { return signOut(auth); }
 export async function getCurrentProfile(user) { if (!user) return null; const snapshot = await getDoc(doc(db, 'players', user.uid)); return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null; }
 export function watchControl(onData, onError) { return onSnapshot(controlRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
+export function watchRefereeBoard(onData, onError) { return onSnapshot(refereeBoardRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
 export function watchMatches(onData, onError) { return onSnapshot(matchesRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
 export function watchRegistrations(onData, onError) { return onSnapshot(registrationsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
 export function watchCheckins(onData, onError) { return onSnapshot(checkinsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
@@ -40,7 +41,9 @@ export async function publishControl(state) {
   const safe = structuredClone(state); delete safe.liveScoring;
   Object.values(safe.checkins || {}).forEach(player => delete player.photo);
   Object.values(safe.scores || {}).forEach(score => { if (score.confirmation) { delete score.confirmation.ocpcSignature; delete score.confirmation.rebelsSignature; } });
+  const refereeState = { matches:safe.matches || [], pairs:safe.pairs || {}, courts:safe.courts || {}, scores:safe.scores || {}, matchSettings:safe.matchSettings || {}, refereeAssignments:safe.refereeAssignments || {}, updatedAt:safe.updatedAt || new Date().toISOString() };
   await setDoc(controlRef, { state: safe, refereeEmails: [...new Set(Object.values(state.refereeAssignments || {}))], updatedAt: serverTimestamp() }, { merge: true });
+  try { await setDoc(refereeBoardRef, { state: refereeState, updatedAt: serverTimestamp() }, { merge: true }); } catch (_) { /* Limited desks may update their permitted event fields without publishing the referee overview. */ }
 }
 export async function publishMatch(matchId, live, score) {
   const safeScore = score ? structuredClone(score) : null;

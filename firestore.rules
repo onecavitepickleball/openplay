@@ -441,5 +441,11 @@ service cloud.firestore {
         allow delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin');
       }
     }
+
+    // Referee-safe overview without registration PII, signatures, or photos.
+    match /tournamentRefereeBoards/{eventId} {
+      allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_referee');
+      allow write: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
+    }
   }
 }
