@@ -68,7 +68,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
       seeded: false,
       sf1: { a: '', b: '', scoreA: '', scoreB: '' },
       sf2: { a: '', b: '', scoreA: '', scoreB: '' },
-      bronze: { scoreA: '', scoreB: '' }, final: { scoreA: '', scoreB: '' }
+      bronze: { a: '', b: '', scoreA: '', scoreB: '' }, final: { a: '', b: '', scoreA: '', scoreB: '' }
     }]));
   }
   function blankDreamBreaker() { return { enabled: false, target: 52, scores: { ocpc: 0, rebels: 0 }, history: [], serving: '', tossResult: '', tossWinner: '', tossChoice: '', acknowledgedSwitchAt: 0, endsChanged: false }; }
@@ -451,20 +451,20 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
     if (incomplete && !confirm(`${incomplete} round-robin matches still have no result. Seed the medal round using the current standings anyway?`)) return;
     config.categories.forEach(category => {
       const ocpc = standingsFor(category, 'ocpc'), rebels = standingsFor(category, 'rebels'), medal = state.medals[category];
-      medal.seeded = true; medal.sf1 = { a: ocpc[0].code, b: rebels[1].code, scoreA: '', scoreB: '' }; medal.sf2 = { a: rebels[0].code, b: ocpc[1].code, scoreA: '', scoreB: '' }; medal.bronze = { scoreA: '', scoreB: '' }; medal.final = { scoreA: '', scoreB: '' };
-    }); saveState(); renderMedals(); toast('Medal brackets seeded from current standings.');
+      medal.seeded = true; medal.sf1 = { a: '', b: '', scoreA: '', scoreB: '' }; medal.sf2 = { a: '', b: '', scoreA: '', scoreB: '' }; medal.final = { a: ocpc[0]?.code || '', b: rebels[0]?.code || '', scoreA: '', scoreB: '' }; medal.bronze = { a: ocpc[1]?.code || '', b: rebels[1]?.code || '', scoreA: '', scoreB: '' };
+    }); saveState(); renderMedals(); toast('Direct dual-meet medal matches seeded from standings.');
   }
   function bracketMatch(category, key, label, time, court, a, b, scores) {
     const result = medalResult({ a, b, scoreA: scores.scoreA, scoreB: scores.scoreB });
-    const side = (code, score, scoreKey) => `<label class="bracket-side ${result.winner === code && code ? 'winner' : ''}"><span><b>${esc(code || 'TBD')}</b><small>${code ? esc(pairNames(category, code)) : 'Awaiting semifinal'}</small></span><input type="number" min="0" max="17" data-medal-category="${esc(category)}" data-medal-match="${key}" data-medal-side="${scoreKey}" value="${score}"></label>`;
+    const side = (code, score, scoreKey) => `<label class="bracket-side ${result.winner === code && code ? 'winner' : ''}"><span><b>${esc(code || 'TBD')}</b><small>${code ? esc(pairNames(category, code)) : 'Awaiting standings seed'}</small></span><input type="number" min="0" max="19" data-medal-category="${esc(category)}" data-medal-match="${key}" data-medal-side="${scoreKey}" value="${score}"></label>`;
     return `<article class="playoff-match"><div class="bracket-meta"><span>${label}</span><span>${time} · Court ${court}</span></div><div class="bracket-match">${side(a, scores.scoreA, 'scoreA')}${side(b, scores.scoreB, 'scoreB')}</div></article>`;
   }
   function renderMedals() {
-    const category = medalCategory, index = config.categories.indexOf(category), medal = state.medals[category], sf1 = medalResult(medal.sf1), sf2 = medalResult(medal.sf2), high = index === 2;
-    const bronzeA = sf1.loser, bronzeB = sf2.loser, finalA = sf1.winner, finalB = sf2.winner;
+    const category = medalCategory, index = config.categories.indexOf(category), medal = state.medals[category], high = index === 2;
+    const finalA = medal.final.a, finalB = medal.final.b, bronzeA = medal.bronze.a, bronzeB = medal.bronze.b;
     const finalResult = medalResult({ a: finalA, b: finalB, scoreA: medal.final.scoreA, scoreB: medal.final.scoreB }), bronzeResult = medalResult({ a: bronzeA, b: bronzeB, scoreA: medal.bronze.scoreA, scoreB: medal.bronze.scoreB });
     const podium = (place, code, tone) => `<div class="podium-card ${tone}"><span>${place}</span><strong>${esc(code || 'TBD')}</strong><small>${code ? esc(pairNames(category, code)) : 'Awaiting medal results'}</small></div>`;
-    $('#medalBoard').innerHTML = `<article class="playoff-bracket"><header><div><span class="section-label">Championship pathway</span><h2>${esc(category)}</h2><p>Cross-club semifinals feed the championship and battle for third.</p></div><div class="bracket-key"><span>Semifinals</span><b>→</b><span>Medal matches</span></div></header><div class="podium-preview">${podium('Silver', finalResult.loser, 'silver')}${podium('Champion', finalResult.winner, 'gold')}${podium('Bronze', bronzeResult.winner, 'bronze')}</div><div class="playoff-grid"><section class="playoff-stage"><h3>Semifinals</h3>${bracketMatch(category, 'sf1', 'Semifinal 1', '3:30 PM', index * 2 + 1, medal.sf1.a, medal.sf1.b, medal.sf1)}${bracketMatch(category, 'sf2', 'Semifinal 2', high ? '3:45 PM' : '3:30 PM', high ? 1 : index * 2 + 2, medal.sf2.a, medal.sf2.b, medal.sf2)}</section><div class="bracket-connector" aria-hidden="true"></div><section class="playoff-stage medal-stage"><h3>Medal matches</h3>${bracketMatch(category, 'final', 'Championship', high ? '4:15 PM' : '4:00 PM', index * 2 + 2 > 5 ? 2 : index * 2 + 2, finalA, finalB, medal.final)}<span class="bronze-label">Battle for third</span>${bracketMatch(category, 'bronze', 'Bronze medal', high ? '4:15 PM' : '4:00 PM', index * 2 + 1 > 5 ? 1 : index * 2 + 1, bronzeA, bronzeB, medal.bronze)}</section></div></article>`;
+    $('#medalBoard').innerHTML = `<article class="playoff-bracket direct-medal-bracket"><header><div><span class="section-label">Dual-meet medal pathway</span><h2>${esc(category)}</h2><p>Final standings directly determine the two medal matchups. No semifinal can displace a pair from the place it earned.</p></div><div class="bracket-key"><span>Club rank</span><b>→</b><span>Direct medal match</span></div></header><div class="podium-preview">${podium('Silver', finalResult.loser, 'silver')}${podium('Champion', finalResult.winner, 'gold')}${podium('Bronze', bronzeResult.winner, 'bronze')}</div><div class="direct-medal-grid"><section class="playoff-stage medal-stage"><h3>#1 vs #1 · Gold / Silver</h3>${bracketMatch(category, 'final', 'Championship', high ? '4:15 PM' : '4:00 PM', index * 2 + 2 > 5 ? 2 : index * 2 + 2, finalA, finalB, medal.final)}</section><section class="playoff-stage medal-stage"><h3>#2 vs #2 · Bronze / 4th</h3>${bracketMatch(category, 'bronze', 'Bronze medal', high ? '4:15 PM' : '4:00 PM', index * 2 + 1 > 5 ? 1 : index * 2 + 1, bronzeA, bronzeB, medal.bronze)}</section></div></article>`;
     $$('[data-medal-category]').forEach(input => input.onchange = () => { const match = state.medals[input.dataset.medalCategory][input.dataset.medalMatch]; match[input.dataset.medalSide] = input.value === '' ? '' : Number(input.value); saveState(); renderMedals(); });
   }
   async function renderTournamentStaff() {
