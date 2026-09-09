@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
 import { getFirestore, doc, collection, query, where, onSnapshot, setDoc, addDoc, updateDoc, getDoc, getDocs, writeBatch, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -10,7 +10,7 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournamentEvents', eventId), refereeBoardRef = doc(db, 'tournamentRefereeBoards', eventId), matchesRef = collection(db, 'tournamentEvents', eventId, 'matches'), registrationsRef = collection(db, 'tournamentEvents', eventId, 'registrations'), checkinsRef = collection(db, 'tournamentEvents', eventId, 'checkins');
 
 export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
-export function login(email, password) { return signInWithEmailAndPassword(auth, email, password); }
+export async function login(email, password) { await setPersistence(auth, browserLocalPersistence); return signInWithEmailAndPassword(auth, email, password); }
 export async function createAccount(email, password) { const credential = await createUserWithEmailAndPassword(auth, email, password); const local = String(email).split('@')[0].replace(/[._-]+/g,' ').trim().split(/\s+/); await setDoc(doc(db,'players',credential.user.uid), { firstName: local[0] || 'Tournament', lastName: local.slice(1).join(' ') || 'Referee', email: String(email).trim().toLowerCase(), status: 'pending', sessionsAttended: 0, createdAt: serverTimestamp() }); return credential; }
 export function logout() { return signOut(auth); }
 export async function getCurrentProfile(user) { if (!user) return null; const snapshot = await getDoc(doc(db, 'players', user.uid)); return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null; }
