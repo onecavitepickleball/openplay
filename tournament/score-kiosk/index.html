@@ -1,3 +1,55 @@
 ---
 ---
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Player Score Report · Matchday</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="../field.css?v={{ site.github.build_revision }}"></head><body><header class="field-header"><div class="field-brand"><img src="../../assets/logo.png" alt="OCPC"><div><small>Unrefereed match desk</small><b>Player Score Report</b></div></div><a href="../">Match control</a></header><main class="field-main kiosk-main"><span class="eyebrow">Shared iPad kiosk</span><h1>Report a final score</h1><p class="sub">For matches without an assigned referee. One representative from each pair must review the result together before submission.</p><section class="field-card" id="kioskLogin"><h2>Open the score desk</h2><div class="field-form referee-login"><input id="staffEmail" type="email" placeholder="Authorized email"><input id="staffPassword" type="password" placeholder="Firebase password"><button class="action" id="staffLogin">Sign in</button></div><p class="form-error" id="loginError"></p></section><section class="field-card" id="kioskWorkspace" hidden><label class="kiosk-match-label">Match<select id="kioskMatch"><option value="">Choose match</option></select></label><div id="kioskMatchup" class="kiosk-matchup"></div><form id="scoreReportForm" hidden><div class="kiosk-scores"><label><span>OCPC score</span><input id="kioskScoreA" type="number" min="0" max="11" inputmode="numeric" required></label><label><span>Rally Rebels score</span><input id="kioskScoreB" type="number" min="0" max="11" inputmode="numeric" required></label></div><label class="confirm-check"><input id="confirmA" type="checkbox"> An OCPC pair representative confirms this score</label><label class="confirm-check"><input id="confirmB" type="checkbox"> A Rally Rebels pair representative confirms this score</label><button class="action lime kiosk-submit" type="submit">Submit confirmed final score</button></form><p class="form-error" id="formError"></p></section></main><div class="official-toast" id="officialToast"></div><script src="../config.js?v={{ site.github.build_revision }}"></script><script type="module" src="score-kiosk.js?v={{ site.github.build_revision }}"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Court Score Kiosk · Matchday</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../field.css?v={{ site.github.build_revision }}">
+</head>
+<body>
+  <header class="field-header">
+    <div class="field-brand"><img src="../../assets/logo.png" alt="OCPC"><div><small>Unrefereed match desk</small><b>Court Score Kiosk</b></div></div>
+    <a href="../">Match control</a>
+  </header>
+  <main class="field-main kiosk-main">
+    <span class="eyebrow">Shared iPad kiosk</span>
+    <h1>Choose your court</h1>
+    <p class="sub">Select the court you just played on. Both pairs must review the final score and sign before it can be submitted.</p>
+    <section class="field-card" id="kioskLogin">
+      <h2>Open the score desk</h2>
+      <div class="field-form referee-login"><input id="staffEmail" type="email" placeholder="Authorized email"><input id="staffPassword" type="password" placeholder="Firebase password"><button class="action" id="staffLogin">Sign in</button></div>
+      <p class="form-error" id="loginError"></p>
+    </section>
+    <section id="kioskWorkspace" hidden>
+      <div class="kiosk-court-grid" id="kioskCourts"></div>
+      <p class="form-error" id="formError"></p>
+    </section>
+  </main>
+  <section class="kiosk-score-sheet" id="kioskScoreSheet" hidden>
+    <form class="kiosk-score-card" id="scoreReportForm">
+      <button class="confirm-close" id="closeKioskScore" type="button" aria-label="Close">×</button>
+      <span class="eyebrow" id="kioskMatchMeta"></span>
+      <h2>Confirm final score</h2>
+      <div id="kioskMatchup" class="kiosk-matchup"></div>
+      <div class="kiosk-scores">
+        <label><span id="kioskScoreALabel">OCPC score</span><input id="kioskScoreA" type="number" min="0" max="11" inputmode="numeric" required></label>
+        <label><span id="kioskScoreBLabel">Rally Rebels score</span><input id="kioskScoreB" type="number" min="0" max="11" inputmode="numeric" required></label>
+      </div>
+      <div class="signature-grid">
+        <div class="signature-box"><label id="signatureALabel">OCPC pair signature</label><canvas id="signatureA" width="420" height="150"></canvas><button type="button" data-clear-signature="signatureA">Clear signature</button></div>
+        <div class="signature-box"><label id="signatureBLabel">Rally Rebels pair signature</label><canvas id="signatureB" width="420" height="150"></canvas><button type="button" data-clear-signature="signatureB">Clear signature</button></div>
+      </div>
+      <p class="form-error" id="scoreFormError"></p>
+      <div class="submit-row"><button class="action lime kiosk-submit" type="submit">Submit signed final score</button></div>
+    </form>
+  </section>
+  <div class="official-toast" id="officialToast"></div>
+  <script src="../config.js?v={{ site.github.build_revision }}"></script>
+  <script type="module" src="score-kiosk.js?v={{ site.github.build_revision }}"></script>
+</body>
+</html>

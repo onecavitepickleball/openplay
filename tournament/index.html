@@ -17,7 +17,7 @@
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar"><button class="sidebar-collapse" id="sidebarCollapse" type="button" aria-label="Collapse side menu" title="Collapse side menu">‹</button>
       <div class="brand-lockup">
         <div class="brand-mark"><img id="brandLogo" src="../assets/logo.png" alt=""></div>
         <div><span class="brand-product" id="appName">Matchday</span><strong id="brandName">OCPC</strong></div>
@@ -43,8 +43,8 @@
         <div class="event-mini"><strong id="eventMiniName"></strong><span id="eventMiniMeta"></span></div>
         <div class="top-actions">
           <button class="btn btn-primary" id="cloudSessionBtn">Sign out</button>
-          <button class="btn btn-quiet" id="printBtn">Print</button>
-          <button class="btn btn-primary" id="quickScoreBtn">Enter score</button>
+          <a class="btn btn-quiet" href="score-kiosk/">Score kiosk</a>
+          <a class="btn btn-primary" href="broadcast/" target="_blank" rel="noopener">Live broadcast</a>
         </div>
       </header>
 
@@ -56,7 +56,7 @@
             <p id="eventDetails"></p>
             <div class="hero-actions"><button class="btn btn-lime" data-go="courts">Open live desk</button><button class="btn btn-outline-light" data-go="schedule">View full draw</button></div>
           </div>
-          <div class="match-clock"><span>Round robin</span><strong id="heroMatchCount">90</strong><small>matches across five courts</small></div>
+          <div class="match-clock"><span>Round robin</span><strong id="heroMatchCount">95</strong><small>matches across five courts</small></div>
         </div>
         <div class="metric-grid" id="metricGrid"></div>
         <div class="dashboard-grid">
@@ -72,7 +72,7 @@
       </section>
 
       <section class="view" id="view-schedule">
-        <div class="page-head"><div><span class="eyebrow dark" id="scheduleMatchCount">All 90 matches</span><h1>Schedule & Scores</h1><p>Filter the draw, enter results, or print a clean scorekeeping list.</p></div></div>
+        <div class="page-head"><div><span class="eyebrow dark" id="scheduleMatchCount">All 95 matches</span><h1>Schedule & Scores</h1><p>Filter the draw, enter results, or print a clean scorekeeping list.</p></div></div>
         <div class="filter-bar"><select id="scheduleCategory"><option value="all">All categories</option></select><select id="scheduleStatus"><option value="all">All statuses</option><option value="pending">Pending</option><option value="complete">Complete</option></select><input id="scheduleSearch" type="search" placeholder="Search pair or player"></div>
         <div class="table-wrap"><table><thead><tr><th>ID</th><th>Time</th><th>Court</th><th>Category</th><th>OCPC pair</th><th class="score-col">Score</th><th>Rally Rebels pair</th><th>Status</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
       </section>
@@ -105,7 +105,7 @@
           <article class="panel"><span class="section-label">White label</span><h2>Brand configuration</h2><p>Event name, organizer, club names, colors, logo, courts, and categories are isolated in <code>tournament/config.js</code>.</p><div class="config-list" id="configList"></div></article>
           <article class="panel"><span class="section-label">Data portability</span><h2>Backup and restore</h2><p>Use a JSON backup to move the live tournament state between devices.</p><div class="stack-actions"><button class="btn btn-primary" id="exportBtn">Export backup</button><label class="btn btn-quiet file-btn">Import backup<input id="importInput" type="file" accept="application/json"></label></div></article>
           <article class="panel"><span class="section-label">Safe simulation</span><h2>Demo mode</h2><p>Open an isolated tournament copy populated with fictional players, avatar photos, results, and ready courts. Demo changes never connect to Firebase.</p><div class="stack-actions"><button class="btn btn-primary" id="launchDemoBtn">Launch demo mode</button><button class="btn btn-quiet" id="resetDemoBtn">Reset demo data</button></div></article>
-          <article class="panel"><span class="section-label">Draw structure</span><h2>Pairs per club and category</h2><p>Set OCPC and Rally Rebels independently. Every pair remains capped at five matches, and unequal club sizes are balanced as evenly as possible.</p><div class="stack-form" id="pairCountSettings"></div><button class="btn btn-primary" id="applyPairCountsBtn">Apply counts and regenerate</button></article>
+          <article class="panel"><span class="section-label">Draw structure</span><h2>Pairs per club and category</h2><p>Set OCPC and Rally Rebels independently. The larger roster receives up to five matches per pair; when roster sizes differ, the smaller roster shares the extra match load as evenly as possible.</p><div class="stack-form" id="pairCountSettings"></div><button class="btn btn-primary" id="applyPairCountsBtn">Apply counts and regenerate</button></article>
           <article class="panel draw-transparency-panel"><span class="section-label">Fairness record</span><h2>Opponent draw ceremony</h2><p>Conduct a blank-to-final category draw in front of both clubs. Each pair assignment is revealed individually, then the completed draw is officially locked, timestamped, and retained in the audit record.</p><div id="opponentDrawPanel"></div></article>
           <article class="panel"><span class="section-label">Optional decider</span><h2>Dream Breaker</h2><p>Enable only if time permits and choose the rally-score target. Player combinations are decided by the team captains during play; the scoring tab provides switch reminders every four rallies.</p><div class="stack-form"><label class="setting-check"><input id="dreamBreakerEnabled" type="checkbox"> Enable Dream Breaker</label><label>Winning target<input id="dreamBreakerTarget" type="number" min="1" max="200" value="52"></label><button class="btn btn-primary" id="saveDreamBreakerBtn" type="button">Save Dream Breaker setup</button></div></article>
           <article class="panel"><span class="section-label">Officials</span><h2>Referee assignments</h2><p>Assign an email to a match. That official will see it after signing in to the referee view.</p><div class="stack-form"><input id="refereeEmail" type="email" placeholder="referee@email.com"><select id="refereeMatch"></select><button class="btn btn-primary" id="assignRefereeBtn">Assign referee</button></div><div class="config-list" id="refereeList"></div></article>
