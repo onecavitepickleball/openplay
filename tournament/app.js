@@ -118,7 +118,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
   }
   function clockLabel(totalMinutes) { const seconds = Math.floor(totalMinutes * 60) % 60, minutes = Math.floor(totalMinutes) % 60, hours24 = Math.floor(totalMinutes / 60) % 24, hours = hours24 % 12 || 12; return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} ${hours24 >= 12 ? 'PM' : 'AM'}`; }
   function setDemoClock(minute) { demoClockMinutes = Math.max(0, Math.min(1439, minute)); demoClockStartedAt = Date.now(); renderCourtTimeline(); }
-  function saveState() { state.updatedAt = new Date().toISOString(); localStorage.setItem(storageKey, JSON.stringify(state)); if (!demoMode && cloudUser && !cloudApplying) { clearTimeout(cloudSaveTimer); cloudSaveTimer = setTimeout(() => publishControl(state).catch(() => toast('Cloud sync failed. Check Firebase access.')), 180); } }
+  function saveState() { state.updatedAt = new Date().toISOString(); localStorage.setItem(storageKey, JSON.stringify(state)); if (!demoMode && cloudUser && !cloudApplying) { const pendingState = structuredClone(state); clearTimeout(cloudSaveTimer); cloudSaveTimer = setTimeout(() => publishControl(pendingState).catch(() => toast('Cloud sync failed. Check Firebase access.')), 180); } }
   function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2200); }
   function pairData(category, code) { return state.pairs[`${category}|${code}`] || { player1: '', player2: '' }; }
   function pairNames(category, code) { const p = pairData(category, code); return [p.player1, p.player2].filter(Boolean).join(' / ') || 'Players not assigned'; }
