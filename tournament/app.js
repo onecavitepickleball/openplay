@@ -1,5 +1,5 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, deleteMatch, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole } = await import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, deleteMatch, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole } = await import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
@@ -592,12 +592,26 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchRegistrations
     if (!gate) { document.body.insertAdjacentHTML('beforeend', `<div class="cloud-gate" id="cloudGate"><form class="cloud-login" id="cloudLogin"><img src="${config.brand.logo}" alt=""><span class="brand-product">Private tournament desk</span><h2>Match Control sign in</h2><p>This unlisted event workspace requires an authorized Firebase account.</p><input id="cloudEmail" type="email" placeholder="Admin email" required><input id="cloudPassword" type="password" placeholder="Password" required><button class="btn btn-primary">Sign in</button><small id="cloudError"></small></form></div>`); gate = $('#cloudGate'); $('#cloudLogin').onsubmit = async event => { event.preventDefault(); $('#cloudError').textContent = 'Signing in…'; try { await login($('#cloudEmail').value.trim(), $('#cloudPassword').value); } catch (_) { $('#cloudError').textContent = 'Sign-in failed or this account is not authorized.'; } }; }
     $('#cloudError').textContent = message;
   }
+  function profileRoles(user, profile) { const superAdmin = ['ocpc.pickleball@gmail.com','jamescastillo37@gmail.com'].includes(String(user?.email || '').toLowerCase()); return new Set([...(Array.isArray(profile?.roles) ? profile.roles : []), ...(profile?.role ? [profile.role] : []), ...(superAdmin ? ['admin','match_control'] : [])]); }
+  function showStaffPortal(user, roles) {
+    const tools = [
+      { role:'tournament_referee', href:'referee/', icon:'⚑', title:'Referee App', text:'Open assigned matches and score live.' },
+      { role:'tournament_registration', href:'registration/', icon:'＋', title:'Registration Desk', text:'Register pairs and maintain player information.' },
+      { role:'tournament_checkin', href:'check-in/', icon:'✓', title:'Player Check-In', text:'Capture photos and verify signed waivers.' },
+      { role:'tournament_score_desk', href:'score-kiosk/', icon:'#', title:'Score Kiosk', text:'Receive signed scores from unofficiated courts.' }
+    ].filter(tool => roles.has(tool.role));
+    $('.app-shell').hidden = true; $('#staffPortal').hidden = false; $('#staffPortalIdentity').textContent = `Signed in as ${user.email}`; $('#staffToolGrid').innerHTML = tools.length ? tools.map(tool => `<a class="staff-tool-card" href="${tool.href}"><span>${tool.icon}</span><div><h2>${tool.title}</h2><p>${tool.text}</p></div><b>Open →</b></a>`).join('') : '<div class="staff-no-tools"><h2>No tournament tools assigned</h2><p>Your OCPC account works, but an administrator has not granted a tournament staff role yet.</p></div>'; $('#staffPortalLogout').onclick = logout;
+  }
   function startCloud() {
     if (demoMode) { document.body.insertAdjacentHTML('afterbegin', '<div class="demo-mode-banner"><b>DEMO MODE</b><span>Simulated time: <strong id="demoClockValue">10:00:00 AM</strong></span><button id="demoTimeBack" title="Move simulated time back 5 minutes">−5m</button><button id="demoTimeForward" title="Move simulated time forward 5 minutes">+5m</button><button id="demoTimeReset">Reset 10:00</button></div>'); $('#demoTimeBack').onclick = () => setDemoClock(operationalClock().minute - 5); $('#demoTimeForward').onclick = () => setDemoClock(operationalClock().minute + 5); $('#demoTimeReset').onclick = () => setDemoClock(600); $('#cloudSessionBtn').textContent = 'Reset demo'; $('#cloudSessionBtn').title = 'Clear and rebuild fictional demo data'; return; }
-    watchAuth(user => {
+    watchAuth(async user => {
       cloudUser = user;
-      if (!user) return showCloudGate();
+      if (!user) { $('#staffPortal').hidden = true; $('.app-shell').hidden = false; return showCloudGate(); }
       $('#cloudGate')?.remove();
+      let profile = null; try { profile = await getCurrentProfile(user); } catch (_) {}
+      const roles = profileRoles(user, profile), fullControl = roles.has('admin') || roles.has('match_control') || roles.has('court_manager');
+      if (!fullControl) return showStaffPortal(user, roles);
+      $('#staffPortal').hidden = true; $('.app-shell').hidden = false;
       watchControl(incoming => { if (!incoming) { publishControl(state).catch(() => showCloudGate('Your account cannot initialize this event.')); return; } const formatChanged = incoming.schedulerVersion !== 7, scheduleChanged = Number(incoming.scheduleBaselineStartMinutes) !== config.event.roundRobinStartMinutes; cloudApplying = true; const localCheckins = state.checkins || {}, normalized = normalizeState(incoming); state = { ...normalized, checkins: { ...normalized.checkins, ...localCheckins }, liveScoring: formatChanged ? {} : state.liveScoring || {} }; controlReady = true; hydrateRegisteredTeams(false); localStorage.setItem(storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; if (formatChanged) clearMatches().then(() => publishControl(state)).then(() => toast('95-match format and normalized standings applied. Previous test match data cleared.')).catch(() => toast('Format updated locally; cloud cleanup needs another try.')); else if (scheduleChanged) publishControl(state).then(() => toast('Tournament start moved to 10:30 AM.')).catch(() => toast('Schedule updated locally; cloud sync needs another try.')); }, () => showCloudGate('Your account does not have Match Control access.'));
       watchRegistrations(items => { registrations = items; if (hydrateRegisteredTeams()) renderAll(); }, () => toast('Player registrations could not be loaded.'));
       watchCheckins(items => { state.checkins = Object.fromEntries(items.map(item => [item.id, item])); localStorage.setItem(config.storageKey, JSON.stringify(state)); renderCourts(); }, () => toast('Player photos could not be loaded.'));

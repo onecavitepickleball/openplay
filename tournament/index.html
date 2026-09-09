@@ -16,6 +16,13 @@
   <link rel="stylesheet" href="rolling.css?v={{ site.github.build_revision }}">
 </head>
 <body>
+  <section class="staff-portal" id="staffPortal" hidden>
+    <div class="staff-portal-card">
+      <div class="staff-portal-head"><div class="brand-mark"><img src="../assets/logo.png" alt="OCPC"></div><div><span class="brand-product">Tournament staff portal</span><h1>Your matchday tools</h1><p id="staffPortalIdentity"></p></div><button class="btn btn-quiet" id="staffPortalLogout" type="button">Sign out</button></div>
+      <div class="staff-tool-grid" id="staffToolGrid"></div>
+      <p class="staff-portal-note">Only tools granted to this account are shown. Access roles can be combined by an administrator.</p>
+    </div>
+  </section>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar"><button class="sidebar-collapse" id="sidebarCollapse" type="button" aria-label="Collapse side menu" title="Collapse side menu">‹</button>
       <div class="brand-lockup">
