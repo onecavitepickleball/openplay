@@ -1,5 +1,5 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, login, logout, watchControl, watchMatches, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, watchControl, watchMatches, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   const config = window.TOURNAMENT_CONFIG, $ = selector => document.querySelector(selector), $$ = selector => [...document.querySelectorAll(selector)], esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
@@ -37,7 +37,6 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishMatch } = a
     $('#kioskScoreA').value = ''; $('#kioskScoreB').value = ''; clearSignature('signatureA'); clearSignature('signatureB'); $('#scoreFormError').textContent = ''; $('#kioskScoreSheet').hidden = false;
   }
 
-  $('#staffLogin').onclick = async () => { $('#loginError').textContent = 'Signing in…'; try { await login($('#staffEmail').value.trim(), $('#staffPassword').value); } catch (_) { $('#loginError').textContent = 'Sign-in failed or this account lacks score-desk access.'; } };
   setupCanvas($('#signatureA')); setupCanvas($('#signatureB')); $$('[data-clear-signature]').forEach(button => button.onclick = () => clearSignature(button.dataset.clearSignature)); $('#closeKioskScore').onclick = closeScoreSheet; $('#kioskScoreSheet').onclick = event => { if (event.target === $('#kioskScoreSheet')) closeScoreSheet(); };
   $('#scoreReportForm').onsubmit = async event => {
     event.preventDefault(); const match = state.matches.find(item => item.id === selectedMatchId); if (!match) return;
@@ -50,9 +49,9 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishMatch } = a
     try { await publishMatch(match.id, live, score); toast('Both signatures confirmed. Score sent to Match Control.'); closeScoreSheet(); } catch (_) { $('#scoreFormError').textContent = 'Score could not be sent. Ask Match Control to enter it manually.'; }
   };
   watchAuth(account => {
-    user = account; $('#kioskLogin').hidden = Boolean(account); $('#kioskAccount').hidden = !account;
+    user = account; $('#kioskGate').hidden = Boolean(account);
     if (!account) { $('#kioskWorkspace').hidden = true; return; }
-    $('#staffEmail').value = account.email; $('#kioskAccountEmail').textContent = account.email; $('#staffLogout').onclick = logout; $('#kioskWorkspace').hidden = false;
+    $('#kioskWorkspace').hidden = false;
     watchControl(incoming => { state = { ...incoming, liveScoring:state?.liveScoring || {}, scores:{ ...(incoming.scores || {}), ...(state?.scores || {}) } }; renderCourts(); }, () => $('#formError').textContent = 'Tournament access denied.');
     watchMatches(items => { if (!state) return; state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); renderCourts(); }, () => $('#formError').textContent = 'Live courts are unavailable.');
   });

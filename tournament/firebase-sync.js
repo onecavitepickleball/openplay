@@ -11,7 +11,7 @@ const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournam
 
 export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
 export function login(email, password) { return signInWithEmailAndPassword(auth, email, password); }
-export function createAccount(email, password) { return createUserWithEmailAndPassword(auth, email, password); }
+export async function createAccount(email, password) { const credential = await createUserWithEmailAndPassword(auth, email, password); const local = String(email).split('@')[0].replace(/[._-]+/g,' ').trim().split(/\s+/); await setDoc(doc(db,'players',credential.user.uid), { firstName: local[0] || 'Tournament', lastName: local.slice(1).join(' ') || 'Referee', email: String(email).trim().toLowerCase(), status: 'pending', sessionsAttended: 0, createdAt: serverTimestamp() }); return credential; }
 export function logout() { return signOut(auth); }
 export function watchControl(onData, onError) { return onSnapshot(controlRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
 export function watchMatches(onData, onError) { return onSnapshot(matchesRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
