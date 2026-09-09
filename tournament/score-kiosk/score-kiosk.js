@@ -50,8 +50,9 @@ const { watchAuth, login, logout, watchControl, watchMatches, publishMatch } = a
     try { await publishMatch(match.id, live, score); toast('Both signatures confirmed. Score sent to Match Control.'); closeScoreSheet(); } catch (_) { $('#scoreFormError').textContent = 'Score could not be sent. Ask Match Control to enter it manually.'; }
   };
   watchAuth(account => {
-    user = account; if (!account) { $('#kioskWorkspace').hidden = true; return; }
-    $('#staffEmail').value = account.email; $('#kioskLogin').innerHTML = `<div class="session-row"><div><span class="eyebrow">Score desk signed in</span><b>${esc(account.email)}</b></div><button class="action alt" id="staffLogout">Sign out</button></div>`; $('#staffLogout').onclick = logout; $('#kioskWorkspace').hidden = false;
+    user = account; $('#kioskLogin').hidden = Boolean(account); $('#kioskAccount').hidden = !account;
+    if (!account) { $('#kioskWorkspace').hidden = true; return; }
+    $('#staffEmail').value = account.email; $('#kioskAccountEmail').textContent = account.email; $('#staffLogout').onclick = logout; $('#kioskWorkspace').hidden = false;
     watchControl(incoming => { state = { ...incoming, liveScoring:state?.liveScoring || {}, scores:{ ...(incoming.scores || {}), ...(state?.scores || {}) } }; renderCourts(); }, () => $('#formError').textContent = 'Tournament access denied.');
     watchMatches(items => { if (!state) return; state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); renderCourts(); }, () => $('#formError').textContent = 'Live courts are unavailable.');
   });

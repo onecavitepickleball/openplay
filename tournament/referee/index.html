@@ -14,13 +14,11 @@
 <body>
   <header class="field-header">
     <div class="field-brand"><img src="../../assets/logo.png" alt="OCPC logo"><div><small>Matchday official</small><b>Referee App</b></div></div>
-    <a href="../">Match control</a>
+    <div class="field-header-actions"><a href="../">Match control</a><details class="field-account" id="refereeAccount" hidden><summary>Account</summary><div><small>Signed-in referee</small><b id="refereeAccountEmail"></b><button class="action alt" id="officialLogout" type="button">Sign out</button></div></details></div>
   </header>
   <main class="field-main referee-main">
     <section id="assignmentView">
-      <span class="eyebrow">Official scoring</span>
-      <h1>Your assigned matches</h1>
-      <p class="sub">Sign in using the email assigned by Match Control. Open a match to score every rally live.</p>
+      <div class="assignment-hero"><div><span class="eyebrow">Official scoring</span><h1>Your assigned matches</h1><p class="sub">Matches assigned to this referee are organized by status. Open the next match to score every rally live.</p></div><div class="assignment-summary" id="assignmentSummary" hidden></div></div>
       <section class="field-card"><h2>Referee access</h2><div class="field-form referee-login"><input id="officialEmail" type="email" placeholder="Assigned referee email"><input id="officialPassword" type="password" placeholder="Firebase account password"><button class="action" id="officialLogin">Sign in and view assignments</button></div><p class="form-error" id="loginError"></p></section>
       <div class="match-list" id="matchList"></div>
     </section>

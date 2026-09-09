@@ -1,5 +1,5 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, login, watchControl, watchMatches, watchCheckins, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, login, logout, watchControl, watchMatches, watchCheckins, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
@@ -29,10 +29,14 @@ const { watchAuth, login, watchControl, watchMatches, watchCheckins, publishMatc
   function renderAssignments() {
     state = load(); if (!state) return;
     const matches = state.matches.filter(match => state.refereeAssignments?.[match.id] === email);
-    $('#matchList').innerHTML = matches.length ? matches.map(match => {
+    const statusFor = match => state.scores[match.id] ? 'complete' : state.liveScoring?.[match.id] ? 'live' : 'ready';
+    const ordered = [...matches].sort((a, b) => ({ live: 0, ready: 1, complete: 2 }[statusFor(a)] - ({ live: 0, ready: 1, complete: 2 }[statusFor(b)]) || String(a.time).localeCompare(String(b.time)));
+    const counts = ordered.reduce((all, match) => { all[statusFor(match)]++; return all; }, { live: 0, ready: 0, complete: 0 });
+    $('#assignmentSummary').hidden = false; $('#assignmentSummary').innerHTML = `<span><b>${counts.live}</b> Live</span><span><b>${counts.ready}</b> Upcoming</span><span><b>${counts.complete}</b> Complete</span>`;
+    $('#matchList').innerHTML = ordered.length ? ordered.map(match => {
       const live = state.liveScoring?.[match.id], final = state.scores[match.id];
       const status = final ? `Final ${final.a}-${final.b}` : live ? `Live ${live.a}-${live.b}` : 'Ready';
-      return `<article class="official-match assignment-card"><div><div class="match-meta">${match.id} · ${esc(match.category)} · planned wave ${match.wave}</div><div class="match-pairs"><div><strong>${prefix(match.category)}-${match.a}</strong><small>${esc(names(match.category, match.a))}</small></div><b>VS</b><div><strong>${prefix(match.category)}-${match.b}</strong><small>${esc(names(match.category, match.b))}</small></div></div></div><div class="assignment-action"><span class="live-status">${status}</span><button class="action" data-open-match="${match.id}">${final ? 'Review match' : 'Open scorekeeper'}</button></div></article>`;
+      return `<article class="official-match assignment-card assignment-${statusFor(match)}"><div><div class="match-meta"><span>${esc(match.category)}</span><b>${match.id}</b><span>${esc(match.time || `Wave ${match.wave}`)} · Court ${match.court || 'TBA'}</span></div><div class="match-pairs"><div><strong>${prefix(match.category)}-${match.a}</strong><small>${esc(names(match.category, match.a))}</small></div><b>VS</b><div><strong>${prefix(match.category)}-${match.b}</strong><small>${esc(names(match.category, match.b))}</small></div></div></div><div class="assignment-action"><span class="live-status">${status}</span><button class="action" data-open-match="${match.id}">${final ? 'Review match' : live ? 'Resume scorekeeper' : 'Open scorekeeper'}</button></div></article>`;
     }).join('') : '<section class="field-card"><p>No matches are assigned to this email yet.</p></section>';
     $$('[data-open-match]').forEach(button => button.onclick = () => openMatch(button.dataset.openMatch));
   }
@@ -124,8 +128,10 @@ const { watchAuth, login, watchControl, watchMatches, watchCheckins, publishMatc
   $('#officialLogin').onclick = async () => { $('#loginError').textContent = 'Signing in…'; try { await login($('#officialEmail').value.trim(), $('#officialPassword').value); } catch (_) { $('#loginError').textContent = 'Sign-in failed. Check the assigned email and password.'; } };
   watchAuth(user => {
     cloudUser = user;
-    if (!user) return;
+    $('#refereeAccount').hidden = !user; $('.field-card').hidden = Boolean(user); $('#assignmentSummary').hidden = !user;
+    if (!user) { email = ''; $('#matchList').innerHTML = ''; return; }
     email = user.email.toLowerCase(); $('#officialEmail').value = email; $('#loginError').textContent = '';
+    $('#refereeAccountEmail').textContent = email; $('#officialLogout').onclick = logout;
     watchControl(incoming => { if (!incoming) return; const local = load(); state = { ...incoming, liveScoring: local?.liveScoring || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => { $('#loginError').textContent = 'This account cannot access the private tournament.'; });
     watchMatches(items => { state ||= load(); state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => toast('Live match sync unavailable.'));
     watchCheckins(items => { if (!state) return; state.checkins = Object.fromEntries(items.map(item => [item.id, item])); localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => toast('Player photos unavailable.'));
