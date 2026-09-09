@@ -1,5 +1,5 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, login, logout, watchControl, watchMatches, watchCheckins, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, login, createAccount, logout, watchControl, watchMatches, watchCheckins, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
@@ -125,14 +125,15 @@ const { watchAuth, login, logout, watchControl, watchMatches, watchCheckins, pub
     const match = activeMatch(), live = liveFor(match), canvases = $$('#confirmationSheet canvas'); if (!canvases.every(hasInk)) return toast('Both pairs must sign first.'); const prior = state.scores[match.id];
     state.scores[match.id] = { a: live.a, b: live.b, completedAt: prior?.completedAt || new Date().toISOString(), confirmation: { referee: email, submittedAt: new Date().toISOString(), ocpcSignature: canvases[0].toDataURL('image/png'), rebelsSignature: canvases[1].toDataURL('image/png') } }; live.complete = true; live.running = false; live.startedAt = null; addLog(live, `Final result submitted: ${live.a}-${live.b}`); state.scoreAudit ||= []; state.scoreAudit.push({ matchId: match.id, previous: prior || null, revised: state.scores[match.id], source: `referee:${email}`, revisedAt: new Date().toISOString() }); save(); $('#confirmationSheet').hidden = true; renderScorekeeper(); toast('Confirmed result sent to Match Control.');
   }
-  $('#officialLogin').onclick = async () => { $('#loginError').textContent = 'Signing in…'; try { await login($('#officialEmail').value.trim(), $('#officialPassword').value); } catch (_) { $('#loginError').textContent = 'Sign-in failed. Check the assigned email and password.'; } };
+  $('#officialLogin').onclick = async () => { $('#loginError').textContent = 'Signing in…'; try { await login($('#officialEmail').value.trim(), $('#officialPassword').value); } catch (_) { $('#loginError').textContent = 'Sign-in failed. Check the email and password. If this is your first time, create the referee account below.'; } };
+  $('#officialCreateAccount').onclick = async () => { const emailValue = $('#officialEmail').value.trim().toLowerCase(), password = $('#officialPassword').value; if (!emailValue || password.length < 6) return $('#loginError').textContent = 'Enter the assigned email and a password with at least 6 characters.'; $('#loginError').textContent = 'Creating account…'; try { await createAccount(emailValue, password); } catch (error) { $('#loginError').textContent = error.code === 'auth/email-already-in-use' ? 'An account already exists for this email. Use Sign in instead.' : 'Account could not be created. Check the email and password, then try again.'; } };
   watchAuth(user => {
     cloudUser = user;
-    $('#refereeAccount').hidden = !user; $('.field-card').hidden = Boolean(user); $('#assignmentSummary').hidden = !user;
+    $('#refereeAccount').hidden = !user; $('#refereeLogin').hidden = Boolean(user); $('#assignmentSummary').hidden = !user;
     if (!user) { email = ''; $('#matchList').innerHTML = ''; return; }
     email = user.email.toLowerCase(); $('#officialEmail').value = email; $('#loginError').textContent = '';
     $('#refereeAccountEmail').textContent = email; $('#officialLogout').onclick = logout;
-    watchControl(incoming => { if (!incoming) return; const local = load(); state = { ...incoming, liveScoring: local?.liveScoring || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => { $('#loginError').textContent = 'This account cannot access the private tournament.'; });
+    watchControl(incoming => { if (!incoming) return; const local = load(); state = { ...incoming, liveScoring: local?.liveScoring || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => { $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>No referee access yet</h2><p>This account is valid, but Match Control has not assigned this email to a match or granted Referee access. Ask Match Control to use the exact email shown in the Account menu.</p></section>'; $('#assignmentSummary').hidden = true; });
     watchMatches(items => { state ||= load(); state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => toast('Live match sync unavailable.'));
     watchCheckins(items => { if (!state) return; state.checkins = Object.fromEntries(items.map(item => [item.id, item])); localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => toast('Player photos unavailable.'));
   });

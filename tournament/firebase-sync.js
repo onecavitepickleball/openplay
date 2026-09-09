@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
 import { getFirestore, doc, collection, query, where, onSnapshot, setDoc, addDoc, updateDoc, getDocs, writeBatch, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -11,6 +11,7 @@ const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournam
 
 export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
 export function login(email, password) { return signInWithEmailAndPassword(auth, email, password); }
+export function createAccount(email, password) { return createUserWithEmailAndPassword(auth, email, password); }
 export function logout() { return signOut(auth); }
 export function watchControl(onData, onError) { return onSnapshot(controlRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
 export function watchMatches(onData, onError) { return onSnapshot(matchesRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
@@ -23,7 +24,7 @@ export function updateRegistration(id, data) { return updateDoc(doc(registration
 export function deleteRegistration(id) { return deleteDoc(doc(registrationsRef, id)); }
 export async function listTournamentStaff() {
   const snapshot = await getDocs(collection(db, 'players'));
-  const allowed = ['match_control', 'tournament_registration', 'tournament_checkin', 'tournament_score_desk'];
+  const allowed = ['match_control', 'tournament_registration', 'tournament_checkin', 'tournament_score_desk', 'tournament_referee'];
   return snapshot.docs.map(item => ({ id: item.id, ...item.data() })).filter(player => (Array.isArray(player.roles) ? player.roles : [player.role].filter(Boolean)).some(role => allowed.includes(role)));
 }
 export async function changeTournamentStaffRole(email, role, enabled) {
