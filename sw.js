@@ -2,8 +2,8 @@
 // HTML pages (so content stays fresh; cache is only a fallback if offline).
 // Never intercepts cross-origin requests (Firebase, Cloudinary, Google
 // Analytics, gstatic, etc.) — those always go straight to the network.
-const CACHE_NAME = 'ocpc-v28';
-const PRECACHE_URLS = ['/styles.css', '/script.js', '/nav-auth.js', '/assets/logo.png'];
+const CACHE_NAME = 'ocpc-v29';
+const PRECACHE_URLS = ['/styles.css', '/script.js', '/nav-auth.js', '/assets/logo-2026.png'];
 
 // Firebase Cloud Messaging needs to run inside this same service worker
 // (not a separate one) so a single registration handles both caching and
@@ -27,8 +27,8 @@ messaging.onBackgroundMessage((payload) => {
   const title = (payload.notification && payload.notification.title) || 'One Cavite Pickleball Club';
   const options = {
     body: payload.notification && payload.notification.body,
-    icon: '/assets/favicon-180.png',
-    badge: '/assets/favicon-32.png',
+    icon: '/assets/favicon-180-v2.png',
+    badge: '/assets/favicon-32-v2.png',
     data: { url: (payload.data && payload.data.url) || '/' }
   };
   self.registration.showNotification(title, options);

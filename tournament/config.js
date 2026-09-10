@@ -5,7 +5,7 @@ window.TOURNAMENT_CONFIG = {
   brand: {
     organizer: "One Cavite Pickleball Club",
     shortName: "OCPC",
-    logo: "../assets/logo.png",
+    logo: "../assets/logo-2026.png",
     primary: "#005E89",
     primaryDark: "#003F5E",
     accent: "#4FB6FF",
