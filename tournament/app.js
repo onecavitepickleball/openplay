@@ -110,7 +110,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
     } catch (_) {}
     return freshState();
   }
-  let state = loadState(), registrations = [], refereeDirectory = [], controlReady = false, refereeBoardPublished = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, dreamTossDismissed = false, canAdminTournament = false, pendingPromotionRequests = [], demoClockMinutes = 600, demoClockStartedAt = Date.now(), demoSnapshotReady = demoMode && Boolean(localStorage.getItem(storageKey)), demoMatchesReady = demoSnapshotReady, demoRegistrationsReady = demoSnapshotReady, demoCheckinsReady = demoSnapshotReady, matchWriteSequence = 0;
+  let state = loadState(), registrations = [], refereeDirectory = [], controlReady = false, refereeBoardPublished = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, dreamTossDismissed = false, canAdminTournament = false, pendingPromotionRequests = [], demoClockMinutes = 600, demoClockStartedAt = Date.now(), demoSnapshotReady = demoMode && Boolean(localStorage.getItem(storageKey)), demoMatchesReady = demoSnapshotReady, demoRegistrationsReady = demoSnapshotReady, demoCheckinsReady = demoSnapshotReady, matchWriteSequence = 0, controlWriteSequence = 0, pendingControlWrite = 0;
   const pendingMatchWrites = new Map();
   function operationalClock() {
     if (demoMode) return { dateKey: config.event.date, minute: demoClockMinutes + (Date.now() - demoClockStartedAt) / 60000 };
@@ -119,7 +119,16 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
   }
   function clockLabel(totalMinutes) { const seconds = Math.floor(totalMinutes * 60) % 60, minutes = Math.floor(totalMinutes) % 60, hours24 = Math.floor(totalMinutes / 60) % 24, hours = hours24 % 12 || 12; return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} ${hours24 >= 12 ? 'PM' : 'AM'}`; }
   function setDemoClock(minute) { demoClockMinutes = Math.max(0, Math.min(1439, minute)); demoClockStartedAt = Date.now(); renderCourtTimeline(); }
-  function saveState() { state.updatedAt = new Date().toISOString(); localStorage.setItem(storageKey, JSON.stringify(state)); if (!demoMode && !drawTestMode && cloudUser && !cloudApplying) { const pendingState = structuredClone(state); clearTimeout(cloudSaveTimer); cloudSaveTimer = setTimeout(() => publishControl(pendingState).catch(() => toast('Cloud sync failed. Check Firebase access.')), 180); } }
+  function saveState() {
+    state.updatedAt = new Date().toISOString(); localStorage.setItem(storageKey, JSON.stringify(state));
+    if (!demoMode && !drawTestMode && cloudUser && !cloudApplying) {
+      const pendingState = structuredClone(state), sequence = ++controlWriteSequence; pendingControlWrite = sequence;
+      clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(() => publishControl(pendingState)
+        .catch(() => toast('Cloud sync failed. Check Firebase access.'))
+        .finally(() => { if (pendingControlWrite === sequence) pendingControlWrite = 0; }), 0);
+    }
+  }
   function syncMatch(matchId) {
     if (!cloudUser || demoMode || drawTestMode || !matchId) return Promise.resolve();
     const sequence = ++matchWriteSequence, live = structuredClone(state.liveScoring?.[matchId] || null), score = structuredClone(state.scores?.[matchId] || null);
@@ -314,7 +323,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
   }
   function bindCourtControls() {
     bindScoreButtons();
-    $$('[data-promote-court]').forEach(button => button.onclick = () => assignNext(Number(button.dataset.promoteCourt)));
+    $$('[data-promote-court]').forEach(button => button.onclick = () => { if (button.disabled) return; button.disabled = true; assignNext(Number(button.dataset.promoteCourt)); });
     $$('[data-timer-toggle]').forEach(button => button.onclick = () => toggleTimer(Number(button.dataset.timerToggle)));
     $$('[data-vacate-court]').forEach(button => button.onclick = () => vacateCourt(Number(button.dataset.vacateCourt)));
     $$('[data-court-tools]').forEach(button => button.onclick = () => showCourtTools(Number(button.dataset.courtTools)));
@@ -675,6 +684,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
       watchControl(incoming => {
         if (demoMode && demoSnapshotReady) return;
         if (!incoming) { if (!demoMode && !drawTestMode) publishControl(state).catch(() => showCloudGate('Your account cannot initialize this event.')); return; }
+        if (pendingControlWrite && String(incoming.updatedAt || '') < String(state.updatedAt || '')) return;
         const formatChanged = incoming.schedulerVersion !== 7, scheduleChanged = Number(incoming.scheduleBaselineStartMinutes) !== config.event.roundRobinStartMinutes, testDraft = drawTestMode ? state.drawCeremonyDraft : null;
         cloudApplying = true;
         const localCheckins = state.checkins || {}, normalized = normalizeState(incoming);
