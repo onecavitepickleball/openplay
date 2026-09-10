@@ -1,5 +1,5 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, logout, getCurrentProfile, watchRefereeBoard, watchMatches, watchCheckins, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, login, logout, getCurrentProfile, watchRefereeBoard, watchMatches, watchCheckins, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
@@ -128,11 +128,13 @@ const { watchAuth, logout, getCurrentProfile, watchRefereeBoard, watchMatches, w
     const match = activeMatch(), live = liveFor(match), canvases = $$('#confirmationSheet canvas'); if (!canvases.every(hasInk)) return toast('Both pairs must sign first.'); const prior = state.scores[match.id];
     state.scores[match.id] = { a: live.a, b: live.b, completedAt: prior?.completedAt || new Date().toISOString(), confirmation: { referee: email, submittedAt: new Date().toISOString(), ocpcSignature: canvases[0].toDataURL('image/png'), rebelsSignature: canvases[1].toDataURL('image/png') } }; live.complete = true; live.running = false; live.startedAt = null; addLog(live, `Final result submitted: ${live.a}-${live.b}`); state.scoreAudit ||= []; state.scoreAudit.push({ matchId: match.id, previous: prior || null, revised: state.scores[match.id], source: `referee:${email}`, revisedAt: new Date().toISOString() }); save(); $('#confirmationSheet').hidden = true; renderScorekeeper(); toast('Confirmed result sent to Match Control.');
   }
+  $('#officialLoginForm').onsubmit = async event => { event.preventDefault(); const button = $('#officialLogin'); button.disabled = true; button.textContent = 'Signing in…'; $('#loginError').textContent = ''; try { await login($('#officialEmail').value.trim().toLowerCase(), $('#officialPassword').value); } catch (error) { $('#loginError').textContent = error.code === 'auth/invalid-credential' ? 'The email or password is incorrect.' : error.code === 'auth/too-many-requests' ? 'Too many attempts. Wait a moment and try again.' : 'Sign-in failed. Check your connection and try again.'; } finally { button.disabled = false; button.textContent = 'Sign in to referee assignments'; } };
   watchAuth(async user => {
     cloudUser = user;
     $('#refereeAccount').hidden = !user; $('#refereeLogin').hidden = Boolean(user); $('#assignmentSummary').hidden = !user;
-    if (!user) { email = ''; $('#matchList').innerHTML = ''; return; }
+    if (!user) { email = ''; $('#matchList').innerHTML = ''; $('#loginError').textContent = ''; return; }
     email = user.email.toLowerCase();
+    $('#officialEmail').value = email;
     $('#refereeAccountEmail').textContent = email; $('#officialLogout').onclick = logout;
     $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Verifying referee access</h2><p>Checking this OCPC account and loading the tournament court board…</p></section>';
     let profile = null; try { profile = await getCurrentProfile(user); } catch (_) {}
