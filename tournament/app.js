@@ -1,5 +1,5 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, deleteMatch, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole } = await import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole } = await import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
@@ -110,7 +110,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
     } catch (_) {}
     return freshState();
   }
-  let state = loadState(), registrations = [], refereeDirectory = [], controlReady = false, refereeBoardPublished = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, dreamTossDismissed = false, canAdminTournament = false, demoClockMinutes = 600, demoClockStartedAt = Date.now(), demoSnapshotReady = demoMode && Boolean(localStorage.getItem(storageKey)), demoMatchesReady = demoSnapshotReady, demoRegistrationsReady = demoSnapshotReady, demoCheckinsReady = demoSnapshotReady;
+  let state = loadState(), registrations = [], refereeDirectory = [], controlReady = false, refereeBoardPublished = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, dreamTossDismissed = false, canAdminTournament = false, pendingPromotionRequests = [], demoClockMinutes = 600, demoClockStartedAt = Date.now(), demoSnapshotReady = demoMode && Boolean(localStorage.getItem(storageKey)), demoMatchesReady = demoSnapshotReady, demoRegistrationsReady = demoSnapshotReady, demoCheckinsReady = demoSnapshotReady;
   function operationalClock() {
     if (demoMode) return { dateKey: config.event.date, minute: demoClockMinutes + (Date.now() - demoClockStartedAt) / 60000 };
     const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
@@ -359,7 +359,27 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
   function activePlayerCourtConflicts(matchId) { const players = matchPlayers(matchId); return Object.entries(state.courts).filter(([, court]) => court.matchId && court.matchId !== matchId && matchPlayers(court.matchId).some(player => players.includes(player))).map(([courtNo, court]) => ({ courtNo: Number(courtNo), matchId: court.matchId })); }
   function showDispatchWarning(courtNo, matchId, conflicts) { $('#dispatchWarning')?.remove(); document.body.insertAdjacentHTML('beforeend', `<div class="dispatch-warning" id="dispatchWarning"><section><span class="section-label">Active player conflict</span><h2>Player already on court</h2><p>${esc(matchId)} includes a player currently active in ${conflicts.map(item => `${item.matchId} on Court ${item.courtNo}`).join(', ')}. Sending this match to Court ${courtNo} would place that player on two courts at once.</p><div><button class="btn btn-danger" id="confirmConflictDispatch">Send anyway</button><button class="btn btn-quiet" id="cancelConflictDispatch">Keep in schedule</button></div></section></div>`); $('#confirmConflictDispatch').onclick = () => { $('#dispatchWarning').remove(); assignMatch(courtNo, matchId, true); }; $('#cancelConflictDispatch').onclick = () => $('#dispatchWarning').remove(); }
   function assignMatch(courtNo, matchId, override = false) { if (!state.courts[courtNo] || state.courts[courtNo].matchId) return false; const conflicts = activePlayerCourtConflicts(matchId); if (conflicts.length && !override) { showDispatchWarning(courtNo, matchId, conflicts); return false; } state.courts[courtNo] = { matchId, running: false, startedAt: null, elapsed: 0 }; state.queue = state.queue.filter(id => id !== matchId); saveState(); renderAll(); return true; }
-  function assignNext(courtNo) { const id = nextForCourt(courtNo); if (!id) return toast('No waiting matches.'); assignMatch(courtNo, id); }
+  function assignNext(courtNo) {
+    if (state.courts[courtNo]?.matchId) return toast(`Court ${courtNo} is not vacant.`);
+    const id = nextForCourt(courtNo); if (!id) return toast('No waiting matches.');
+    if (assignMatch(courtNo, id)) toast(`${id} promoted to Court ${courtNo}${state.refereeAssignments?.[id] ? ` with ${refereeName(state.refereeAssignments[id])} officiating` : ' as an unofficiated match'}.`);
+  }
+  const promotionRequestsInFlight = new Set();
+  async function handleRefereePromotionRequest(item) {
+    const request = item?.promotionRequest, matchId = item?.id, courtNo = Number(request?.courtNo), refereeEmail = String(request?.refereeEmail || '').trim().toLowerCase();
+    if (!request || promotionRequestsInFlight.has(matchId)) return;
+    promotionRequestsInFlight.add(matchId);
+    try {
+      const assignedEmail = String(state.refereeAssignments?.[matchId] || '').trim().toLowerCase();
+      const eligible = assignedEmail && assignedEmail === refereeEmail && state.courts[courtNo] && !state.courts[courtNo].matchId && nextForCourt(courtNo) === matchId;
+      if (!eligible) return toast(`${matchId} was not promoted because it is no longer next for a vacant court.`);
+      if (assignMatch(courtNo, matchId)) toast(`${refereeName(refereeEmail)} promoted ${matchId} and may begin officiating.`);
+    } finally {
+      await clearMatchPromotion(matchId).catch(() => {});
+      promotionRequestsInFlight.delete(matchId);
+    }
+  }
+  function processRefereePromotionRequests() { if (controlReady && !demoMode && !drawTestMode) pendingPromotionRequests.forEach(handleRefereePromotionRequest); }
   function sendMatchToFreeCourt(id) { const free = Object.keys(state.courts).find(no => !state.courts[no].matchId); if (!free) return toast('No court is currently available.'); assignMatch(Number(free), id); }
   function fillCourts() { Object.keys(state.courts).forEach(no => { if (!state.courts[no].matchId) { const id = nextForCourt(Number(no)); if (id) state.courts[no] = { matchId: id, running: false, startedAt: null, elapsed: 0 }; } }); state.queue = state.queue.filter(id => !Object.values(state.courts).some(c => c.matchId === id)); saveState(); renderAll(); }
   function toggleTimer(courtNo) { const court = state.courts[courtNo]; if (!court?.matchId) return; state.liveScoring ||= {}; const timer = state.liveScoring[court.matchId] ||= { a: 0, b: 0, timeouts: { a: 0, b: 0 }, medical: 0, technicalTimeouts: 0, refereeTimeouts: 0, equipmentTimeouts: 0, log: [], running: false, startedAt: null, elapsed: 0 }; if (timer.running) { timer.elapsed = elapsedSeconds(timer); timer.running = false; timer.startedAt = null; } else { timer.running = true; timer.startedAt = Date.now(); } saveState(); if (cloudUser) publishMatch(court.matchId, timer, state.scores[court.matchId] || null); renderCourts(); }
@@ -654,7 +674,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
         if (demoMode) { state.demo = true; demoSnapshotReady = true; }
         controlReady = true; hydrateRegisteredTeams(false); localStorage.setItem(storageKey, JSON.stringify(state)); renderAll();
         if (drawTestMode) showView('draw');
-        cloudApplying = false;
+        cloudApplying = false; processRefereePromotionRequests();
         if (!demoMode && !drawTestMode && formatChanged) clearMatches().then(() => publishControl(state)).then(() => toast('95-match format and normalized standings applied. Previous test match data cleared.')).catch(() => toast('Format updated locally; cloud cleanup needs another try.'));
         else if (!demoMode && !drawTestMode && scheduleChanged) publishControl(state).then(() => toast('Tournament start moved to 10:30 AM.')).catch(() => toast('Schedule updated locally; cloud sync needs another try.'));
         else if (!demoMode && !drawTestMode && !refereeBoardPublished) { refereeBoardPublished = true; publishControl(state).catch(() => { refereeBoardPublished = false; }); }
@@ -662,7 +682,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchControl, watchMatches,
       watchRegistrations(items => { if (demoMode && demoRegistrationsReady) return; registrations = items; if (demoMode) demoRegistrationsReady = true; if (hydrateRegisteredTeams()) { localStorage.setItem(storageKey, JSON.stringify(state)); renderAll(); } }, () => toast('Player registrations could not be loaded.'));
       watchCheckins(items => { if (demoMode && demoCheckinsReady) return; state.checkins = Object.fromEntries(items.map(item => [item.id, item])); if (demoMode) demoCheckinsReady = true; localStorage.setItem(storageKey, JSON.stringify(state)); renderCourts(); }, () => toast('Player photos could not be loaded.'));
       if (!demoMode) { $('#cloudSessionBtn').textContent = 'Sign out'; $('#cloudSessionBtn').title = `Signed in as ${user.email}`; }
-      watchMatches(items => { if (demoMode && demoMatchesReady) return; cloudApplying = true; state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); if (demoMode) demoMatchesReady = true; localStorage.setItem(storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; }, () => toast('Live match feed unavailable.'));
+      watchMatches(items => { if (demoMode && demoMatchesReady) return; cloudApplying = true; state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); pendingPromotionRequests = items.filter(item => item.promotionRequest); if (demoMode) demoMatchesReady = true; localStorage.setItem(storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; processRefereePromotionRequests(); }, () => toast('Live match feed unavailable.'));
     });
   }
 

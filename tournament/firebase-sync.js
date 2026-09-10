@@ -50,6 +50,12 @@ export async function publishMatch(matchId, live, score) {
   if (safeScore?.confirmation) { safeScore.confirmation.ocpcSigned = Boolean(safeScore.confirmation.ocpcSignature); safeScore.confirmation.rebelsSigned = Boolean(safeScore.confirmation.rebelsSignature); delete safeScore.confirmation.ocpcSignature; delete safeScore.confirmation.rebelsSignature; }
   await setDoc(doc(matchesRef, matchId), { live: structuredClone(live), score: safeScore, updatedAt: serverTimestamp() }, { merge: true });
 }
+export function requestMatchPromotion(matchId, courtNo, refereeEmail) {
+  return setDoc(doc(matchesRef, matchId), { promotionRequest: { courtNo: Number(courtNo), refereeEmail: String(refereeEmail || '').trim().toLowerCase(), requestedAt: serverTimestamp() }, updatedAt: serverTimestamp() }, { merge: true });
+}
+export function clearMatchPromotion(matchId) {
+  return updateDoc(doc(matchesRef, matchId), { promotionRequest: null, updatedAt: serverTimestamp() });
+}
 export function deleteMatch(matchId) { return deleteDoc(doc(matchesRef, matchId)); }
 export async function clearMatches() {
   const snapshot = await getDocs(matchesRef);
