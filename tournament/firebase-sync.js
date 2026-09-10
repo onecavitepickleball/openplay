@@ -26,7 +26,7 @@ export function updateRegistration(id, data) { return updateDoc(doc(registration
 export function deleteRegistration(id) { return deleteDoc(doc(registrationsRef, id)); }
 export async function listTournamentStaff() {
   const snapshot = await getDocs(collection(db, 'players'));
-  const allowed = ['match_control', 'tournament_registration', 'tournament_checkin', 'tournament_score_desk', 'tournament_referee'];
+  const allowed = ['tournament_admin', 'match_control', 'tournament_registration', 'tournament_checkin', 'tournament_score_desk', 'tournament_referee'];
   return snapshot.docs.map(item => ({ id: item.id, ...item.data() })).filter(player => (Array.isArray(player.roles) ? player.roles : [player.role].filter(Boolean)).some(role => allowed.includes(role)));
 }
 export async function changeTournamentStaffRole(email, role, enabled) {

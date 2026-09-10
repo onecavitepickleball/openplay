@@ -40,6 +40,10 @@ service cloud.firestore {
       return request.auth != null && (role in getRoles(request.auth.uid));
     }
 
+    function isTournamentAdmin() {
+      return hasRole('tournament_admin');
+    }
+
     // Existing open-play attendance log. Public can read (leaderboard/spotlight
     // widgets need this); admins and Court Managers can write.
     match /attendance/{sessionId} {
@@ -119,7 +123,7 @@ service cloud.firestore {
         && request.resource.data.lastName.size() > 0;
 
       allow read: if request.auth != null
-        && (request.auth.uid == playerId || isAdmin());
+        && (request.auth.uid == playerId || isAdmin() || isTournamentAdmin());
 
       // A protected (super-admin) player's status can't be changed by
       // anyone, including other admins — this is what keeps their
@@ -128,6 +132,15 @@ service cloud.firestore {
         isAdmin()
         && !(resource.data.email is string && isSuperAdminEmail(resource.data.email)
              && request.resource.data.status != resource.data.status)
+      ) || (
+        isTournamentAdmin()
+        && !(resource.data.email is string && isSuperAdminEmail(resource.data.email))
+        && !(resource.data.roles is list && resource.data.roles.hasAny(['admin']))
+        && resource.data.role != 'admin'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'roles'])
+        && request.resource.data.roles is list
+        && !request.resource.data.roles.hasAny(['admin'])
+        && request.resource.data.role != 'admin'
       ) || (
         request.auth != null && request.auth.uid == playerId
         && request.resource.data.status == resource.data.status
@@ -402,9 +415,9 @@ service cloud.firestore {
     // signed-in officials may read it, but a referee may only write the live
     // match document explicitly assigned to their authenticated email.
     match /tournamentEvents/{eventId} {
-      allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_registration') || hasRole('tournament_checkin') || hasRole('tournament_score_desk') || (request.auth != null && resource.data.refereeEmails.hasAny([request.auth.token.email]));
-      allow create, delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
-      allow update: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || (
+      allow read: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_registration') || hasRole('tournament_checkin') || hasRole('tournament_score_desk') || (request.auth != null && resource.data.refereeEmails.hasAny([request.auth.token.email]));
+      allow create, delete: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control');
+      allow update: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control') || (
         hasRole('tournament_registration')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'updatedAt'])
         && request.resource.data.state.diff(resource.data.state).affectedKeys().hasOnly(['pairs', 'updatedAt'])
@@ -415,37 +428,37 @@ service cloud.firestore {
       );
 
       match /matches/{matchId} {
-        allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_score_desk') || (request.auth != null && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email]));
-        allow create, update: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_score_desk') || (
+        allow read: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_score_desk') || (request.auth != null && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email]));
+        allow create, update: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_score_desk') || (
           request.auth != null
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.state.refereeAssignments[matchId] == request.auth.token.email
         );
-        allow delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
+        allow delete: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control');
       }
 
       // Registration records contain private email addresses and optional
       // DUPR IDs. Only tournament operations staff may access them. Public-
       // safe names and thumbnails are copied into the event state at check-in.
       match /registrations/{registrationId} {
-        allow read, create, update, delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_registration') || hasRole('tournament_checkin');
+        allow read, create, update, delete: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_registration') || hasRole('tournament_checkin');
       }
 
       // Small per-player check-in documents keep camera thumbnails available
       // to Match Control, referees, and the private broadcast across devices.
       match /checkins/{checkinId} {
-        allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin') || (
+        allow read: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin') || (
           request.auth != null
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email])
         );
-        allow create, update: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin');
-        allow delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin');
+        allow create, update: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin');
+        allow delete: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin');
       }
     }
 
     // Referee-safe overview without registration PII, signatures, or photos.
     match /tournamentRefereeBoards/{eventId} {
-      allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_referee');
-      allow write: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
+      allow read: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_referee');
+      allow write: if isAdmin() || isTournamentAdmin() || hasRole('court_manager') || hasRole('match_control');
     }
   }
 }
