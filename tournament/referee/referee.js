@@ -1,5 +1,5 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, logout, watchRefereeBoard, watchMatches, watchCheckins, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, logout, getCurrentProfile, watchRefereeBoard, watchMatches, watchCheckins, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
@@ -128,14 +128,18 @@ const { watchAuth, logout, watchRefereeBoard, watchMatches, watchCheckins, publi
     const match = activeMatch(), live = liveFor(match), canvases = $$('#confirmationSheet canvas'); if (!canvases.every(hasInk)) return toast('Both pairs must sign first.'); const prior = state.scores[match.id];
     state.scores[match.id] = { a: live.a, b: live.b, completedAt: prior?.completedAt || new Date().toISOString(), confirmation: { referee: email, submittedAt: new Date().toISOString(), ocpcSignature: canvases[0].toDataURL('image/png'), rebelsSignature: canvases[1].toDataURL('image/png') } }; live.complete = true; live.running = false; live.startedAt = null; addLog(live, `Final result submitted: ${live.a}-${live.b}`); state.scoreAudit ||= []; state.scoreAudit.push({ matchId: match.id, previous: prior || null, revised: state.scores[match.id], source: `referee:${email}`, revisedAt: new Date().toISOString() }); save(); $('#confirmationSheet').hidden = true; renderScorekeeper(); toast('Confirmed result sent to Match Control.');
   }
-  watchAuth(user => {
+  watchAuth(async user => {
     cloudUser = user;
     $('#refereeAccount').hidden = !user; $('#refereeLogin').hidden = Boolean(user); $('#assignmentSummary').hidden = !user;
     if (!user) { email = ''; $('#matchList').innerHTML = ''; return; }
     email = user.email.toLowerCase();
     $('#refereeAccountEmail').textContent = email; $('#officialLogout').onclick = logout;
+    $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Verifying referee access</h2><p>Checking this OCPC account and loading the tournament court board…</p></section>';
+    let profile = null; try { profile = await getCurrentProfile(user); } catch (_) {}
+    const roles = new Set([...(Array.isArray(profile?.roles) ? profile.roles : []), ...(profile?.role ? [profile.role] : [])]), superAdmin = ['ocpc.pickleball@gmail.com','jamescastillo37@gmail.com'].includes(email);
+    if (!superAdmin && !roles.has('admin') && !roles.has('match_control') && !roles.has('court_manager') && !roles.has('tournament_referee')) { $('#matchList').innerHTML = `<section class="field-card access-warning"><h2>Referee access is not attached to this account</h2><p>Signed in as <b>${esc(email)}</b>. Match Control must grant Referee access to this exact email, then reopen this page.</p></section>`; $('#assignmentSummary').hidden = true; return; }
     watchRefereeBoard(incoming => { if (!incoming) { $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Referee board is preparing</h2><p>Ask Match Control to open the tournament dashboard once to publish the referee court board.</p></section>'; return; } const local = load(); state = { ...incoming, liveScoring: local?.liveScoring || {}, checkins:local?.checkins || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => { $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Referee access not granted</h2><p>You are signed in successfully, but this OCPC account does not have the Referee staff role.</p></section>'; $('#assignmentSummary').hidden = true; });
-    watchMatches(items => { state ||= load(); state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => toast('Live match sync unavailable.'));
+    watchMatches(items => { state ||= load(); if (!state) return; state.liveScoring = {}; state.scores ||= {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => toast('Live match sync unavailable.'));
     watchCheckins(items => { if (!state) return; state.checkins = Object.fromEntries(items.map(item => [item.id, item])); localStorage.setItem(config.storageKey, JSON.stringify(state)); activeId ? renderScorekeeper() : renderAssignments(); }, () => toast('Player photos unavailable.'));
   });
   window.addEventListener('storage', () => { if (!email) return; activeId ? renderScorekeeper() : renderAssignments(); });

@@ -402,7 +402,7 @@ service cloud.firestore {
     // signed-in officials may read it, but a referee may only write the live
     // match document explicitly assigned to their authenticated email.
     match /tournamentEvents/{eventId} {
-      allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_registration') || hasRole('tournament_checkin') || hasRole('tournament_score_desk') || (request.auth != null && resource.data.refereeEmails.hasAny([request.auth.token.email]));
+      allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_registration') || hasRole('tournament_checkin') || hasRole('tournament_score_desk') || hasRole('tournament_referee') || (request.auth != null && resource.data.refereeEmails.hasAny([request.auth.token.email]));
       allow create, delete: if isAdmin() || hasRole('court_manager') || hasRole('match_control');
       allow update: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || (
         hasRole('tournament_registration')
@@ -415,7 +415,7 @@ service cloud.firestore {
       );
 
       match /matches/{matchId} {
-        allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_score_desk') || (request.auth != null && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email]));
+        allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_score_desk') || hasRole('tournament_referee') || (request.auth != null && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email]));
         allow create, update: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_score_desk') || (
           request.auth != null
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.state.refereeAssignments[matchId] == request.auth.token.email
@@ -433,7 +433,7 @@ service cloud.firestore {
       // Small per-player check-in documents keep camera thumbnails available
       // to Match Control, referees, and the private broadcast across devices.
       match /checkins/{checkinId} {
-        allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin') || (
+        allow read: if isAdmin() || hasRole('court_manager') || hasRole('match_control') || hasRole('tournament_checkin') || hasRole('tournament_referee') || (
           request.auth != null
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email])
         );

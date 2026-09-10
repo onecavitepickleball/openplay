@@ -33,9 +33,9 @@ export async function changeTournamentStaffRole(email, role, enabled) {
   const normalized = String(email || '').trim().toLowerCase();
   const snapshot = await getDocs(query(collection(db, 'players'), where('email', '==', normalized)));
   if (snapshot.empty) throw new Error('NO_ACCOUNT');
-  const player = snapshot.docs[0], data = player.data(), roles = new Set(Array.isArray(data.roles) ? data.roles : [data.role].filter(Boolean));
-  enabled ? roles.add(role) : roles.delete(role);
-  await updateDoc(player.ref, { roles: [...roles], role: roles.has('admin') ? 'admin' : [...roles][0] || 'member' });
+  const batch = writeBatch(db);
+  snapshot.docs.forEach(player => { const data = player.data(), roles = new Set(Array.isArray(data.roles) ? data.roles : [data.role].filter(Boolean)); enabled ? roles.add(role) : roles.delete(role); batch.update(player.ref, { roles: [...roles], role: roles.has('admin') ? 'admin' : [...roles][0] || 'member' }); });
+  await batch.commit();
 }
 export async function publishControl(state) {
   const safe = structuredClone(state); delete safe.liveScoring;
