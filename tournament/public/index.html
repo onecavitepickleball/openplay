@@ -1,3 +1,6 @@
+---
+layout: null
+---
 <!doctype html>
 <html lang="en">
 <head>
@@ -6,7 +9,7 @@
   <meta name="theme-color" content="#063b56">
   <meta name="robots" content="noindex,nofollow">
   <title>Live Tournament Standings</title>
-  <link rel="stylesheet" href="public.css">
+  <link rel="stylesheet" href="public.css?v={{ site.github.build_revision }}">
 </head>
 <body>
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
@@ -52,6 +55,6 @@
       <footer><span id="footerEvent"></span><b>Live results update automatically</b></footer>
     </div>
   </main>
-  <script type="module" src="public.js"></script>
+  <script type="module" src="public.js?v={{ site.github.build_revision }}"></script>
 </body>
 </html>

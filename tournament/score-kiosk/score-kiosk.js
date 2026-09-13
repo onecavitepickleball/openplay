@@ -45,13 +45,13 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
   setupCanvas($('#signatureA')); setupCanvas($('#signatureB')); $$('[data-clear-signature]').forEach(button => button.onclick = () => clearSignature(button.dataset.clearSignature)); $('#closeKioskScore').onclick = closeScoreSheet; $('#kioskScoreSheet').onclick = event => { if (event.target === $('#kioskScoreSheet')) closeScoreSheet(); };
   $('#scoreReportForm').onsubmit = async event => {
     event.preventDefault(); const match = state.matches.find(item => item.id === selectedMatchId); if (!match) return;
-    const a = Number($('#kioskScoreA').value), b = Number($('#kioskScoreB').value), signatureA = $('#signatureA'), signatureB = $('#signatureB');
+    const a = Number($('#kioskScoreA').value), b = Number($('#kioskScoreB').value), signatureA = $('#signatureA'), signatureB = $('#signatureB'), rules = state.matchSettings?.[match.id] || { target:11, suddenDeathAt:10 }, maximum = Math.max(Number(rules.target)||11, Number(rules.suddenDeathAt||10)+1);
     if (!signatureA.dataset.signed || !signatureB.dataset.signed) return $('#scoreFormError').textContent = 'Both pair representatives must sign before submission.';
-    if (!Number.isInteger(a) || !Number.isInteger(b) || a === b || Math.max(a, b) > 11 || Math.min(a, b) < 0) return $('#scoreFormError').textContent = 'Enter the score on court. A timed match may finish below 11, but it cannot end tied.';
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a === b || Math.max(a, b) > maximum || Math.min(a, b) < 0) return $('#scoreFormError').textContent = `Enter whole-number scores from 0 to ${maximum}. A timed match may finish below its target, but it cannot end tied.`;
     const prior = state.scores?.[match.id]; if (prior && !confirm(`A result already exists: ${prior.a}-${prior.b}. Send a replacement report?`)) return;
     const live = { ...(state.liveScoring?.[match.id] || {}), a, b, running:false, startedAt:null, complete:true }, submittedAt = new Date().toISOString();
-    const score = { a, b, completedAt: prior?.completedAt || submittedAt, confirmation: { source:'player-kiosk', submittedBy:user.email, submittedAt, ocpcSignature:signatureA.toDataURL(), rebelsSignature:signatureB.toDataURL() } };
-    try { await publishMatch(match.id, live, score); toast('Both signatures confirmed. Score sent to Match Control.'); closeScoreSheet(); } catch (_) { $('#scoreFormError').textContent = 'Score could not be sent. Ask Match Control to enter it manually.'; }
+    const score = { a, b, resultType:'player-reported', completedAt: prior?.completedAt || submittedAt, confirmation: { source:'player-kiosk', submittedBy:user.email, submittedAt, ocpcSignature:signatureA.toDataURL(), rebelsSignature:signatureB.toDataURL() } };
+    try { await publishMatch(match.id, live, score); state.scores ||= {}; state.scores[match.id] = score; renderCourts(); toast('Both signatures confirmed. Score sent to Match Control.'); closeScoreSheet(); } catch (_) { $('#scoreFormError').textContent = 'Score could not be sent. Ask Match Control to enter it manually.'; }
   };
   watchAuth(async account => {
     user = account; $('#kioskGate').hidden = Boolean(account);
