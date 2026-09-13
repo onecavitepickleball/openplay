@@ -46,7 +46,10 @@ service cloud.firestore {
     }
 
     function isTournamentMember(eventId) {
-      return request.auth != null && exists(/databases/$(database)/documents/tournamentEvents/$(eventId)/members/$(request.auth.uid));
+      return request.auth != null && tournamentRoles(eventId).hasAny([
+        'owner', 'tournament_admin', 'match_control', 'tournament_registration',
+        'tournament_checkin', 'tournament_score_desk', 'tournament_referee'
+      ]);
     }
 
     function hasTournamentRole(eventId, role) {
@@ -58,7 +61,7 @@ service cloud.firestore {
     }
 
     function controlsTournament(eventId) {
-      return managesTournament(eventId) || hasTournamentRole(eventId, 'match_control') || hasTournamentRole(eventId, 'court_manager');
+      return managesTournament(eventId) || hasTournamentRole(eventId, 'match_control');
     }
 
     function legacyTournamentRole(eventId, role) {
@@ -447,11 +450,11 @@ service cloud.firestore {
     // signed-in officials may read it, but a referee may only write the live
     // match document explicitly assigned to their authenticated email.
     match /tournamentEvents/{eventId} {
-      allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_score_desk') || (request.auth != null && resource.data.refereeEmails.hasAny([request.auth.token.email]));
+      allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_score_desk') || legacyTournamentRole(eventId, 'tournament_referee') || (request.auth != null && resource.data.refereeEmails.hasAny([request.auth.token.email]));
       allow create: if approvedOrganizer() && request.resource.data.ownerId == request.auth.uid && request.resource.data.memberIds.hasOnly([request.auth.uid]);
       allow delete: if managesTournament(eventId);
       allow update: if managesTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || (
-        (hasTournamentRole(eventId, 'match_control') || hasTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'court_manager'))
+        (hasTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'match_control'))
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'refereeEmails', 'updatedAt'])
       ) || (
         (hasTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_registration'))
@@ -464,7 +467,8 @@ service cloud.firestore {
       );
 
       match /members/{memberId} {
-        allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control');
+        allow get: if request.auth != null && memberId == request.auth.uid || controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control');
+        allow list: if controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control');
         allow create, update, delete: if managesTournament(eventId) || (
           approvedOrganizer() && memberId == request.auth.uid
           && getAfter(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.ownerId == request.auth.uid
@@ -472,30 +476,30 @@ service cloud.firestore {
       }
 
       match /matches/{matchId} {
-        allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_score_desk') || (request.auth != null && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email]));
-        allow create, update: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_score_desk') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_score_desk') || (
+        allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_score_desk') || legacyTournamentRole(eventId, 'tournament_referee') || (request.auth != null && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email]));
+        allow create, update: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_score_desk') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_score_desk') || (
           request.auth != null
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.state.refereeAssignments[matchId] == request.auth.token.email
         );
-        allow delete: if controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control');
+        allow delete: if controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control');
       }
 
       // Registration records contain private email addresses and optional
       // DUPR IDs. Only tournament operations staff may access them. Public-
       // safe names and thumbnails are copied into the event state at check-in.
       match /registrations/{registrationId} {
-        allow read, create, update, delete: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_registration') || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_checkin');
+        allow read, create, update, delete: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_registration') || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_checkin');
       }
 
       // Small per-player check-in documents keep camera thumbnails available
       // to Match Control, referees, and the private broadcast across devices.
       match /checkins/{checkinId} {
-        allow read: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_checkin') || hasTournamentRole(eventId, 'tournament_referee') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_checkin') || (
+        allow read: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_checkin') || hasTournamentRole(eventId, 'tournament_referee') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_referee') || (
           request.auth != null
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email])
         );
-        allow create, update: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_checkin');
-        allow delete: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_checkin');
+        allow create, update: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_checkin');
+        allow delete: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_checkin');
       }
     }
 
@@ -512,8 +516,8 @@ service cloud.firestore {
 
     // Referee-safe overview without registration PII, signatures, or photos.
     match /tournamentRefereeBoards/{eventId} {
-      allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_referee');
-      allow write: if controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'court_manager') || legacyTournamentRole(eventId, 'match_control');
+      allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_referee');
+      allow write: if controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control');
     }
   }
 }

@@ -692,8 +692,17 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function showView(name) {
     activeView = name; $$('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`)); $$('.nav-item').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name)); $('#sidebar').classList.remove('open');
     if (name === 'courts') renderCourts(); if (name === 'schedule') renderSchedule(); if (name === 'standings') renderStandings(); if (name === 'dream') renderDreamBreakerBoard(); if (name === 'medals') renderMedals();
+    closeAppLauncher();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+  function setSettingsSection(name) {
+    const selected = $(`[data-settings-panel="${name}"]`) ? name : 'event';
+    $$('[data-settings-section]').forEach(button => { const active = button.dataset.settingsSection === selected; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); });
+    $$('[data-settings-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.settingsPanel === selected));
+    localStorage.setItem('matchday.settingsSection', selected);
+  }
+  function closeAppLauncher() { const launcher = $('#appLauncher'), button = $('#appLauncherBtn'); if (!launcher || launcher.hidden) return; launcher.hidden = true; button?.setAttribute('aria-expanded', 'false'); }
+  function toggleAppLauncher(force) { const launcher = $('#appLauncher'), button = $('#appLauncherBtn'); if (!launcher) return; const open = typeof force === 'boolean' ? force : launcher.hidden; launcher.hidden = !open; button?.setAttribute('aria-expanded', String(open)); }
   function bindScoreButtons() { $$('[data-score-id]').forEach(button => button.onclick = () => openScore(button.dataset.scoreId)); }
   function openScore(id) {
     const match = state.matches.find(m => m.id === id); if (!match) return;
@@ -753,7 +762,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
       { role:'tournament_checkin', href:'check-in/', icon:'✓', title:'Player Check-In', text:'Capture photos and verify signed waivers.' },
       { role:'tournament_score_desk', href:'score-kiosk/', icon:'#', title:'Score Kiosk', text:'Receive signed scores from unofficiated courts.' }
     ].filter(tool => roles.has(tool.role));
-    $('.app-shell').hidden = true; $('#staffPortal').hidden = false; $('#staffPortalIdentity').textContent = `Signed in as ${user.email}`; $('#staffToolGrid').innerHTML = tools.length ? tools.map(tool => `<a class="staff-tool-card" href="${tool.href}"><span>${tool.icon}</span><div><h2>${tool.title}</h2><p>${tool.text}</p></div><b>Open →</b></a>`).join('') : '<div class="staff-no-tools"><h2>No tournament tools assigned</h2><p>Your OCPC account works, but an administrator has not granted a tournament staff role yet.</p></div>'; $('#staffPortalLogout').onclick = logout;
+    $('.app-shell').hidden = true; $('#staffPortal').hidden = false; $('#staffPortalIdentity').textContent = `Signed in as ${user.email}`; $('#staffToolGrid').innerHTML = tools.length ? tools.map(tool => `<a class="staff-tool-card" href="${window.MATCHDAY_EVENT_URL(tool.href)}"><span>${tool.icon}</span><div><h2>${tool.title}</h2><p>${tool.text}</p></div><b>Open →</b></a>`).join('') : '<div class="staff-no-tools"><h2>No tournament tools assigned</h2><p>Your OCPC account works, but an administrator has not granted a tournament staff role yet.</p></div>'; $('#staffPortalLogout').onclick = logout;
   }
   function startCloud() {
     if (demoMode) { document.body.insertAdjacentHTML('afterbegin', '<div class="demo-mode-banner"><b>LIVE-DATA DEMO</b><span>Firebase writes disabled · Simulated time: <strong id="demoClockValue">10:00:00 AM</strong></span><button id="demoTimeBack" title="Move simulated time back 5 minutes">−5m</button><button id="demoTimeForward" title="Move simulated time forward 5 minutes">+5m</button><button id="demoTimeReset">Reset 10:00</button></div>'); $('#demoTimeBack').onclick = () => setDemoClock(operationalClock().minute - 5); $('#demoTimeForward').onclick = () => setDemoClock(operationalClock().minute + 5); $('#demoTimeReset').onclick = () => setDemoClock(600); $('#cloudSessionBtn').textContent = 'Reload live snapshot'; $('#cloudSessionBtn').title = 'Discard this simulation and reload the latest tournament snapshot'; }
@@ -763,11 +772,11 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
       if (!user) { $('#staffPortal').hidden = true; $('.app-shell').hidden = false; return showCloudGate(); }
       $('#cloudGate')?.remove();
       let profile = null; try { profile = await getCurrentProfile(user); } catch (_) {}
-      const roles = profileRoles(user, profile), fullControl = roles.has('admin') || roles.has('owner') || roles.has('tournament_admin') || roles.has('match_control') || roles.has('court_manager');
+      const roles = profileRoles(user, profile), fullControl = roles.has('admin') || roles.has('owner') || roles.has('tournament_admin') || roles.has('match_control');
       if (!fullControl) return showStaffPortal(user, roles);
       canAdminTournament = roles.has('admin') || roles.has('owner') || roles.has('tournament_admin');
       $('#staffPortal').hidden = true; $('.app-shell').hidden = false;
-      $('#staffAccessForm').hidden = !canAdminTournament; $('#staffAccessHelp').textContent = canAdminTournament ? 'Add an existing OCPC website account to one desk. Existing access is grouped by role below and can be removed with its × button.' : 'Access is read-only for Match Control. Only Full Match Control or a site administrator can grant or remove tournament staff access.'; $('#resetBtn').disabled = !canAdminTournament; $('#resetTournamentHelp').textContent = canAdminTournament ? 'Clear scores, timers, queues, court assignments, officials, check-ins, standings, and medal results. Retained Player Registration records will automatically repopulate Teams.' : 'Only Full Match Control or a site administrator can reset tournament data.';
+      $('#staffAccessForm').hidden = !canAdminTournament; $('#staffAccessHelp').textContent = canAdminTournament ? 'Add an existing OCPC website account to one desk. Existing access is grouped by role below and can be removed with its × button.' : 'Access is read-only for Match Control. Only Full Match Control or a site administrator can grant or remove tournament staff access.'; $('#tournamentResetPanel').hidden = !canAdminTournament; $('#resetBtn').disabled = !canAdminTournament; $('#resetTournamentHelp').textContent = canAdminTournament ? 'Clear scores, timers, queues, court assignments, officials, check-ins, standings, and medal results. Retained Player Registration records will automatically repopulate Teams.' : 'Only Full Match Control or a site administrator can reset tournament data.';
       watchControl(incoming => {
         if (demoMode && demoSnapshotReady) return;
         if (!incoming) { if (!demoMode && !drawTestMode) publishControl(state).catch(() => showCloudGate('Your account cannot initialize this event.')); return; }
@@ -809,6 +818,13 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   }
 
   setBrandContent();
+  $$('[data-event-app]').forEach(link => { link.href = window.MATCHDAY_EVENT_URL(link.dataset.eventApp); });
+  $$('[data-settings-section]').forEach(button => button.onclick = () => setSettingsSection(button.dataset.settingsSection));
+  setSettingsSection(localStorage.getItem('matchday.settingsSection') || 'event');
+  $('#appLauncherBtn').onclick = event => { event.stopPropagation(); toggleAppLauncher(); };
+  $('#appLauncherClose').onclick = closeAppLauncher;
+  $('#appLauncher').onclick = event => event.stopPropagation();
+  document.addEventListener('click', closeAppLauncher);
   config.categories.forEach(category => $('#scheduleCategory').insertAdjacentHTML('beforeend', `<option value="${esc(category)}">${esc(category)}</option>`));
   config.categories.forEach(category => $('#medalCategorySelect').insertAdjacentHTML('beforeend', `<option value="${esc(category)}">${esc(category)}</option>`));
   $$('.nav-item').forEach(button => button.onclick = () => showView(button.dataset.view)); $$('[data-go]').forEach(button => button.onclick = () => showView(button.dataset.go));
@@ -834,7 +850,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   $('#cloudSessionBtn').onclick = () => demoMode ? resetDemo() : logout();
   $('#resetBtn').onclick = async () => { if (demoMode) return resetDemo(); if (!canAdminTournament) return toast('Only Full Match Control can reset tournament data.'); if (!confirm('Reset all match-day results, timers, queues, court assignments, officials, check-ins, standings, medal results, and Dream Breaker data? Retained player registrations and the locked opponent draw will remain.')) return; $('#resetBtn').disabled = true; try { if (cloudUser) await Promise.all([clearMatches(), clearCheckins()]); const drawHistory = state.opponentDrawHistory || []; state = freshState(state.pairCounts, state.opponentDraw); state.opponentDrawHistory = drawHistory; hydrateRegisteredTeams(false); localStorage.removeItem(storageKey); saveState(); if (cloudUser) await publishControl(state); renderAll(); toast('Event data reset. Registered teams and locked opponent draw restored.'); } catch (_) { alert('The reset did not fully complete. Check your connection and try again.'); } finally { $('#resetBtn').disabled = false; } };
   $('#modalClose').onclick = closeScore; $('#scoreModal').onclick = event => { if (event.target === $('#scoreModal')) closeScore(); }; $('#saveScoreBtn').onclick = saveScore; $('#clearScoreBtn').onclick = clearScore;
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#scoreModal').hidden) closeScore(); });
+  document.addEventListener('keydown', event => { if (event.key !== 'Escape') return; closeAppLauncher(); if (!$('#scoreModal').hidden) closeScore(); });
   window.addEventListener('storage', event => { if (event.key !== storageKey || !event.newValue) return; try { state = JSON.parse(event.newValue); renderAll(); } catch (_) {} });
   setInterval(() => { if (activeView === 'courts') tickLiveDisplay(); }, 1000);
   renderAll(); showView(activeView); startCloud();

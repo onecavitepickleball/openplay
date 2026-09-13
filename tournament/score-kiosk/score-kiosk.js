@@ -1,7 +1,7 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
 const { loadTournamentContext } = await import(`../event-context.js?v=${encodeURIComponent(revision)}`);
 await loadTournamentContext();
-const { watchAuth, watchControl, watchMatches, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   const config = window.TOURNAMENT_CONFIG, $ = selector => document.querySelector(selector), $$ = selector => [...document.querySelectorAll(selector)], esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
@@ -53,9 +53,11 @@ const { watchAuth, watchControl, watchMatches, publishMatch } = await import(`..
     const score = { a, b, completedAt: prior?.completedAt || submittedAt, confirmation: { source:'player-kiosk', submittedBy:user.email, submittedAt, ocpcSignature:signatureA.toDataURL(), rebelsSignature:signatureB.toDataURL() } };
     try { await publishMatch(match.id, live, score); toast('Both signatures confirmed. Score sent to Match Control.'); closeScoreSheet(); } catch (_) { $('#scoreFormError').textContent = 'Score could not be sent. Ask Match Control to enter it manually.'; }
   };
-  watchAuth(account => {
+  watchAuth(async account => {
     user = account; $('#kioskGate').hidden = Boolean(account);
     if (!account) { $('#kioskWorkspace').hidden = true; return; }
+    let access; try { access = await authorizeTournamentTool(account, ['tournament_score_desk']); } catch (_) {}
+    if (!access?.allowed) { $('#kioskWorkspace').hidden = true; $('#kioskGate').hidden = false; $('#formError').textContent = 'This account does not have Score Desk access for this tournament.'; return; }
     $('#kioskWorkspace').hidden = false;
     watchControl(incoming => { state = { ...incoming, liveScoring:state?.liveScoring || {}, scores:{ ...(incoming.scores || {}), ...(state?.scores || {}) } }; renderCourts(); }, () => $('#formError').textContent = 'Tournament access denied.');
     watchMatches(items => { if (!state) return; state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); renderCourts(); }, () => $('#formError').textContent = 'Live courts are unavailable.');

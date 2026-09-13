@@ -8,13 +8,40 @@ const firebaseConfig = {
 const eventId = window.TOURNAMENT_CONFIG.firebaseEventId;
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournamentEvents', eventId), membersRef = collection(controlRef, 'members'), refereeBoardRef = doc(db, 'tournamentRefereeBoards', eventId), matchesRef = collection(db, 'tournamentEvents', eventId, 'matches'), registrationsRef = collection(db, 'tournamentEvents', eventId, 'registrations'), checkinsRef = collection(db, 'tournamentEvents', eventId, 'checkins');
+const LEGACY_EVENT_ID = 'ocpc-rally-rebels-dual-meet-2026';
+const SUPER_ADMIN_EMAILS = ['ocpc.pickleball@gmail.com', 'jamescastillo37@gmail.com'];
+const EVENT_ROLES = ['owner', 'tournament_admin', 'match_control', 'tournament_registration', 'tournament_checkin', 'tournament_score_desk', 'tournament_referee'];
+const CONTROL_ROLES = ['owner', 'tournament_admin', 'match_control'];
+const roleList = value => [...new Set(Array.isArray(value?.roles) ? value.roles : (value?.role ? [value.role] : []))];
+const primaryRole = roles => EVENT_ROLES.find(role => roles.includes(role)) || 'staff';
 
 export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
 export async function login(email, password) { await setPersistence(auth, browserLocalPersistence); return signInWithEmailAndPassword(auth, email, password); }
 export async function createAccount(email, password) { const credential = await createUserWithEmailAndPassword(auth, email, password); const local = String(email).split('@')[0].replace(/[._-]+/g,' ').trim().split(/\s+/); await setDoc(doc(db,'players',credential.user.uid), { firstName: local[0] || 'Tournament', lastName: local.slice(1).join(' ') || 'Referee', email: String(email).trim().toLowerCase(), status: 'pending', sessionsAttended: 0, createdAt: serverTimestamp() }); return credential; }
 export function logout() { return signOut(auth); }
-export async function updateEventConfiguration(config) { const metadata = { name:config.event.name, date:config.event.date, venue:config.event.venue, location:config.event.location, status:'private', primary:config.brand.primary }, members = await getDocs(membersRef), batch = writeBatch(db); batch.set(controlRef, { config:structuredClone(config), metadata, updatedAt:serverTimestamp() }, { merge:true }); members.docs.forEach(member => batch.set(doc(db,'tournamentAccess',member.id,'events',eventId), { eventId, ...metadata, role:(member.data().roles || [])[0] || 'staff', updatedAt:serverTimestamp() }, { merge:true })); await batch.commit(); }
-export async function getCurrentProfile(user) { if (!user) return null; const [profileSnapshot, membershipSnapshot] = await Promise.all([getDoc(doc(db, 'players', user.uid)), getDoc(doc(membersRef, user.uid)).catch(() => null)]), profile = profileSnapshot.exists() ? profileSnapshot.data() : {}, membership = membershipSnapshot?.exists() ? membershipSnapshot.data() : {}, roles = [...new Set([...(Array.isArray(profile.roles) ? profile.roles : [profile.role].filter(Boolean)), ...(Array.isArray(membership.roles) ? membership.roles : [membership.role].filter(Boolean))])]; return { id:user.uid, ...profile, eventMembership:membership, roles, role:roles.includes('admin') ? 'admin' : roles[0] || 'member' }; }
+export async function updateEventConfiguration(config) { const metadata = { name:config.event.name, date:config.event.date, venue:config.event.venue, location:config.event.location, status:'private', primary:config.brand.primary }, members = await getDocs(membersRef), batch = writeBatch(db); batch.set(controlRef, { config:structuredClone(config), metadata, updatedAt:serverTimestamp() }, { merge:true }); members.docs.forEach(member => { const roles = roleList(member.data()).filter(role => EVENT_ROLES.includes(role)); batch.set(doc(db,'tournamentAccess',member.id,'events',eventId), { eventId, ...metadata, roles, role:primaryRole(roles), updatedAt:serverTimestamp() }, { merge:true }); }); await batch.commit(); }
+export async function getCurrentProfile(user) {
+  if (!user) return null;
+  const [profileSnapshot, membershipSnapshot] = await Promise.all([
+    getDoc(doc(db, 'players', user.uid)),
+    getDoc(doc(membersRef, user.uid)).catch(() => null)
+  ]);
+  const profile = profileSnapshot.exists() ? profileSnapshot.data() : {};
+  const membership = membershipSnapshot?.exists() ? membershipSnapshot.data() : {};
+  const siteRoles = roleList(profile);
+  const membershipRoles = roleList(membership).filter(role => EVENT_ROLES.includes(role));
+  const legacyRoles = eventId === LEGACY_EVENT_ID ? siteRoles.filter(role => EVENT_ROLES.includes(role)) : [];
+  const eventRoles = [...new Set([...membershipRoles, ...legacyRoles])];
+  const isSiteAdmin = SUPER_ADMIN_EMAILS.includes(String(user.email || '').toLowerCase()) || siteRoles.includes('admin');
+  const roles = [...new Set([...(isSiteAdmin ? ['admin'] : []), ...eventRoles])];
+  return { id:user.uid, ...profile, eventMembership:membership, siteRoles, eventRoles, isSiteAdmin, roles, role:isSiteAdmin ? 'admin' : eventRoles[0] || 'member' };
+}
+export async function authorizeTournamentTool(user, toolRoles = []) {
+  const profile = await getCurrentProfile(user);
+  const eventRoles = new Set(profile?.eventRoles || []);
+  const allowed = Boolean(profile?.isSiteAdmin) || CONTROL_ROLES.some(role => eventRoles.has(role)) || toolRoles.some(role => eventRoles.has(role));
+  return { allowed, profile, eventRoles };
+}
 export function watchControl(onData, onError) { return onSnapshot(controlRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
 export function watchRefereeBoard(onData, onError) { return onSnapshot(refereeBoardRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
 export function watchMatches(onData, onError) { return onSnapshot(matchesRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
@@ -33,12 +60,13 @@ export async function changeTournamentStaffRole(email, role, enabled) {
   email = String(email || '').trim().toLowerCase();
   const [directorySnap,eventSnap] = await Promise.all([getDoc(doc(db,'tournamentAccountDirectory',email)),getDoc(controlRef)]);
   if (!directorySnap.exists()) throw new Error('NO_ACCOUNT');
-  const person = directorySnap.data(), targetRef = doc(membersRef,person.uid), accessRef = doc(db,'tournamentAccess',person.uid,'events',eventId), targetSnap = await getDoc(targetRef), roles = new Set(targetSnap.exists() ? targetSnap.data().roles || [] : []), event = eventSnap.data();
+  const person = directorySnap.data(), targetRef = doc(membersRef,person.uid), accessRef = doc(db,'tournamentAccess',person.uid,'events',eventId), targetSnap = await getDoc(targetRef), roles = new Set(roleList(targetSnap.exists() ? targetSnap.data() : {}).filter(item => EVENT_ROLES.includes(item))), event = eventSnap.data();
   enabled ? roles.add(role) : roles.delete(role);
   const batch = writeBatch(db), metadata = event.metadata || {};
   if (roles.size) {
     batch.set(targetRef,{uid:person.uid,email,name:person.name||email,firstName:person.firstName||'',lastName:person.lastName||'',roles:[...roles],updatedAt:serverTimestamp()},{merge:true});
-    batch.set(accessRef,{eventId,name:metadata.name||event.config?.event?.name||eventId,date:metadata.date||event.config?.event?.date||'',venue:metadata.venue||event.config?.event?.venue||'',location:metadata.location||event.config?.event?.location||'',status:metadata.status||'private',primary:event.config?.brand?.primary||'#06658c',role:[...roles][0],updatedAt:serverTimestamp()},{merge:true});
+    const roleValues = [...roles];
+    batch.set(accessRef,{eventId,name:metadata.name||event.config?.event?.name||eventId,date:metadata.date||event.config?.event?.date||'',venue:metadata.venue||event.config?.event?.venue||'',location:metadata.location||event.config?.event?.location||'',status:metadata.status||'private',primary:event.config?.brand?.primary||'#06658c',roles:roleValues,role:primaryRole(roleValues),updatedAt:serverTimestamp()},{merge:true});
     batch.update(controlRef,{memberIds:arrayUnion(person.uid),updatedAt:serverTimestamp(),...(role==='tournament_referee'?{refereeEmails:enabled?arrayUnion(email):arrayRemove(email)}:{})});
   } else {
     batch.delete(targetRef); batch.delete(accessRef); batch.update(controlRef,{memberIds:arrayRemove(person.uid),refereeEmails:arrayRemove(email),updatedAt:serverTimestamp()});
