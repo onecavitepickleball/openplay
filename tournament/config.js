@@ -26,8 +26,8 @@ window.TOURNAMENT_CONFIG = {
     roundRobinWaves: 19
   },
   clubs: [
-    { id: "ocpc", name: "One Cavite Pickleball Club", short: "OCPC", pairPrefix: "O" },
-    { id: "rebels", name: "Rally Rebels Club", short: "Rally Rebels", pairPrefix: "R" }
+    { id: "ocpc", name: "One Cavite Pickleball Club", short: "OCPC", pairPrefix: "O", logo: "/assets/logo-2026.png", color: "#005E89" },
+    { id: "rebels", name: "Rally Rebels Club", short: "Rally Rebels", pairPrefix: "R", logo: "", color: "#EF5B4C" }
   ],
   categories: ["Novice", "Low Intermediate", "High Intermediate"],
   pairsPerCategory: {

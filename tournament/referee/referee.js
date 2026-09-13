@@ -1,7 +1,7 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
 const { loadTournamentContext } = await import(`../event-context.js?v=${encodeURIComponent(revision)}`);
 await loadTournamentContext();
-const { watchAuth, login, logout, getCurrentProfile, watchRefereeBoard, watchMatches, watchCheckins, publishMatch, requestMatchPromotion } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, login, logout, getCurrentProfile, watchMembership, watchRefereeBoard, watchMatches, watchCheckins, publishMatch, requestMatchPromotion } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
@@ -11,7 +11,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchRefereeBoard, watchMat
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
   document.querySelector('.field-brand img').src = config.brand.logo; document.querySelector('.field-header-actions>a').href = window.MATCHDAY_EVENT_URL('../control.html');
   let state, email = '', activeId = null, tick, cloudUser = null, pendingPromotionId = null, matchWriteSequence = 0;
-  const pendingMatchWrites = new Map();
+  const pendingMatchWrites = new Map(), matchWriteChains = new Map();
 
   function load() { try { return JSON.parse(localStorage.getItem(config.storageKey)); } catch (_) { return null; } }
   function save() {
@@ -21,9 +21,9 @@ const { watchAuth, login, logout, getCurrentProfile, watchRefereeBoard, watchMat
     const matchId = activeId, sequence = ++matchWriteSequence;
     const live = structuredClone(state.liveScoring?.[matchId] || null), score = structuredClone(state.scores?.[matchId] || null);
     pendingMatchWrites.set(matchId, sequence);
-    publishMatch(matchId, live, score)
+    const chain=(matchWriteChains.get(matchId)||Promise.resolve()).catch(()=>{}).then(()=>publishMatch(matchId,live,score));matchWriteChains.set(matchId,chain);chain
       .catch(() => toast('Saved locally. Cloud sync failed.'))
-      .finally(() => { if (pendingMatchWrites.get(matchId) === sequence) pendingMatchWrites.delete(matchId); });
+      .finally(() => { if (pendingMatchWrites.get(matchId) === sequence) pendingMatchWrites.delete(matchId); if(matchWriteChains.get(matchId)===chain)matchWriteChains.delete(matchId); });
   }
   function players(category, code) { const p = state.pairs[`${category}|${code}`] || {}; return [p.player1 || `${code} Player 1`, p.player2 || `${code} Player 2`]; }
   function playerPhoto(category, code, clubId, index) { return Object.values(state.checkins || {}).find(item => item.category === category && item.pair === code && item.club === clubId && Number(item.playerIndex) === index)?.photoThumb || ''; }
@@ -37,7 +37,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchRefereeBoard, watchMat
   function addLog(live, text) { live.log.unshift({ at: new Date().toISOString(), text }); live.log = live.log.slice(0, 30); }
   function activeMatch() { return state.matches.find(match => match.id === activeId); }
   function matchRules(match) { return state.matchSettings?.[match.id] || { mode: 'round-robin', label: 'Round Robin', target: 11, suddenDeathAt: 10, timer: true }; }
-  function validFinalScore(live, rules) { const high = Math.max(Number(live.a), Number(live.b)), low = Math.min(Number(live.a), Number(live.b)); return high >= rules.target && high <= Math.max(rules.target, rules.suddenDeathAt) && high - low >= 2 || high === rules.suddenDeathAt + 1 && low === rules.suddenDeathAt; }
+  function validFinalScore(live, rules) { const high = Math.max(Number(live.a), Number(live.b)), low = Math.min(Number(live.a), Number(live.b)), regulation = high >= rules.target && high <= Math.max(rules.target, rules.suddenDeathAt) && high - low >= 2 || high === rules.suddenDeathAt + 1 && low === rules.suddenDeathAt, timed = rules.mode === 'round-robin' && rules.timer !== false && elapsed(live) >= Number(config.scoring?.targetSeconds || 900) && high !== low; return regulation || timed; }
   function endsChangeScore(rules) { return rules.target === 11 ? 6 : rules.target === 15 ? 8 : Math.ceil(rules.target / 2); }
   function activeCourtFor(matchId) { return Number(Object.keys(state.courts || {}).find(courtNo => state.courts[courtNo]?.matchId === matchId)) || 0; }
   function nextForCourt(courtNo) {
@@ -148,14 +148,14 @@ const { watchAuth, login, logout, getCurrentProfile, watchRefereeBoard, watchMat
   function undo() { const live = liveFor(activeMatch()), prior = live.history.pop(); if (!prior) return toast('Nothing to undo.'); Object.assign(live, prior); addLog(live, 'Previous action undone'); save(); renderScorekeeper(); }
   function setupCanvas(canvas) { const ctx = canvas.getContext('2d'); ctx.lineWidth = 2; ctx.lineCap = 'round'; let drawing = false; const position = event => { const rect = canvas.getBoundingClientRect(); return { x: (event.clientX - rect.left) * canvas.width / rect.width, y: (event.clientY - rect.top) * canvas.height / rect.height }; }; canvas.onpointerdown = event => { drawing = true; const p = position(event); ctx.beginPath(); ctx.moveTo(p.x, p.y); }; canvas.onpointermove = event => { if (!drawing) return; const p = position(event); ctx.lineTo(p.x, p.y); ctx.stroke(); }; canvas.onpointerup = canvas.onpointerleave = () => drawing = false; }
   function showConfirmation() {
-    const match = activeMatch(), live = liveFor(match), rules = matchRules(match); if (!validFinalScore(live, rules)) return toast(`First to ${rules.target}, win by 2; sudden death at ${rules.suddenDeathAt}-${rules.suddenDeathAt}.`); if (live.running) toggleTimer();
+    const match = activeMatch(), live = liveFor(match), rules = matchRules(match); if (!validFinalScore(live, rules)) return toast(rules.mode === 'round-robin' ? `Play to ${rules.target}, or wait for the match timer to end. The score cannot be tied.` : `First to ${rules.target}, win by 2; sudden death at ${rules.suddenDeathAt}-${rules.suddenDeathAt}.`); if (live.running) toggleTimer();
     const sheet = $('#confirmationSheet'); sheet.hidden = false; sheet.innerHTML = `<div class="confirm-backdrop"><section class="confirm-card"><button class="confirm-close" id="closeConfirmation">×</button><span class="eyebrow">Player confirmation</span><h2>Final score ${live.a}-${live.b}</h2><p>Both pairs review the result, then sign below.</p><div class="signature-grid"><div class="signature-box"><label>${esc(teamName('a'))} pair signature</label><canvas width="320" height="120"></canvas><button data-clear-signature>Clear</button></div><div class="signature-box"><label>${esc(teamName('b'))} pair signature</label><canvas width="320" height="120"></canvas><button data-clear-signature>Clear</button></div></div><button class="finish-match" id="submitResult">Submit confirmed result</button></section></div>`;
     $$('canvas', sheet).forEach(setupCanvas); $$('[data-clear-signature]', sheet).forEach(button => button.onclick = () => { const canvas = $('canvas', button.parentElement); canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); }); $('#closeConfirmation').onclick = () => sheet.hidden = true; $('#submitResult').onclick = submitResult;
   }
   function hasInk(canvas) { return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data.some(value => value); }
   function submitResult() {
     const match = activeMatch(), live = liveFor(match), canvases = $$('#confirmationSheet canvas'); if (!canvases.every(hasInk)) return toast('Both pairs must sign first.'); const prior = state.scores[match.id];
-    state.scores[match.id] = { a: live.a, b: live.b, completedAt: prior?.completedAt || new Date().toISOString(), confirmation: { referee: email, submittedAt: new Date().toISOString(), ocpcSignature: canvases[0].toDataURL('image/png'), rebelsSignature: canvases[1].toDataURL('image/png') } }; live.complete = true; live.running = false; live.startedAt = null; addLog(live, `Final result submitted: ${live.a}-${live.b}`); state.scoreAudit ||= []; state.scoreAudit.push({ matchId: match.id, previous: prior || null, revised: state.scores[match.id], source: `referee:${email}`, revisedAt: new Date().toISOString() }); save(); $('#confirmationSheet').hidden = true; renderScorekeeper(); toast('Confirmed result sent to Match Control.');
+    const rules = matchRules(match), regulation = Math.max(Number(live.a), Number(live.b)) >= rules.target; state.scores[match.id] = { a: live.a, b: live.b, resultType: regulation ? 'finishing-score' : 'timer-expired', completedAt: prior?.completedAt || new Date().toISOString(), confirmation: { referee: email, submittedAt: new Date().toISOString(), ocpcSignature: canvases[0].toDataURL('image/png'), rebelsSignature: canvases[1].toDataURL('image/png') } }; live.complete = true; live.running = false; live.startedAt = null; addLog(live, `Final result submitted: ${live.a}-${live.b}`); state.scoreAudit ||= []; state.scoreAudit.push({ matchId: match.id, previous: prior || null, revised: state.scores[match.id], source: `referee:${email}`, revisedAt: new Date().toISOString() }); save(); $('#confirmationSheet').hidden = true; renderScorekeeper(); toast('Confirmed result sent to Match Control.');
   }
   $('#officialLoginForm').onsubmit = async event => { event.preventDefault(); const button = $('#officialLogin'); button.disabled = true; button.textContent = 'Signing in…'; $('#loginError').textContent = ''; try { await login($('#officialEmail').value.trim().toLowerCase(), $('#officialPassword').value); } catch (error) { $('#loginError').textContent = error.code === 'auth/invalid-credential' ? 'The email or password is incorrect.' : error.code === 'auth/too-many-requests' ? 'Too many attempts. Wait a moment and try again.' : 'Sign-in failed. Check your connection and try again.'; } finally { button.disabled = false; button.textContent = 'Sign in to referee assignments'; } };
   watchAuth(async user => {
@@ -168,7 +168,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchRefereeBoard, watchMat
     $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Verifying referee access</h2><p>Checking this OCPC account and loading the tournament court board…</p></section>';
     let profile = null; try { profile = await getCurrentProfile(user); } catch (_) {}
     const roles = new Set([...(Array.isArray(profile?.roles) ? profile.roles : []), ...(profile?.role ? [profile.role] : [])]), superAdmin = ['ocpc.pickleball@gmail.com','jamescastillo37@gmail.com'].includes(email);
-    if (!superAdmin && !roles.has('admin') && !roles.has('owner') && !roles.has('tournament_admin') && !roles.has('match_control') && !roles.has('tournament_referee')) { $('#matchList').innerHTML = `<section class="field-card access-warning"><h2>Referee access is not attached to this account</h2><p>Signed in as <b>${esc(email)}</b>. Match Control must grant Referee access to this exact email, then reopen this page.</p></section>`; $('#assignmentSummary').hidden = true; return; }
+    if (!superAdmin && !roles.has('admin') && !roles.has('owner') && !roles.has('tournament_admin') && !roles.has('match_control') && !roles.has('tournament_referee')) { $('#matchList').innerHTML = `<section class="field-card access-warning"><h2>Waiting for referee access</h2><p>Signed in as <b>${esc(email)}</b>. This page will open automatically as soon as Match Control grants Referee access.</p></section>`; $('#assignmentSummary').hidden = true; const stop=watchMembership(user.uid,membership=>{const granted=new Set(Array.isArray(membership?.roles)?membership.roles:membership?.role?[membership.role]:[]);if(granted.has('tournament_referee')||granted.has('match_control')||granted.has('tournament_admin')||granted.has('owner')){stop();location.reload();}},()=>{}); return; }
     watchRefereeBoard(incoming => { if (!incoming) { $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Referee board is preparing</h2><p>Ask Match Control to open the tournament dashboard once to publish the referee court board.</p></section>'; return; } const local = load(); state = { ...incoming, liveScoring: local?.liveScoring || {}, checkins:local?.checkins || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); if (pendingPromotionId && activeCourtFor(pendingPromotionId)) enterScorekeeper(pendingPromotionId); else activeId ? renderScorekeeper() : renderAssignments(); }, () => { $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Referee access not granted</h2><p>You are signed in successfully, but this OCPC account does not have the Referee staff role.</p></section>'; $('#assignmentSummary').hidden = true; });
     watchMatches(items => {
       state ||= load(); if (!state) return;

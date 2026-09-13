@@ -99,6 +99,7 @@
 
       <section class="view" id="view-standings">
         <div class="page-head"><div><span class="eyebrow dark">Live calculations</span><h1>Standings</h1><p>Ranked by wins, point differential, then points scored within each club.</p></div></div>
+        <section class="panel public-share-panel"><div><span class="section-label">Spectator access</span><h2>Share live standings</h2><p>Create one active QR code and link for this tournament's public standings and medal round. Regenerating it disables the old link.</p><div class="public-share-actions"><button class="btn btn-primary" id="generatePublicLink">Generate secure link</button><button class="btn btn-quiet" id="copyPublicLink" hidden>Copy link</button></div><a id="publicStandingsLink" target="_blank" rel="noopener"></a></div><div id="publicStandingsQr" aria-label="Public standings QR code"></div></section>
         <div id="clubStandings"></div>
         <div class="category-tabs" id="standingsTabs"></div><div class="standings-grid" id="standingsGrid"></div>
         <div id="dreamBreakerSummary"></div>
@@ -155,6 +156,7 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script type="module" src="event-entry.js?v={{ site.github.build_revision }}"></script>
 </body>
 </html>

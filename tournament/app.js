@@ -1,5 +1,5 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole } = await import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`);
+const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, publishPublicView, revokePublicView, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole } = await import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   'use strict';
@@ -33,7 +33,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   const qualificationLabels = { wins: 'Number of Wins', pointsFor: 'Points For', pointsAgainst: 'Points Against', pointDifferential: 'Point Differential', headToHead: 'Head to Head' };
   function formatSettings(value = state?.formatSettings) { return { ...defaultFormatSettings(), ...(value || {}), matchCap: Math.max(1, Number(value?.matchCap) || 5) }; }
   function scheduleSettings(value = state?.scheduleSettings) { return { ...defaultScheduleSettings(), ...(value || {}), minRestSlots: Math.max(0, Number(value?.minRestSlots) || 0), targetMaxGapSlots: Math.max(1, Number(value?.targetMaxGapSlots) || 4) }; }
-  function qualificationSettings(value = state?.qualificationSettings) { const allowed = Object.keys(qualificationLabels), supplied = Array.isArray(value?.order) ? value.order.filter((item, index, list) => allowed.includes(item) && list.indexOf(item) === index) : []; return { order: [...supplied, ...allowed.filter(item => !supplied.includes(item))] }; }
+  function qualificationSettings(value = state?.qualificationSettings) { const dualMeet = (value?.format || config.competitionType || 'dual-meet') === 'dual-meet', allowed = Object.keys(qualificationLabels).filter(item => !dualMeet || item !== 'headToHead'), supplied = Array.isArray(value?.order) ? value.order.filter((item, index, list) => allowed.includes(item) && list.indexOf(item) === index) : []; return { format: dualMeet ? 'dual-meet' : 'standard', order: [...supplied, ...allowed.filter(item => !supplied.includes(item))] }; }
   function pairCount(category, clubId = 'ocpc', counts = state?.pairCounts || defaultPairCounts()) { const value = counts?.[category]; return Number(typeof value === 'object' ? value?.[clubId] : value) || 1; }
   function categoryMatchCount(category, counts = state?.pairCounts || defaultPairCounts(), settings = formatSettings()) { const ocpc = pairCount(category, 'ocpc', counts), rebels = pairCount(category, 'rebels', counts), rules = formatSettings(settings); return rules.mode === 'full' ? ocpc * rebels : Math.max(ocpc, rebels) * Math.min(rules.matchCap, Math.min(ocpc, rebels)); }
   function totalMatchCount(counts = state?.pairCounts || defaultPairCounts(), settings = formatSettings()) { return config.categories.reduce((total, category) => total + categoryMatchCount(category, counts, settings), 0); }
@@ -141,8 +141,8 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     return freshState();
   }
   state = loadState();
-  let registrations = [], refereeDirectory = [], controlReady = false, refereeBoardPublished = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, dreamTossDismissed = false, canAdminTournament = false, pendingPromotionRequests = [], demoClockMinutes = 600, demoClockStartedAt = Date.now(), demoSnapshotReady = demoMode && Boolean(localStorage.getItem(storageKey)), demoMatchesReady = demoSnapshotReady, demoRegistrationsReady = demoSnapshotReady, demoCheckinsReady = demoSnapshotReady, matchWriteSequence = 0, controlWriteSequence = 0, pendingControlWrite = 0;
-  const pendingMatchWrites = new Map();
+  let registrations = [], refereeDirectory = [], controlReady = false, refereeBoardPublished = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, publicWriteTimer, controlWriteChain = Promise.resolve(), dreamTossDismissed = false, canAdminTournament = false, pendingPromotionRequests = [], demoClockMinutes = 600, demoClockStartedAt = Date.now(), demoSnapshotReady = demoMode && Boolean(localStorage.getItem(storageKey)), demoMatchesReady = demoSnapshotReady, demoRegistrationsReady = demoSnapshotReady, demoCheckinsReady = demoSnapshotReady, matchWriteSequence = 0, controlWriteSequence = 0, pendingControlWrite = 0;
+  const pendingMatchWrites = new Map(), matchWriteChains = new Map();
   function operationalClock() {
     if (demoMode) return { dateKey: config.event.date, minute: demoClockMinutes + (Date.now() - demoClockStartedAt) / 60000 };
     const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
@@ -155,18 +155,23 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     if (!demoMode && !drawTestMode && cloudUser && !cloudApplying) {
       const pendingState = structuredClone(state), sequence = ++controlWriteSequence; pendingControlWrite = sequence;
       clearTimeout(cloudSaveTimer);
-      cloudSaveTimer = setTimeout(() => publishControl(pendingState)
-        .catch(() => toast('Cloud sync failed. Check Firebase access.'))
-        .finally(() => { if (pendingControlWrite === sequence) pendingControlWrite = 0; }), 0);
+      cloudSaveTimer = setTimeout(() => {
+        controlWriteChain = controlWriteChain.catch(() => {}).then(() => publishControl(pendingState))
+          .catch(() => toast('Cloud sync failed. Check Firebase access.'))
+          .finally(() => { if (pendingControlWrite === sequence) pendingControlWrite = 0; });
+      }, 0);
+      queuePublicProjection();
     }
   }
+  function queuePublicProjection(){if(!state.publicShare?.token||demoMode||drawTestMode)return;clearTimeout(publicWriteTimer);publicWriteTimer=setTimeout(()=>publishPublicView(state.publicShare.token,publicProjection()).catch(()=>{}),900);}
   function syncMatch(matchId) {
     if (!cloudUser || demoMode || drawTestMode || !matchId) return Promise.resolve();
     const sequence = ++matchWriteSequence, live = structuredClone(state.liveScoring?.[matchId] || null), score = structuredClone(state.scores?.[matchId] || null);
     pendingMatchWrites.set(matchId, sequence);
-    return publishMatch(matchId, live, score)
+    const chain=(matchWriteChains.get(matchId)||Promise.resolve()).catch(()=>{}).then(()=>publishMatch(matchId, live, score)); matchWriteChains.set(matchId,chain);
+    return chain
       .catch(error => { toast('Live match sync failed. Check Firebase access.'); throw error; })
-      .finally(() => { if (pendingMatchWrites.get(matchId) === sequence) pendingMatchWrites.delete(matchId); });
+      .finally(() => { if (pendingMatchWrites.get(matchId) === sequence) pendingMatchWrites.delete(matchId); if(matchWriteChains.get(matchId)===chain)matchWriteChains.delete(matchId); });
   }
   function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2200); }
   function pairData(category, code) { return state.pairs[`${category}|${code}`] || { player1: '', player2: '' }; }
@@ -473,7 +478,12 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
       return `<article class="standing-card"><div class="card-title"><h2>${esc(club.name)}</h2><span>Top 2 advance</span></div><div class="standing-method">${esc(method)}</div><div class="standing-row header"><span>#</span><span>Pair</span><span class="num">P</span><span class="num">W-L</span><span class="num">PF</span><span class="num">PA</span><span class="num">+/-</span></div>${rows.map(r => `<div class="standing-row"><span class="rank">${r.rank}</span><span class="team-name"><b>${r.code}</b><small>${esc(r.names)}</small></span><span class="num">${r.played}</span><span class="num">${r.wins}-${r.losses}</span><span class="num">${r.pointsFor}</span><span class="num">${r.pointsAgainst}</span><span class="num">${r.diff > 0 ? '+' : ''}${r.diff}</span></div>`).join('')}</article>`;
     }).join('');
     $$('[data-standing-category]').forEach(btn => btn.onclick = () => { standingsCategory = btn.dataset.standingCategory; renderStandings(); });
+    renderPublicShare();
   }
+  function publicProjection() { return { version:1, event:{ name:config.event.name,date:config.event.date,displayDate:config.event.displayDate,venue:config.event.venue,location:config.event.location }, brand:{ organizer:config.brand.organizer,logo:config.brand.logo,primary:config.brand.primary,primaryDark:config.brand.primaryDark,accent:config.brand.accent,highlight:config.brand.highlight }, clubs:config.clubs.map(club=>({id:club.id,name:club.name,short:club.short,logo:club.logo||'',color:club.color||config.brand.primary})), categories:config.categories, clubStandings:clubTotals().map(club=>({clubId:club.id,played:club.played,wins:club.wins,losses:club.losses,pointsFor:club.pointsFor,pointsAgainst:club.pointsAgainst,differential:club.differential,dreamPoints:club.dreamPoints,total:club.total,recentWins:club.recentWins})), pairStandings:Object.fromEntries(config.categories.map(category=>[category,Object.fromEntries(config.clubs.map(club=>[club.id,standingsFor(category,club.id)]))])), pairs:structuredClone(state.pairs), medals:structuredClone(state.medals), qualification:qualificationSettings(), dreamBreaker:state.dreamBreaker.enabled?{enabled:true,target:state.dreamBreaker.target,scores:state.dreamBreaker.scores}:{enabled:false} }; }
+  function publicUrl(token) { const url=new URL('public/',location.href);url.searchParams.set('token',token);return url.href; }
+  function renderPublicShare(){const link=$('#publicStandingsLink'),copy=$('#copyPublicLink'),qr=$('#publicStandingsQr'),token=state.publicShare?.token;if(!link||!qr)return;qr.innerHTML='';if(!token){link.textContent='No public link generated yet.';link.removeAttribute('href');copy.hidden=true;return}const url=publicUrl(token);link.href=url;link.textContent=url;copy.hidden=false;if(window.QRCode)new QRCode(qr,{text:url,width:148,height:148,colorDark:'#09283a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
+  async function generatePublicLink(){if(demoMode||drawTestMode)return toast('Public links cannot be changed in simulation mode.');const button=$('#generatePublicLink'),old=state.publicShare?.token,token=[...crypto.getRandomValues(new Uint8Array(18))].map(value=>value.toString(16).padStart(2,'0')).join('');button.disabled=true;try{if(old)await revokePublicView(old);await publishPublicView(token,publicProjection());state.publicShare={token,generatedAt:new Date().toISOString()};saveState();renderPublicShare();toast(old?'New link created. The previous link is disabled.':'Public standings link created.');}catch(_){toast('Public link could not be created. Check Firebase rules.');}finally{button.disabled=false}}
   function clubTotals() {
     const stats = Object.fromEntries(config.clubs.map(club => [club.id, { wins: 0, losses: 0, played: 0, pointsFor: 0, pointsAgainst: 0, recentWins: [] }]));
     state.matches.forEach(match => { const score = scoreFor(match.id); if (!isComplete(match.id)) return; const winner = Number(score.a) > Number(score.b) ? 'ocpc' : 'rebels', loser = winner === 'ocpc' ? 'rebels' : 'ocpc'; stats[winner].wins++; stats[winner].played++; stats[loser].losses++; stats[loser].played++; stats.ocpc.pointsFor += Number(score.a); stats.ocpc.pointsAgainst += Number(score.b); stats.rebels.pointsFor += Number(score.b); stats.rebels.pointsAgainst += Number(score.a); const winningCode = winner === 'ocpc' ? match.a : match.b, losingCode = winner === 'ocpc' ? match.b : match.a; stats[winner].recentWins.push({ completedAt: score.completedAt || '', category: match.category, names: pairNames(match.category, winningCode), opponent: pairNames(match.category, losingCode), score: winner === 'ocpc' ? `${score.a}-${score.b}` : `${score.b}-${score.a}` }); });
@@ -633,6 +643,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     state.dreamBreaker.scores.ocpc = Math.min(state.dreamBreaker.scores.ocpc, state.dreamBreaker.target); state.dreamBreaker.scores.rebels = Math.min(state.dreamBreaker.scores.rebels, state.dreamBreaker.target); saveState(); renderAll(); toast('Dream Breaker setup saved.');
   }
   function renderSettings() {
+    if(!$('#whiteLabelClubALogo')){$('#whiteLabelClubAShort').parentElement.insertAdjacentHTML('afterend','<label>Club 1 logo URL<input id="whiteLabelClubALogo" placeholder="https://example.com/logo.png"></label>');$('#whiteLabelClubBShort').parentElement.insertAdjacentHTML('afterend','<label>Club 2 logo URL<input id="whiteLabelClubBLogo" placeholder="https://example.com/logo.png"></label>');}$('#whiteLabelClubALogo').value=config.clubs.find(club=>club.id==='ocpc')?.logo||'';$('#whiteLabelClubBLogo').value=config.clubs.find(club=>club.id==='rebels')?.logo||'';
     $('#configList').innerHTML = [['Organizer', config.brand.organizer], ['Event', config.event.name], ['Venue', `${config.event.venue}, ${config.event.location}`], ['Courts', config.event.courts], ['Categories', config.categories.join(', ')], ['Storage', 'Firebase live sync with local cache']].map(([a, b]) => `<div class="config-row"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join('');
     const assignedIds = Object.keys(state.refereeAssignments);
     $('#refereeMatch').innerHTML = state.matches.filter(m => !isComplete(m.id) && (!matchHasStarted(m.id) || state.refereeAssignments?.[m.id])).map(m => `<option value="${m.id}">${m.id} · ${timeLabel(m.startMinutes)} · ${pairNames(m.category,m.a)} vs ${pairNames(m.category,m.b)}</option>`).join('');
@@ -672,7 +683,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     const retainedPairs = structuredClone(state.pairs || {}), retainedCheckins = structuredClone(state.checkins || {}), retainedHistory = structuredClone(state.opponentDrawHistory || []), priorCounts = structuredClone(state.pairCounts || {});
     Object.assign(config.event,{name:$('#whiteLabelEventName').value.trim(),date,displayDate:new Date(`${date}T12:00:00`).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),venue:$('#whiteLabelVenue').value.trim(),location:$('#whiteLabelLocation').value.trim()});
     Object.assign(config.brand,{organizer:$('#whiteLabelOrganizer').value.trim(),shortName:$('#whiteLabelShortName').value.trim(),logo:$('#whiteLabelLogo').value.trim()||'/assets/logo-2026.png',primary});
-    Object.assign(config.clubs.find(club=>club.id==='ocpc'),{name:$('#whiteLabelClubA').value.trim(),short:$('#whiteLabelClubAShort').value.trim()}); Object.assign(config.clubs.find(club=>club.id==='rebels'),{name:$('#whiteLabelClubB').value.trim(),short:$('#whiteLabelClubBShort').value.trim()});
+    Object.assign(config.clubs.find(club=>club.id==='ocpc'),{name:$('#whiteLabelClubA').value.trim(),short:$('#whiteLabelClubAShort').value.trim(),logo:$('#whiteLabelClubALogo').value.trim()}); Object.assign(config.clubs.find(club=>club.id==='rebels'),{name:$('#whiteLabelClubB').value.trim(),short:$('#whiteLabelClubBShort').value.trim(),logo:$('#whiteLabelClubBLogo').value.trim()});
     if (structural) {
       Object.assign(config.event,{courts,slotMinutes,roundRobinStartMinutes:startMinutes,startTime:timeLabel(startMinutes)}); config.categories=categories;
       const nextCounts=Object.fromEntries(categories.map(category=>[category,priorCounts[category] || config.pairsPerCategory?.[category] || {ocpc:6,rebels:6}])); config.pairsPerCategory=structuredClone(nextCounts);
@@ -720,11 +731,12 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     if (na === nb) { $('#scoreMessage').textContent = 'Matches need a winner. Play one deciding rally.'; return; }
     const rules = rulesFor(activeMatchId), high = Math.max(na, nb), low = Math.min(na, nb), maximum = Math.max(rules.target, rules.suddenDeathAt + 1), validSuddenDeath = high === rules.suddenDeathAt + 1 && low === rules.suddenDeathAt, validRegular = high >= rules.target && high <= Math.max(rules.target, rules.suddenDeathAt) && high - low >= 2;
     if (na < 0 || nb < 0 || high > maximum) { $('#scoreMessage').textContent = `Scores must be between 0 and ${maximum}.`; return; }
-    if (!validRegular && !validSuddenDeath) { $('#scoreMessage').textContent = `First to ${rules.target}, win by 2. At ${rules.suddenDeathAt}-${rules.suddenDeathAt}, the next rally wins ${maximum}-${rules.suddenDeathAt}.`; return; }
+    const timedRoundRobin = rules.mode === 'round-robin' && rules.timer !== false && Number.isInteger(na) && Number.isInteger(nb) && high <= maximum;
+    if (!validRegular && !validSuddenDeath && !timedRoundRobin) { $('#scoreMessage').textContent = `First to ${rules.target}, win by 2. At ${rules.suddenDeathAt}-${rules.suddenDeathAt}, the next rally wins ${maximum}-${rules.suddenDeathAt}.`; return; }
     const prior = state.scores[activeMatchId];
     if (prior && (Number(prior.a) !== na || Number(prior.b) !== nb) && !confirm(`Warning: this revises a recorded result from ${prior.a}-${prior.b} to ${na}-${nb}. Continue?`)) return;
     if (prior) state.scoreAudit.push({ matchId: activeMatchId, previous: prior, revised: { a: na, b: nb }, revisedAt: new Date().toISOString(), source: 'match-control' });
-    state.scores[activeMatchId] = { a: na, b: nb, completedAt: prior?.completedAt || new Date().toISOString() };
+    state.scores[activeMatchId] = { a: na, b: nb, resultType: validRegular || validSuddenDeath ? 'finishing-score' : 'timer-expired', completedAt: prior?.completedAt || new Date().toISOString() };
     state.liveScoring ||= {}; const live = state.liveScoring[activeMatchId] ||= { elapsed: 0, startedAt: null, running: false, log: [] }; if (live.running) live.elapsed = elapsedSeconds(live); Object.assign(live, { a: na, b: nb, complete: true, running: false, startedAt: null }); live.log ||= []; live.log.unshift({ at: new Date().toISOString(), text: `Final result recorded by Match Control: ${na}-${nb}` });
     syncMatch(activeMatchId).catch(() => {});
     saveState(); closeScore(); renderAll(); toast('Result saved. Confirm the court is vacant when players have cleared it.');
@@ -780,7 +792,10 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
       watchControl(incoming => {
         if (demoMode && demoSnapshotReady) return;
         if (!incoming) { if (!demoMode && !drawTestMode) publishControl(state).catch(() => showCloudGate('Your account cannot initialize this event.')); return; }
-        if (pendingControlWrite && String(incoming.updatedAt || '') < String(state.updatedAt || '')) return;
+        // Never let an acknowledgement for an older whole-event write repaint
+        // newer local court/schedule intent. Per-match documents remain the
+        // authority for live scoring and are merged by watchMatches below.
+        if (pendingControlWrite) return;
         const formatChanged = incoming.schedulerVersion !== 7, scheduleChanged = Number(incoming.scheduleBaselineStartMinutes) !== config.event.roundRobinStartMinutes, testDraft = drawTestMode ? state.drawCeremonyDraft : null;
         cloudApplying = true;
         const localCheckins = state.checkins || {}, normalized = normalizeState(incoming);
@@ -812,7 +827,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
         pendingMatchWrites.forEach((_, matchId) => { if (localLive[matchId]) nextLive[matchId] = localLive[matchId]; });
         state.liveScoring = nextLive; state.scores = nextScores;
         pendingPromotionRequests = items.filter(item => item.promotionRequest); if (demoMode) demoMatchesReady = true;
-        localStorage.setItem(storageKey, JSON.stringify(state)); renderAll(); cloudApplying = false; processRefereePromotionRequests();
+        localStorage.setItem(storageKey, JSON.stringify(state)); renderAll(); queuePublicProjection(); cloudApplying = false; processRefereePromotionRequests();
       }, () => toast('Live match feed unavailable.'));
     });
   }
@@ -837,6 +852,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   $('#scheduleCategory').onchange = renderSchedule; $('#scheduleStatus').onchange = renderSchedule; $('#scheduleSearch').oninput = renderSchedule;
   $('#seedMedalsBtn').onclick = seedMedals; $('#exportBtn').onclick = exportBackup; $('#importInput').onchange = event => { if (event.target.files[0]) importBackup(event.target.files[0]); event.target.value = ''; };
   $('#medalCategorySelect').onchange = event => { medalCategory = event.target.value; renderMedals(); };
+  $('#generatePublicLink').onclick=generatePublicLink; $('#copyPublicLink').onclick=async()=>{const token=state.publicShare?.token;if(!token)return;await navigator.clipboard.writeText(publicUrl(token));toast('Public standings link copied.');};
   $('#assignRefereeBtn').onclick = () => { const email = $('#refereeEmail').value.trim().toLowerCase(), matchId = $('#refereeMatch').value; if (!email || !matchId) return toast('Choose a match and an available referee.'); if (matchHasStarted(matchId) && !state.refereeAssignments?.[matchId]) return showNotice('This match started without a referee, so assignment is now locked.', 'Referee assignment locked'); state.refereeAssignments[matchId] = email; $('#refereeEmail').value = ''; saveState(); renderSettings(); renderCourts(); toast(matchHasStarted(matchId) ? 'Referee swapped during live play.' : 'Referee assigned.'); };
   $('#staffAccessBtn').onclick = async () => { if (demoMode || drawTestMode || !canAdminTournament) return toast('Only Full Match Control can change staff access.'); const email = $('#staffAccessEmail').value.trim().toLowerCase(), role = $('#staffAccessRole').value; if (!email) return toast('Enter the staff member’s website account email.'); $('#staffAccessBtn').disabled = true; try { await changeTournamentStaffRole(email, role, true); $('#staffAccessEmail').value = ''; await renderTournamentStaff(); toast('Tournament access granted.'); } catch (error) { showNotice(error.message === 'NO_ACCOUNT' ? 'That account is not in the Tournament Portal directory yet. Ask the staff member to sign in at /tournament once, then try again.' : 'Only Full Match Control can change tournament staff access.', 'Access could not be granted'); } finally { $('#staffAccessBtn').disabled = false; } };
   $('#applyPairCountsBtn').onclick = applyPairCounts;
@@ -852,6 +868,6 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   $('#modalClose').onclick = closeScore; $('#scoreModal').onclick = event => { if (event.target === $('#scoreModal')) closeScore(); }; $('#saveScoreBtn').onclick = saveScore; $('#clearScoreBtn').onclick = clearScore;
   document.addEventListener('keydown', event => { if (event.key !== 'Escape') return; closeAppLauncher(); if (!$('#scoreModal').hidden) closeScore(); });
   window.addEventListener('storage', event => { if (event.key !== storageKey || !event.newValue) return; try { state = JSON.parse(event.newValue); renderAll(); } catch (_) {} });
-  setInterval(() => { if (activeView === 'courts') tickLiveDisplay(); }, 1000);
+  setInterval(() => { if (activeView === 'courts') { tickLiveDisplay(); Object.entries(state.courts||{}).forEach(([courtNo,court])=>{const live=state.liveScoring?.[court.matchId]||court,card=$(`[data-active-court="${courtNo}"]`),button=$(`[data-timer-toggle="${courtNo}"]`),paused=Boolean(court.matchId&&!isComplete(court.matchId)&&!live.running&&elapsedSeconds(live)>0);card?.classList.toggle('match-paused',paused);button?.classList.toggle('is-paused',paused);button?.classList.toggle('is-running',Boolean(live.running));}); } }, 1000);
   renderAll(); showView(activeView); startCloud();
 })();

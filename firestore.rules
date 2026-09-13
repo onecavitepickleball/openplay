@@ -21,7 +21,8 @@ service cloud.firestore {
     // still honored as a one-item list, so nothing already assigned
     // breaks.
     function getRoles(uid) {
-      let data = get(/databases/$(database)/documents/players/$(uid)).data;
+      let path = /databases/$(database)/documents/players/$(uid);
+      let data = exists(path) ? get(path).data : {};
       return data.roles is list ? data.roles : (data.role is string ? [data.role] : []);
     }
 
@@ -69,7 +70,28 @@ service cloud.firestore {
     }
 
     function approvedOrganizer() {
-      return isAdmin() || hasRole('tournament_organizer');
+      return isAdmin() || hasRole('tournament_organizer') || (request.auth != null && exists(/databases/$(database)/documents/tournamentUsers/$(request.auth.uid)) && get(/databases/$(database)/documents/tournamentUsers/$(request.auth.uid)).data.organizerStatus == 'approved');
+    }
+
+    match /tournamentUsers/{userId} {
+      allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId && request.resource.data.platformRole == 'user' && request.resource.data.organizerStatus in ['none','pending'];
+      allow update: if isAdmin() || (request.auth != null && request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','updatedAt']));
+      allow delete: if isAdmin();
+    }
+
+    match /tournamentOrganizerApplications/{userId} {
+      allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow list, update, delete: if isAdmin();
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.applicantUid == userId && request.resource.data.status == 'pending';
+    }
+
+    match /tournamentPublicViews/{token} {
+      allow get: if resource.data.active == true && resource.data.revoked != true;
+      allow list: if false;
+      allow create: if request.auth != null && controlsTournament(request.resource.data.eventId);
+      allow update, delete: if request.auth != null && controlsTournament(resource.data.eventId);
     }
 
     // Minimal account lookup for no-cost tournament staff invitations.

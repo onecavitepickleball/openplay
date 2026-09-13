@@ -17,24 +17,25 @@ const primaryRole = roles => EVENT_ROLES.find(role => roles.includes(role)) || '
 
 export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
 export async function login(email, password) { await setPersistence(auth, browserLocalPersistence); return signInWithEmailAndPassword(auth, email, password); }
-export async function createAccount(email, password) { const credential = await createUserWithEmailAndPassword(auth, email, password); const local = String(email).split('@')[0].replace(/[._-]+/g,' ').trim().split(/\s+/); await setDoc(doc(db,'players',credential.user.uid), { firstName: local[0] || 'Tournament', lastName: local.slice(1).join(' ') || 'Referee', email: String(email).trim().toLowerCase(), status: 'pending', sessionsAttended: 0, createdAt: serverTimestamp() }); return credential; }
+export async function createAccount(email, password, displayName = '') { const credential = await createUserWithEmailAndPassword(auth, email, password), normalizedEmail = String(email).trim().toLowerCase(), name = String(displayName || normalizedEmail.split('@')[0].replace(/[._-]+/g,' ')).trim(); await setDoc(doc(db,'tournamentUsers',credential.user.uid), { uid:credential.user.uid, displayName:name, email:normalizedEmail, accountStatus:'active', platformRole:'user', organizerStatus:'none', createdAt:serverTimestamp(), updatedAt:serverTimestamp() }); await setDoc(doc(db,'tournamentAccountDirectory',normalizedEmail), { uid:credential.user.uid,email:normalizedEmail,name,updatedAt:serverTimestamp() }); return credential; }
 export function logout() { return signOut(auth); }
 export async function updateEventConfiguration(config) { const metadata = { name:config.event.name, date:config.event.date, venue:config.event.venue, location:config.event.location, status:'private', primary:config.brand.primary }, members = await getDocs(membersRef), batch = writeBatch(db); batch.set(controlRef, { config:structuredClone(config), metadata, updatedAt:serverTimestamp() }, { merge:true }); members.docs.forEach(member => { const roles = roleList(member.data()).filter(role => EVENT_ROLES.includes(role)); batch.set(doc(db,'tournamentAccess',member.id,'events',eventId), { eventId, ...metadata, roles, role:primaryRole(roles), updatedAt:serverTimestamp() }, { merge:true }); }); await batch.commit(); }
 export async function getCurrentProfile(user) {
   if (!user) return null;
-  const [profileSnapshot, membershipSnapshot] = await Promise.all([
+  const [profileSnapshot, tournamentSnapshot, membershipSnapshot] = await Promise.all([
     getDoc(doc(db, 'players', user.uid)),
+    getDoc(doc(db, 'tournamentUsers', user.uid)).catch(() => null),
     getDoc(doc(membersRef, user.uid)).catch(() => null)
   ]);
-  const profile = profileSnapshot.exists() ? profileSnapshot.data() : {};
+  const legacyProfile = profileSnapshot.exists() ? profileSnapshot.data() : {}, tournamentProfile = tournamentSnapshot?.exists() ? tournamentSnapshot.data() : {}, profile = { ...legacyProfile, ...tournamentProfile };
   const membership = membershipSnapshot?.exists() ? membershipSnapshot.data() : {};
-  const siteRoles = roleList(profile);
+  const siteRoles = roleList(legacyProfile);
   const membershipRoles = roleList(membership).filter(role => EVENT_ROLES.includes(role));
   const legacyRoles = eventId === LEGACY_EVENT_ID ? siteRoles.filter(role => EVENT_ROLES.includes(role)) : [];
   const eventRoles = [...new Set([...membershipRoles, ...legacyRoles])];
   const isSiteAdmin = SUPER_ADMIN_EMAILS.includes(String(user.email || '').toLowerCase()) || siteRoles.includes('admin');
   const roles = [...new Set([...(isSiteAdmin ? ['admin'] : []), ...eventRoles])];
-  return { id:user.uid, ...profile, eventMembership:membership, siteRoles, eventRoles, isSiteAdmin, roles, role:isSiteAdmin ? 'admin' : eventRoles[0] || 'member' };
+  return { id:user.uid, ...profile, eventMembership:membership, siteRoles, eventRoles, isSiteAdmin, roles, role:isSiteAdmin ? 'admin' : eventRoles[0] || tournamentProfile.platformRole || 'member' };
 }
 export async function authorizeTournamentTool(user, toolRoles = []) {
   const profile = await getCurrentProfile(user);
@@ -43,6 +44,7 @@ export async function authorizeTournamentTool(user, toolRoles = []) {
   return { allowed, profile, eventRoles };
 }
 export function watchControl(onData, onError) { return onSnapshot(controlRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
+export function watchMembership(userId, onData, onError) { return onSnapshot(doc(membersRef,userId), snapshot => onData(snapshot.exists() ? snapshot.data() : null), onError); }
 export function watchRefereeBoard(onData, onError) { return onSnapshot(refereeBoardRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
 export function watchMatches(onData, onError) { return onSnapshot(matchesRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
 export function watchRegistrations(onData, onError) { return onSnapshot(registrationsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
@@ -78,14 +80,16 @@ export async function publishControl(state) {
   Object.values(safe.checkins || {}).forEach(player => delete player.photo);
   Object.values(safe.scores || {}).forEach(score => { if (score.confirmation) { delete score.confirmation.ocpcSignature; delete score.confirmation.rebelsSignature; } });
   const refereeState = { matches:safe.matches || [], pairs:safe.pairs || {}, courts:safe.courts || {}, scores:safe.scores || {}, matchSettings:safe.matchSettings || {}, refereeAssignments:safe.refereeAssignments || {}, updatedAt:safe.updatedAt || new Date().toISOString() };
-  await setDoc(controlRef, { state: safe, refereeEmails: [...new Set(Object.values(state.refereeAssignments || {}))], updatedAt: serverTimestamp() }, { merge: true });
-  try { await setDoc(refereeBoardRef, { state: refereeState, updatedAt: serverTimestamp() }, { merge: true }); } catch (_) { /* Limited desks may update their permitted event fields without publishing the referee overview. */ }
+  const batch=writeBatch(db);batch.set(controlRef,{state:safe,refereeEmails:[...new Set(Object.values(state.refereeAssignments||{}))],updatedAt:serverTimestamp()},{merge:true});batch.set(refereeBoardRef,{state:refereeState,updatedAt:serverTimestamp()},{merge:true});
+  try { await batch.commit(); } catch (_) { await setDoc(controlRef,{state:safe,refereeEmails:[...new Set(Object.values(state.refereeAssignments||{}))],updatedAt:serverTimestamp()},{merge:true}); }
 }
 export async function publishMatch(matchId, live, score) {
   const safeScore = score ? structuredClone(score) : null;
   if (safeScore?.confirmation) { safeScore.confirmation.ocpcSigned = Boolean(safeScore.confirmation.ocpcSignature); safeScore.confirmation.rebelsSigned = Boolean(safeScore.confirmation.rebelsSignature); delete safeScore.confirmation.ocpcSignature; delete safeScore.confirmation.rebelsSignature; }
   await setDoc(doc(matchesRef, matchId), { live: structuredClone(live), score: safeScore, updatedAt: serverTimestamp() }, { merge: true });
 }
+export function publishPublicView(token, payload) { return setDoc(doc(db,'tournamentPublicViews',token), { ...structuredClone(payload), eventId, active:true, revoked:false, updatedAt:serverTimestamp() }); }
+export function revokePublicView(token) { return token ? updateDoc(doc(db,'tournamentPublicViews',token), { active:false, revoked:true, revokedAt:serverTimestamp() }) : Promise.resolve(); }
 export function requestMatchPromotion(matchId, courtNo, refereeEmail) {
   return setDoc(doc(matchesRef, matchId), { promotionRequest: { courtNo: Number(courtNo), refereeEmail: String(refereeEmail || '').trim().toLowerCase(), requestedAt: serverTimestamp() }, updatedAt: serverTimestamp() }, { merge: true });
 }

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#063b56">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Live Tournament Standings</title>
+  <link rel="stylesheet" href="public.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <main id="app" class="shell" aria-live="polite">
+    <section id="loadingState" class="state-card">
+      <div class="loader"><i></i><i></i><i></i></div>
+      <p>Connecting to live tournament standings…</p>
+    </section>
+
+    <section id="errorState" class="state-card" hidden>
+      <div class="state-icon">!</div>
+      <h1 id="errorTitle">Standings unavailable</h1>
+      <p id="errorMessage">This link may be invalid or no longer active.</p>
+      <button id="retryButton" type="button">Try again</button>
+    </section>
+
+    <div id="content" hidden>
+      <header class="event-hero">
+        <div class="hero-topline"><span class="live-pill"><i></i> Live standings</span><span id="lastUpdated">Waiting for update</span></div>
+        <div class="event-copy"><p id="organizer">Tournament results</p><h1 id="eventName">Dual Meet</h1><div class="event-meta"><span id="eventDate"></span><span id="eventVenue"></span></div></div>
+        <div id="clubVersus" class="club-versus"></div>
+      </header>
+
+      <nav class="section-nav" aria-label="Standings sections">
+        <button class="active" data-view="standings">Standings</button>
+        <button data-view="medals">Medal Round</button>
+      </nav>
+
+      <section id="standingsView" class="view active">
+        <div class="section-heading"><div><span>Club championship</span><h2>Overall standings</h2></div><p id="clubScoringNote"></p></div>
+        <div id="clubStandings" class="club-grid"></div>
+        <div class="section-heading pair-heading"><div><span>Category rankings</span><h2>Pair standings</h2></div></div>
+        <div id="categoryTabs" class="category-tabs"></div>
+        <div id="pairStandings" class="pair-grid"></div>
+      </section>
+
+      <section id="medalsView" class="view">
+        <div class="section-heading"><div><span>Final stage</span><h2>Medal round</h2></div><p>Each club's #1 pair plays for Gold and Silver. Each club's #2 pair plays for Bronze and fourth place.</p></div>
+        <div id="medalTabs" class="category-tabs"></div>
+        <div id="medalBoard"></div>
+      </section>
+
+      <footer><span id="footerEvent"></span><b>Live results update automatically</b></footer>
+    </div>
+  </main>
+  <script type="module" src="public.js"></script>
+</body>
+</html>

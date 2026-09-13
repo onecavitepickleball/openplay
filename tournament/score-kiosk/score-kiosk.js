@@ -6,7 +6,7 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
 (() => {
   const config = window.TOURNAMENT_CONFIG, $ = selector => document.querySelector(selector), $$ = selector => [...document.querySelectorAll(selector)], esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
   document.querySelector('.field-brand img').src = config.brand.logo; const controlLink = document.querySelector('.field-header a'); if (controlLink) controlLink.href = window.MATCHDAY_EVENT_URL('../control.html');
-  let state = null, user = null, selectedMatchId = '';
+  let state = null, user = null, selectedMatchId = '', matchesReady = false;
   const names = (category, code) => { const pair = state?.pairs?.[`${category}|${code}`] || {}; return [pair.player1, pair.player2].filter(Boolean).join(' / ') || 'Players not assigned'; };
   const display = (category, code) => `${category === 'Novice' ? 'NOV' : category === 'Low Intermediate' ? 'LOW' : category === 'High Intermediate' ? 'HIGH' : String(category).replace(/[^a-z0-9 ]/gi,'').split(/\s+/).filter(Boolean).map(word=>word[0]).join('').slice(0,4).toUpperCase() || 'CAT'}-${code}`;
   const clubName = id => config.clubs.find(club => club.id === id)?.short || (id === 'ocpc' ? 'Club 1' : 'Club 2');
@@ -47,7 +47,7 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
     event.preventDefault(); const match = state.matches.find(item => item.id === selectedMatchId); if (!match) return;
     const a = Number($('#kioskScoreA').value), b = Number($('#kioskScoreB').value), signatureA = $('#signatureA'), signatureB = $('#signatureB');
     if (!signatureA.dataset.signed || !signatureB.dataset.signed) return $('#scoreFormError').textContent = 'Both pair representatives must sign before submission.';
-    if (a === b || Math.max(a, b) !== 11 || Math.min(a, b) < 0) return $('#scoreFormError').textContent = 'Enter a valid final score. The winner must reach 11 and the match cannot end tied.';
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a === b || Math.max(a, b) > 11 || Math.min(a, b) < 0) return $('#scoreFormError').textContent = 'Enter the score on court. A timed match may finish below 11, but it cannot end tied.';
     const prior = state.scores?.[match.id]; if (prior && !confirm(`A result already exists: ${prior.a}-${prior.b}. Send a replacement report?`)) return;
     const live = { ...(state.liveScoring?.[match.id] || {}), a, b, running:false, startedAt:null, complete:true }, submittedAt = new Date().toISOString();
     const score = { a, b, completedAt: prior?.completedAt || submittedAt, confirmation: { source:'player-kiosk', submittedBy:user.email, submittedAt, ocpcSignature:signatureA.toDataURL(), rebelsSignature:signatureB.toDataURL() } };
@@ -59,7 +59,7 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
     let access; try { access = await authorizeTournamentTool(account, ['tournament_score_desk']); } catch (_) {}
     if (!access?.allowed) { $('#kioskWorkspace').hidden = true; $('#kioskGate').hidden = false; $('#formError').textContent = 'This account does not have Score Desk access for this tournament.'; return; }
     $('#kioskWorkspace').hidden = false;
-    watchControl(incoming => { state = { ...incoming, liveScoring:state?.liveScoring || {}, scores:{ ...(incoming.scores || {}), ...(state?.scores || {}) } }; renderCourts(); }, () => $('#formError').textContent = 'Tournament access denied.');
-    watchMatches(items => { if (!state) return; state.liveScoring = {}; items.forEach(item => { if (item.live) state.liveScoring[item.id] = item.live; if (item.score) state.scores[item.id] = item.score; }); renderCourts(); }, () => $('#formError').textContent = 'Live courts are unavailable.');
+    watchControl(incoming => { if (!incoming) return; const liveScoring = state?.liveScoring || {}, scores = matchesReady ? (state?.scores || {}) : { ...(incoming.scores || {}), ...(state?.scores || {}) }; state = { ...incoming, liveScoring, scores }; renderCourts(); }, () => $('#formError').textContent = 'Tournament access denied.');
+    watchMatches(items => { if (!state) return; const liveScoring = {}, scores = { ...(state.scores || {}) }; items.forEach(item => { if (item.live) liveScoring[item.id] = item.live; if (item.score) scores[item.id] = item.score; }); state.liveScoring = liveScoring; state.scores = scores; matchesReady = true; renderCourts(); }, () => $('#formError').textContent = 'Live courts are unavailable.');
   });
 })();
