@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
-import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
+import { getFirestore, doc, onSnapshot, getDoc } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
 import('../cache-refresh.js?boot='+Date.now());
 
 const firebaseConfig={apiKey:'AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo',authDomain:'ocpc-website-faf5e.firebaseapp.com',projectId:'ocpc-website-faf5e',storageBucket:'ocpc-website-faf5e.firebasestorage.app',messagingSenderId:'15833259684',appId:'1:15833259684:web:0f2f4400f9995517ae5031'};
@@ -8,7 +8,7 @@ const esc=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&
 const asArray=value=>Array.isArray(value)?value:[];
 const initials=value=>String(value||'?').split(/\s+/).filter(Boolean).slice(0,2).map(word=>word[0]).join('').toUpperCase();
 const tokenFromLocation=()=>{const query=new URLSearchParams(location.search).get('token');if(query)return query.trim();const parts=location.pathname.split('/').filter(Boolean);const publicIndex=parts.lastIndexOf('public');return publicIndex>=0&&parts[publicIndex+1]?decodeURIComponent(parts[publicIndex+1]):''};
-let data=null,activeCategory='';
+let data=null,activeCategory='',latestSourceUpdatedAt='';
 
 function logo(club){return `<span class="club-logo">${club.logo?`<img src="${esc(club.logo)}" alt="${esc(club.name)} logo" onerror="this.parentElement.innerHTML='<span>${esc(initials(club.short||club.name))}</span>'">`:`<span>${esc(initials(club.short||club.name))}</span>`}</span>`}
 function clubs(){return asArray(data?.clubs).slice(0,2).map((club,index)=>({id:club.id||`club${index+1}`,name:club.name||`Club ${index+1}`,short:club.short||club.name||`Club ${index+1}`,logo:club.logo||'',color:club.color||club.primary||[data?.brand?.primary,'#e0424d'][index]||'#005e89'}))}
@@ -28,6 +28,23 @@ function medalSide(category,code,score,result){return `<div class="medal-side ${
 function renderMedals(){const category=activeCategory,medal=data?.medals?.[category]||{},final=medal.final||{},bronze=medal.bronze||{},finalResult=medalResult(final),bronzeResult=medalResult(bronze);if(!category){$('#medalBoard').innerHTML='<div class="empty-panel">Medal information is not available yet.</div>';return}const podium=[{label:'Silver',icon:'②',code:finalResult.loser,tone:'silver'},{label:'Champion',icon:'★',code:finalResult.winner,tone:'gold'},{label:'Bronze',icon:'③',code:bronzeResult.winner,tone:'bronze'}];$('#medalBoard').innerHTML=`<article class="medal-category"><header class="medal-header"><span>Direct dual-meet medal pathway</span><h3>${esc(category)}</h3></header><div class="podium">${podium.map(item=>`<div class="podium-place ${item.tone}"><span>${item.icon}</span><b>${esc(item.code||'TBD')}</b><small>${esc(item.code?pairNames(category,item.code):'Awaiting result')}</small></div>`).join('')}</div><div class="medal-matches"><article class="medal-match"><header><b>#1 vs #1 · Gold / Silver</b><span>${esc(final.time||'Schedule pending')}${final.court?` · Court ${esc(final.court)}`:''}</span></header>${medalSide(category,final.a,final.scoreA,finalResult)}${medalSide(category,final.b,final.scoreB,finalResult)}</article><article class="medal-match"><header><b>#2 vs #2 · Bronze / 4th</b><span>${esc(bronze.time||'Schedule pending')}${bronze.court?` · Court ${esc(bronze.court)}`:''}</span></header>${medalSide(category,bronze.a,bronze.scoreA,bronzeResult)}${medalSide(category,bronze.b,bronze.scoreB,bronzeResult)}</article></div></article>`}
 function render(){activeCategory=categories().includes(activeCategory)?activeCategory:categories()[0]||'';renderBrand();renderClubs();renderCategoryTabs($('#categoryTabs'));renderCategoryTabs($('#medalTabs'));renderPairs();renderMedals();$('#loadingState').hidden=true;$('#errorState').hidden=true;$('#content').hidden=false}
 function fail(title,message){$('#loadingState').hidden=true;$('#content').hidden=true;$('#errorState').hidden=false;$('#errorTitle').textContent=title;$('#errorMessage').textContent=message}
-function listen(){const token=tokenFromLocation();if(!token||!/^[-_A-Za-z0-9]{12,200}$/.test(token)){fail('Invalid standings link','Ask the tournament organizer for a new public standings QR code or access link.');return}const db=getFirestore(initializeApp(firebaseConfig));return onSnapshot(doc(db,'tournamentPublicViews',token),snapshot=>{if(!snapshot.exists()){fail('Standings link not found','This link may be incorrect, expired, or replaced by the organizer.');return}const incoming=snapshot.data();if(incoming.active===false||incoming.revoked===true){fail('This link is no longer active','The organizer has revoked this public standings link. Ask for a newly generated link.');return}data=incoming;render()},()=>{if(data){$('#lastUpdated').textContent='Live connection interrupted · retrying';return}fail('Unable to load live standings','Check your connection and try again. If the problem continues, ask Match Control to verify the public link.')})}
+function listen(){
+  const token=tokenFromLocation();
+  if(!token||!/^[-_A-Za-z0-9]{12,200}$/.test(token)){fail('Invalid standings link','Ask the tournament organizer for a new public standings QR code or access link.');return}
+  const db=getFirestore(initializeApp(firebaseConfig)),reference=doc(db,'tournamentPublicViews',token);
+  const applySnapshot=snapshot=>{
+    if(!snapshot.exists()){fail('Standings link not found','This link may be incorrect, expired, or replaced by the organizer.');return}
+    const incoming=snapshot.data();
+    if(incoming.active===false||incoming.revoked===true){fail('This link is no longer active','The organizer has revoked this public standings link. Ask for a newly generated link.');return}
+    const incomingVersion=String(incoming.sourceUpdatedAt||'');
+    if(data&&incomingVersion&&latestSourceUpdatedAt&&incomingVersion<latestSourceUpdatedAt)return;
+    data=incoming;latestSourceUpdatedAt=incomingVersion;render();
+  };
+  const stop=onSnapshot(reference,applySnapshot,()=>{if(data){$('#lastUpdated').textContent='Live connection interrupted · retrying';return}fail('Unable to load live standings','Check your connection and try again. If the problem continues, ask Match Control to verify the public link.')});
+  const safetyRefresh=()=>{if(document.visibilityState==='hidden')return;getDoc(reference).then(applySnapshot).catch(()=>{})};
+  const refreshTimer=setInterval(safetyRefresh,5000);
+  window.addEventListener('beforeunload',()=>{clearInterval(refreshTimer);stop()},{once:true});
+  return stop;
+}
 $$('[data-view]').forEach(button=>button.onclick=()=>{$$('[data-view]').forEach(item=>item.classList.toggle('active',item===button));$('#standingsView').classList.toggle('active',button.dataset.view==='standings');$('#medalsView').classList.toggle('active',button.dataset.view==='medals')});
 $('#retryButton').onclick=()=>location.reload();listen();
