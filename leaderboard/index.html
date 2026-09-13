@@ -438,7 +438,7 @@
 <script type="module" src="/giving-widget.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -548,7 +548,7 @@
 
   async function loadAttendance(){
     await loadRosterAliases();
-    const snap = await getDocs(attendanceCol);
+    const snap = await getDocs(query(attendanceCol, where('date', '>=', cutoffDate())));
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderLeaderboard();
   }

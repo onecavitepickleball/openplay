@@ -402,8 +402,8 @@
 
   let eligibleNames = new Set();
   async function loadEligibleNames(){
-    const snap = await getDocs(collection(db, 'attendance'));
     const cutoff = cutoffDate();
+    const snap = await getDocs(query(collection(db, 'attendance'), where('date', '>=', cutoff)));
     const set = new Set();
     snap.docs.forEach(d => {
       const r = d.data();

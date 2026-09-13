@@ -3,7 +3,7 @@
 // (upcoming birthdays from the roster + hand-edited club announcements).
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -187,9 +187,13 @@ async function loadNotifications(){
   let items = ANNOUNCEMENTS.map(a => ({ ...a, sortDate: a.date }));
 
   try {
-    const snap = await getDocs(collection(db, 'roster'));
     const now = new Date();
     const in7 = new Date(now.getTime() + 7 * 86400000);
+    const months = [...new Set([now.getMonth() + 1, in7.getMonth() + 1])];
+    const birthdayQuery = months.length === 1
+      ? query(collection(db, 'roster'), where('birthMonth', '==', months[0]))
+      : query(collection(db, 'roster'), where('birthMonth', 'in', months));
+    const snap = await getDocs(birthdayQuery);
     snap.docs.map(d => d.data()).forEach(p => {
       if (!p.birthMonth || !p.birthDay) return;
       const next = nextBirthdayDate(p.birthMonth, p.birthDay);

@@ -1610,7 +1610,7 @@
   // Week" vs "Next Week" (or further out) based on today's date, so
   // entries never need to be relabeled or moved by hand.
   import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo",
@@ -1625,7 +1625,9 @@
 
   async function loadSessions(){
     try {
-      const snap = await getDocs(collection(db, 'scheduleSessions'));
+      const now = new Date();
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const snap = await getDocs(query(collection(db, 'scheduleSessions'), where('date', '>=', todayKey)));
       return snap.docs.map(docSnap => {
         const data = docSnap.data();
         const dt = new Date(`${data.date}T00:00:00`);
@@ -2030,6 +2032,8 @@
   // Canonical full name (lowercased) -> the short name to actually show:
   // the player's nickname if set, else just their first name.
   let displayMap = {};
+  let rosterPlayers = [];
+  let rosterSnapshotPromise = null;
 
   function firstWord(str){
     return String(str || '').trim().split(/\s+/)[0] || '';
@@ -2037,14 +2041,14 @@
 
   async function loadRosterAliases(){
     try {
-      const snap = await getDocs(collection(db, 'roster'));
+      const snap = await (rosterSnapshotPromise ||= getDocs(collection(db, 'roster')));
+      rosterPlayers = snap.docs.map(d => d.data());
       const map = {};
       const display = {};
       const firstTokenCounts = {};
       const firstTokenCanonical = {};
 
-      snap.docs.forEach(d => {
-        const p = d.data();
+      rosterPlayers.forEach(p => {
         const canonical = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
         if (!canonical) return;
         const canonicalKey = canonical.toLowerCase();
@@ -2184,8 +2188,8 @@
   // ---- Birthday banner (shows only if someone's birthday is today) ----
   async function loadBirthdayBanner(){
     try {
-      const snap = await getDocs(collection(db, 'roster'));
-      const all = snap.docs.map(d => d.data());
+      await loadRosterAliases();
+      const all = rosterPlayers;
       const now = new Date();
       const month = now.getMonth() + 1;
       const day = now.getDate();
