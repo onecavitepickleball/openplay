@@ -10,8 +10,8 @@ const { watchAuth, login, logout, getCurrentProfile, watchMembership, watchRefer
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
   document.querySelector('.field-brand img').src = config.brand.logo; document.querySelector('.field-header-actions>a').href = window.MATCHDAY_EVENT_URL('../control.html');
-  let state, email = '', activeId = null, tick, cloudUser = null, pendingPromotionId = null, matchWriteSequence = 0;
-  const pendingMatchWrites = new Map(), matchWriteChains = new Map();
+  let state, email = '', activeId = null, tick, cloudUser = null, pendingPromotionId = null, matchWriteSequence = 0, latestMatchDocsReady = false;
+  const pendingMatchWrites = new Map(), matchWriteChains = new Map(), latestMatchDocs = new Map();
 
   function load() { try { return JSON.parse(localStorage.getItem(config.storageKey)); } catch (_) { return null; } }
   function save() {
@@ -167,17 +167,32 @@ const { watchAuth, login, logout, getCurrentProfile, watchMembership, watchRefer
     let profile = null; try { profile = await getCurrentProfile(user); } catch (_) {}
     const roles = new Set([...(Array.isArray(profile?.roles) ? profile.roles : []), ...(profile?.role ? [profile.role] : [])]), superAdmin = ['ocpc.pickleball@gmail.com','jamescastillo37@gmail.com'].includes(email);
     if (!superAdmin && !roles.has('admin') && !roles.has('owner') && !roles.has('tournament_admin') && !roles.has('match_control') && !roles.has('tournament_referee')) { $('#matchList').innerHTML = `<section class="field-card access-warning"><h2>Waiting for referee access</h2><p>Signed in as <b>${esc(email)}</b>. This page will open automatically as soon as Match Control grants Referee access.</p></section>`; $('#assignmentSummary').hidden = true; const stop=watchMembership(user.uid,membership=>{const granted=new Set(Array.isArray(membership?.roles)?membership.roles:membership?.role?[membership.role]:[]);if(granted.has('tournament_referee')||granted.has('match_control')||granted.has('tournament_admin')||granted.has('owner')){stop();location.reload();}},()=>{}); return; }
-    watchRefereeBoard(incoming => { if (!incoming) { $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Referee board is preparing</h2><p>Ask Match Control to open the tournament dashboard once to publish the referee court board.</p></section>'; return; } const local = load(); state = { ...incoming, liveScoring: local?.liveScoring || {}, checkins:local?.checkins || {} }; localStorage.setItem(config.storageKey, JSON.stringify(state)); if (pendingPromotionId && activeCourtFor(pendingPromotionId)) enterScorekeeper(pendingPromotionId); else activeId ? renderScorekeeper() : renderAssignments(); }, () => { $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Referee access not granted</h2><p>You are signed in successfully, but this OCPC account does not have the Referee staff role.</p></section>'; $('#assignmentSummary').hidden = true; });
+    watchRefereeBoard(incoming => {
+      if (!incoming) { $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Referee board is preparing</h2><p>Ask Match Control to open the tournament dashboard once to publish the referee court board.</p></section>'; return; }
+      const local = load(), matchLive = {}, matchScores = { ...(incoming.scores || {}) };
+      if (latestMatchDocsReady) {
+        latestMatchDocs.forEach((item, matchId) => {
+          if (item.live) matchLive[matchId] = item.live;
+          if (Object.prototype.hasOwnProperty.call(item, 'score')) { if (item.score) matchScores[matchId] = item.score; else delete matchScores[matchId]; }
+        });
+      } else {
+        Object.assign(matchLive, local?.liveScoring || {}); Object.assign(matchScores, local?.scores || {});
+      }
+      pendingMatchWrites.forEach((_, matchId) => { if (local?.liveScoring?.[matchId]) matchLive[matchId] = local.liveScoring[matchId]; if (local?.scores?.[matchId]) matchScores[matchId] = local.scores[matchId]; });
+      state = { ...incoming, scores: matchScores, liveScoring: matchLive, checkins:local?.checkins || {} };
+      localStorage.setItem(config.storageKey, JSON.stringify(state)); if (pendingPromotionId && activeCourtFor(pendingPromotionId)) enterScorekeeper(pendingPromotionId); else activeId ? renderScorekeeper() : renderAssignments();
+    }, () => { $('#matchList').innerHTML = '<section class="field-card access-warning"><h2>Referee access not granted</h2><p>You are signed in successfully, but this OCPC account does not have the Referee staff role.</p></section>'; $('#assignmentSummary').hidden = true; });
     watchMatches(items => {
       state ||= load(); if (!state) return;
+      latestMatchDocsReady = true; latestMatchDocs.clear(); items.forEach(item => latestMatchDocs.set(item.id, item));
       const localLive = state.liveScoring || {}, localScores = state.scores || {}, nextLive = {}, nextScores = { ...localScores };
       items.forEach(item => {
         if (pendingMatchWrites.has(item.id)) {
           if (localLive[item.id]) nextLive[item.id] = localLive[item.id];
           return;
         }
-        if (item.live) nextLive[item.id] = item.live;
-        if (item.score) nextScores[item.id] = item.score;
+        if (Object.prototype.hasOwnProperty.call(item, 'live') && item.live) nextLive[item.id] = item.live;
+        if (Object.prototype.hasOwnProperty.call(item, 'score')) { if (item.score) nextScores[item.id] = item.score; else delete nextScores[item.id]; }
       });
       pendingMatchWrites.forEach((_, matchId) => { if (localLive[matchId]) nextLive[matchId] = localLive[matchId]; });
       state.liveScoring = nextLive; state.scores = nextScores;

@@ -10,6 +10,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
   const slug = value => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   let state;
+  let draggedScheduleMatchId = '', selectedScheduleMatchId = '';
 
   document.documentElement.style.setProperty('--brand', config.brand.primary);
   document.documentElement.style.setProperty('--brand-dark', config.brand.primaryDark);
@@ -115,6 +116,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     if (incoming?.schedulerVersion !== 7) { normalized.opponentDraw = createOpponentDraw(normalized.pairCounts); const matches = generateSchedule(normalized.pairCounts, normalized.opponentDraw, normalized.formatSettings, normalized.scheduleSettings); normalized.matches = matches; normalized.queue = matches.map(match => match.id); normalized.courtSchedules = initialCourtSchedules(matches); normalized.courts = emptyCourts(); normalized.scores = {}; normalized.matchSettings = {}; normalized.scoreAudit = []; normalized.refereeAssignments = {}; normalized.medals = blankMedals(); normalized.dreamBreaker = blankDreamBreaker(); normalized.drawCeremonyDraft = null; normalized.schedulerVersion = 7; normalized.scheduleBaselineStartMinutes = config.event.roundRobinStartMinutes; }
     else { const storedBaseline = Number(incoming?.scheduleBaselineStartMinutes), inferredBaseline = Math.min(...(incoming?.matches || []).map(match => Number(match.startMinutes)).filter(Number.isFinite)), baseline = Number.isFinite(storedBaseline) ? storedBaseline : inferredBaseline; if (Number.isFinite(baseline) && baseline !== config.event.roundRobinStartMinutes) { const shift = config.event.roundRobinStartMinutes - baseline; normalized.matches.forEach(match => { match.startMinutes = Math.max(0, Math.min(1435, Number(match.startMinutes) + shift)); }); } normalized.scheduleBaselineStartMinutes = config.event.roundRobinStartMinutes; }
     normalized.courts = { ...emptyCourts(), ...(normalized.courts || {}) }; normalized.matchSettings ||= {}; normalized.scores ||= {}; normalized.scoreAudit ||= []; normalized.scheduleHistory ||= []; normalized.refereeAssignments ||= {}; normalized.checkins ||= {}; normalized.pairs = { ...emptyPairs(normalized.pairCounts), ...(normalized.pairs || {}) }; normalized.medals = { ...blankMedals(), ...(normalized.medals || {}) }; normalized.dreamBreaker = { ...blankDreamBreaker(), ...(normalized.dreamBreaker || {}), scores: { ...blankDreamBreaker().scores, ...(normalized.dreamBreaker?.scores || {}) }, history: normalized.dreamBreaker?.history || [] };
+    sanitizeMedalMatchups(normalized.medals);
     if (!normalized.drawAuditReset20260909) { normalized.opponentDrawHistory = []; normalized.drawCeremonyDraft = null; normalized.drawAuditReset20260909 = true; }
     if (!normalized.drawRecordReset20260910) { normalized.opponentDrawHistory = []; normalized.drawCeremonyDraft = null; normalized.opponentDrawRecorded = false; normalized.drawRecordReset20260910 = true; }
     normalized.matches.forEach(match => { match.startMinutes = Number.isFinite(Number(match.startMinutes)) ? Number(match.startMinutes) : config.event.roundRobinStartMinutes + (Math.max(1, Number(match.wave) || 1) - 1) * config.event.slotMinutes; match.time = `${timeLabel(match.startMinutes)}-${timeLabel(match.startMinutes + config.event.slotMinutes)}`; });
@@ -141,8 +143,8 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     return freshState();
   }
   state = loadState();
-  let registrations = [], refereeDirectory = [], controlReady = false, refereeBoardPublished = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, publicWriteTimer, controlWriteChain = Promise.resolve(), publicWriteChain = Promise.resolve(), publicWriteSequence = 0, canAdminTournament = false, pendingPromotionRequests = [], demoClockMinutes = 600, demoClockStartedAt = Date.now(), demoSnapshotReady = demoMode && Boolean(localStorage.getItem(storageKey)), demoMatchesReady = demoSnapshotReady, demoRegistrationsReady = demoSnapshotReady, demoCheckinsReady = demoSnapshotReady, matchWriteSequence = 0, controlWriteSequence = 0, pendingControlWrite = 0;
-  const pendingMatchWrites = new Map(), matchWriteChains = new Map();
+  let registrations = [], refereeDirectory = [], controlReady = false, refereeBoardPublished = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, publicWriteTimer, controlWriteChain = Promise.resolve(), publicWriteChain = Promise.resolve(), publicWriteSequence = 0, canAdminTournament = false, pendingPromotionRequests = [], demoClockMinutes = 600, demoClockStartedAt = Date.now(), demoSnapshotReady = demoMode && Boolean(localStorage.getItem(storageKey)), demoMatchesReady = demoSnapshotReady, demoRegistrationsReady = demoSnapshotReady, demoCheckinsReady = demoSnapshotReady, matchWriteSequence = 0, controlWriteSequence = 0, pendingControlWrite = 0, latestMatchDocsReady = false;
+  const pendingMatchWrites = new Map(), matchWriteChains = new Map(), latestMatchDocs = new Map();
   function operationalClock() {
     if (demoMode) return { dateKey: config.event.date, minute: demoClockMinutes + (Date.now() - demoClockStartedAt) / 60000 };
     const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
@@ -318,9 +320,38 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     const minute = operationalClock().minute, showNeedle = minute >= start && minute < end;
     const needleKey = `<div class="time-needle-key"><i></i><span>Live time needle</span></div>`;
     $('#courtTimeline').dataset.calendarStart = start; $('#courtTimeline').style.setProperty('--court-count', config.event.courts); $('#courtTimeline').innerHTML = `${headers}${liveRow}${scheduleRows}${showNeedle ? `<div class="current-time-needle"><span>${clockLabel(minute)}</span></div>` : ''}${needleKey}`; positionTimeNeedle($('#courtTimeline'), minute, start);
-    $$('[data-drag-match]').forEach(card => card.ondragstart = event => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', card.dataset.dragMatch); card.classList.add('dragging'); });
-    $$('[data-drag-match]').forEach(card => card.ondragend = () => card.classList.remove('dragging'));
-    $$('[data-drop-court]').forEach(cell => { cell.ondragover = event => { event.preventDefault(); cell.classList.add('drag-over'); }; cell.ondragleave = () => cell.classList.remove('drag-over'); cell.ondrop = event => { event.preventDefault(); cell.classList.remove('drag-over'); moveScheduledMatch(event.dataTransfer.getData('text/plain'), Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); }; cell.oncontextmenu = event => { event.preventDefault(); showScheduleContextMenu(event.clientX, event.clientY, Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); }; });
+    $$('[data-drag-match]').forEach(card => card.ondragstart = event => {
+      draggedScheduleMatchId = card.dataset.dragMatch || '';
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', draggedScheduleMatchId);
+        event.dataTransfer.setData('text/uri-list', draggedScheduleMatchId);
+      }
+      card.classList.add('dragging');
+    });
+    $$('[data-drag-match]').forEach(card => {
+      card.onclick = event => {
+        if (event.target.closest('button') || card.getAttribute('draggable') !== 'true') return;
+        event.stopPropagation();
+        const id = card.dataset.dragMatch, targetCell = card.closest('[data-drop-court]');
+        if (selectedScheduleMatchId && selectedScheduleMatchId !== id && targetCell) {
+          const sourceId = selectedScheduleMatchId;
+          selectedScheduleMatchId = '';
+          return moveScheduledMatch(sourceId, Number(targetCell.dataset.dropCourt), Number(targetCell.dataset.dropMinute));
+        }
+        selectedScheduleMatchId = selectedScheduleMatchId === id ? '' : id;
+        renderCourtTimeline();
+        if (selectedScheduleMatchId) toast('Match selected. Click another waiting match or an empty calendar slot to move it.');
+      };
+    });
+    $$('[data-drag-match]').forEach(card => card.ondragend = () => { card.classList.remove('dragging'); draggedScheduleMatchId = ''; });
+    $$('[data-drop-court]').forEach(cell => {
+      cell.ondragover = event => { event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'; cell.classList.add('drag-over'); };
+      cell.ondragleave = () => cell.classList.remove('drag-over');
+      cell.ondrop = event => { event.preventDefault(); cell.classList.remove('drag-over'); const id = event.dataTransfer?.getData('text/plain') || draggedScheduleMatchId || selectedScheduleMatchId; selectedScheduleMatchId = ''; moveScheduledMatch(id, Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); draggedScheduleMatchId = ''; };
+      cell.onclick = event => { if (event.target.closest('button') || !selectedScheduleMatchId) return; const id = selectedScheduleMatchId; selectedScheduleMatchId = ''; moveScheduledMatch(id, Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); };
+      cell.oncontextmenu = event => { event.preventDefault(); showScheduleContextMenu(event.clientX, event.clientY, Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); };
+    });
     bindCourtControls();
   }
   function scheduleCellMarkup(courtNo, minute) {
@@ -328,7 +359,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     if (!match) return `<div class="calendar-cell empty" data-drop-court="${courtNo}" data-drop-minute="${minute}"></div>`;
     const official = state.refereeAssignments?.[id];
     const warningTitle = [checkin, ...conflicts].filter(Boolean).join(' · ');
-    return `<div class="calendar-cell occupied" data-drop-court="${courtNo}" data-drop-minute="${minute}"><article class="timeline-match ${categoryClass(match.category)} ${conflicts.length || matches.length > 1 ? 'has-conflict' : ''} ${checkin ? 'needs-checkin' : ''} ${active ? 'on-court' : ''} ${done ? 'completed' : ''}" draggable="${!active && !done}" data-drag-match="${id}" title="${esc(warningTitle)}"><div class="timeline-pairs"><small>${match.id} · ${esc(match.category)} · ${timeLabel(minute)}</small>${calendarPairLine(match, 'a', active)}<span>vs</span>${calendarPairLine(match, 'b', active)}${checkin ? `<em class="checkin-warning">⚠ ${esc(checkin)}</em>` : active ? '<em>Currently on court</em>' : done ? `<em>Final ${scoreFor(id).a}-${scoreFor(id).b}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : ''}</div>${done ? '' : `<button class="calendar-referee ${official ? 'assigned' : ''}" data-assign-official="${id}" data-assignment-court="${courtNo}" type="button" draggable="false">${official ? `Ref · ${esc(refereeName(official))}` : 'Assign ref'}</button>`}${checkin ? '<span class="checkin-mark" title="Player check-in needed">⚠</span>' : ''}${conflicts.length || matches.length > 1 ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
+    return `<div class="calendar-cell occupied" data-drop-court="${courtNo}" data-drop-minute="${minute}"><article class="timeline-match ${categoryClass(match.category)} ${conflicts.length || matches.length > 1 ? 'has-conflict' : ''} ${checkin ? 'needs-checkin' : ''} ${active ? 'on-court' : ''} ${done ? 'completed' : ''} ${selectedScheduleMatchId === id ? 'schedule-selected' : ''}" draggable="${!active && !done}" data-drag-match="${id}" title="${esc(warningTitle)}"><div class="timeline-pairs"><small>${match.id} · ${esc(match.category)} · ${timeLabel(minute)}</small>${calendarPairLine(match, 'a', active)}<span>vs</span>${calendarPairLine(match, 'b', active)}${checkin ? `<em class="checkin-warning">⚠ ${esc(checkin)}</em>` : active ? '<em>Currently on court</em>' : done ? `<em>Final ${scoreFor(id).a}-${scoreFor(id).b}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : ''}</div>${done ? '' : `<button class="calendar-referee ${official ? 'assigned' : ''}" data-assign-official="${id}" data-assignment-court="${courtNo}" type="button" draggable="false">${official ? `Ref · ${esc(refereeName(official))}` : 'Assign ref'}</button>`}${checkin ? '<span class="checkin-mark" title="Player check-in needed">⚠</span>' : ''}${conflicts.length || matches.length > 1 ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
   }
   function calendarPairLine(match, side, active) { const code = side === 'a' ? match.a : match.b, pair = pairData(match.category, code), names = [pair.player1, pair.player2].filter(Boolean), live = state.liveScoring?.[match.id], showServer = active && !!state.refereeAssignments?.[match.id] && live?.serving === side, serverIndex = Number(live?.serverPlayer) || 0; return `<b>${(names.length ? names : ['Players not assigned']).map((name, index) => `${showServer && index === serverIndex ? '<i class="serving-ball" title="Currently serving"></i>' : ''}${esc(name)}`).join(' / ')}</b>`; }
   function positionTimeNeedle(timeline, minute, start) {
@@ -363,10 +394,17 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function pushScheduleHistory(label) { state.scheduleHistory ||= []; state.scheduleHistory.push({ label, matches: state.matches.map(match => ({ id: match.id, court: match.court, startMinutes: match.startMinutes })) }); if (state.scheduleHistory.length > 20) state.scheduleHistory.shift(); }
   function rebuildCourtSchedules() { state.courtSchedules = Object.fromEntries(Array.from({ length: config.event.courts }, (_, index) => { const court = index + 1; return [court, state.matches.filter(match => Number(match.court) === court).sort((a, b) => a.startMinutes - b.startMinutes || a.id.localeCompare(b.id)).map(match => match.id)]; })); syncQueueFromCourtSchedules(); }
   function moveScheduledMatch(id, courtNo, targetMinute) {
+    selectedScheduleMatchId = '';
     if (!id || isComplete(id) || Object.values(state.courts).some(court => court.matchId === id)) return toast('Only waiting matches can be moved.');
-    const match = state.matches.find(item => item.id === id), oldCourt = Number(match.court), oldMinute = Number(match.startMinutes), snappedMinute = Math.max(0, Math.min(1435, Math.round(targetMinute / 5) * 5));
+    const match = state.matches.find(item => item.id === id);
+    if (!match) return toast('That scheduled match is no longer available. Refresh the calendar and try again.');
+    const oldCourt = Number(match.court), oldMinute = Number(match.startMinutes), requestedMinute = Number(targetMinute);
+    if (!Number.isFinite(requestedMinute)) return toast('Choose a valid calendar time.');
+    const snappedMinute = Math.max(0, Math.min(1435, Math.round(requestedMinute / 5) * 5));
     if (oldCourt === Number(courtNo) && oldMinute === snappedMinute) return;
-    const occupying = state.matches.filter(other => other.id !== id && Number(other.court) === Number(courtNo) && snappedMinute >= Number(other.startMinutes) && snappedMinute < Number(other.startMinutes) + config.event.slotMinutes);
+    const exactTarget = state.matches.filter(other => other.id !== id && Number(other.court) === Number(courtNo) && Number(other.startMinutes) === snappedMinute);
+    const overlapping = state.matches.filter(other => other.id !== id && Number(other.court) === Number(courtNo) && snappedMinute < Number(other.startMinutes) + config.event.slotMinutes && snappedMinute + config.event.slotMinutes > Number(other.startMinutes));
+    const occupying = exactTarget.length ? exactTarget : overlapping;
     if (occupying.length > 1) return toast('This area already has multiple overlapping matches. Resolve it before swapping.');
     const target = occupying[0], targetOldMinute = Number(target?.startMinutes);
     if (target && (isComplete(target.id) || Object.values(state.courts).some(court => court.matchId === target.id))) return toast('An active or completed match cannot be swapped.');
@@ -389,7 +427,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function bindCourtControls() {
     bindScoreButtons();
     $$('[data-end-match]').forEach(button => button.onclick = () => openEndMatch(button.dataset.endMatch));
-    $$('[data-promote-court]').forEach(button => button.onclick = () => { if (button.disabled) return; button.disabled = true; assignNext(Number(button.dataset.promoteCourt)); });
+    $$('[data-promote-court]').forEach(button => button.onclick = () => { if (button.disabled) return; button.disabled = true; if (!assignNext(Number(button.dataset.promoteCourt))) button.disabled = false; });
     $$('[data-timer-toggle]').forEach(button => button.onclick = () => toggleTimer(Number(button.dataset.timerToggle)));
     $$('[data-vacate-court]').forEach(button => button.onclick = () => vacateCourt(Number(button.dataset.vacateCourt)));
     $$('[data-court-tools]').forEach(button => button.onclick = () => showCourtTools(Number(button.dataset.courtTools)));
@@ -444,9 +482,10 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function showDispatchWarning(courtNo, matchId, conflicts) { $('#dispatchWarning')?.remove(); document.body.insertAdjacentHTML('beforeend', `<div class="dispatch-warning" id="dispatchWarning"><section><span class="section-label">Active player conflict</span><h2>Player already on court</h2><p>${esc(matchId)} includes a player currently active in ${conflicts.map(item => `${item.matchId} on Court ${item.courtNo}`).join(', ')}. Sending this match to Court ${courtNo} would place that player on two courts at once.</p><div><button class="btn btn-danger" id="confirmConflictDispatch">Send anyway</button><button class="btn btn-quiet" id="cancelConflictDispatch">Keep in schedule</button></div></section></div>`); $('#confirmConflictDispatch').onclick = () => { $('#dispatchWarning').remove(); assignMatch(courtNo, matchId, true); }; $('#cancelConflictDispatch').onclick = () => $('#dispatchWarning').remove(); }
   function assignMatch(courtNo, matchId, override = false) { if (!state.courts[courtNo] || state.courts[courtNo].matchId) return false; const conflicts = activePlayerCourtConflicts(matchId); if (conflicts.length && !override) { showDispatchWarning(courtNo, matchId, conflicts); return false; } state.courts[courtNo] = { matchId, running: false, startedAt: null, elapsed: 0 }; state.queue = state.queue.filter(id => id !== matchId); saveState(); renderAll(); return true; }
   function assignNext(courtNo) {
-    if (state.courts[courtNo]?.matchId) return toast(`Court ${courtNo} is not vacant.`);
-    const id = nextForCourt(courtNo); if (!id) return toast('No waiting matches.');
-    if (assignMatch(courtNo, id)) toast(`${id} promoted to Court ${courtNo}${state.refereeAssignments?.[id] ? ` with ${refereeName(state.refereeAssignments[id])} officiating` : ' as an unofficiated match'}.`);
+    if (state.courts[courtNo]?.matchId) { toast(`Court ${courtNo} is not vacant.`); return false; }
+    const id = nextForCourt(courtNo); if (!id) { toast('No waiting matches.'); return false; }
+    if (!assignMatch(courtNo, id)) return false;
+    toast(`${id} promoted to Court ${courtNo}${state.refereeAssignments?.[id] ? ` with ${refereeName(state.refereeAssignments[id])} officiating` : ' as an unofficiated match'}.`); return true;
   }
   const promotionRequestsInFlight = new Set();
   async function handleRefereePromotionRequest(item) {
@@ -555,6 +594,29 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     if (match.scoreA === '' || match.scoreB === '' || Number(match.scoreA) === Number(match.scoreB)) return { winner: '', loser: '' };
     return Number(match.scoreA) > Number(match.scoreB) ? { winner: match.a, loser: match.b } : { winner: match.b, loser: match.a };
   }
+  function medalPairClub(code) {
+    const value = String(code || '').trim().toUpperCase();
+    return config.clubs.find(club => {
+      const prefix = String(club.pairPrefix || '').trim().toUpperCase();
+      return prefix && value.startsWith(prefix);
+    })?.id || '';
+  }
+  function medalMatchHasSameClub(match) {
+    const clubA = medalPairClub(match?.a), clubB = medalPairClub(match?.b);
+    return Boolean(clubA && clubB && clubA === clubB);
+  }
+  function sanitizeMedalMatchups(medals) {
+    let changed = false;
+    Object.values(medals || {}).forEach(medal => ['final', 'bronze', 'sf1', 'sf2'].forEach(key => {
+      const match = medal?.[key];
+      if (!match || !medalMatchHasSameClub(match)) return;
+      match.b = '';
+      match.scoreA = '';
+      match.scoreB = '';
+      changed = true;
+    }));
+    return changed;
+  }
   function medalSeedListId(category) { return `medal-seeds-${Math.max(0, config.categories.indexOf(category))}`; }
   function medalSeedInfo(category, value) {
     const raw = String(value || '').trim(), direct = state.pairs[`${category}|${raw}`];
@@ -600,7 +662,18 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     const finalResult = medalResult({ a: finalA, b: finalB, scoreA: medal.final.scoreA, scoreB: medal.final.scoreB }), bronzeResult = medalResult({ a: bronzeA, b: bronzeB, scoreA: medal.bronze.scoreA, scoreB: medal.bronze.scoreB });
     const podium = (place, code, tone) => `<div class="podium-card ${tone}"><span>${place}</span><strong>${esc(code || 'TBD')}</strong><small>${code ? esc(pairNames(category, code)) : 'Awaiting medal results'}</small></div>`;
     $('#medalBoard').innerHTML = `<article class="playoff-bracket direct-medal-bracket"><header><div><span class="section-label">Dual-meet medal pathway</span><h2>${esc(category)}</h2><p>Final standings directly determine the two medal matchups. No semifinal can displace a pair from the place it earned.</p></div><div class="bracket-key"><span>Club rank</span><b>→</b><span>Direct medal match</span></div></header><div class="podium-preview">${podium('Silver', finalResult.loser, 'silver')}${podium('Champion', finalResult.winner, 'gold')}${podium('Bronze', bronzeResult.winner, 'bronze')}</div><div class="direct-medal-grid"><section class="playoff-stage medal-stage"><h3>#1 vs #1 · Gold / Silver</h3>${bracketMatch(category, 'final', 'Championship', high ? '4:15 PM' : '4:00 PM', index * 2 + 2 > 5 ? 2 : index * 2 + 2, finalA, finalB, medal.final)}</section><section class="playoff-stage medal-stage"><h3>#2 vs #2 · Bronze / 4th</h3>${bracketMatch(category, 'bronze', 'Bronze medal', high ? '4:15 PM' : '4:00 PM', index * 2 + 1 > 5 ? 1 : index * 2 + 1, bronzeA, bronzeB, medal.bronze)}</section></div><datalist id="${medalSeedListId(category)}">${medalSeedOptions(category)}</datalist></article>`;
-    $$('[data-medal-category]').forEach(input => input.onchange = () => { const match = state.medals[input.dataset.medalCategory][input.dataset.medalMatch], isSeed = input.dataset.medalSide === 'a' || input.dataset.medalSide === 'b'; match[input.dataset.medalSide] = isSeed ? normalizeMedalSeed(input.dataset.medalCategory, input.value) : input.value === '' ? '' : Number(input.value); saveState(); renderMedals(); });
+    $$('[data-medal-category]').forEach(input => input.onchange = () => {
+      const match = state.medals[input.dataset.medalCategory][input.dataset.medalMatch], isSeed = input.dataset.medalSide === 'a' || input.dataset.medalSide === 'b';
+      if (isSeed) {
+        const nextCode = normalizeMedalSeed(input.dataset.medalCategory, input.value), oppositeSide = input.dataset.medalSide === 'a' ? 'b' : 'a';
+        if (medalPairClub(nextCode) && medalPairClub(match[oppositeSide]) && medalPairClub(nextCode) === medalPairClub(match[oppositeSide])) {
+          showNotice('Each medal match must have one pair from each club. Choose an opposing-club pair.', 'Invalid medal matchup');
+          return renderMedals();
+        }
+        match[input.dataset.medalSide] = nextCode;
+      } else match[input.dataset.medalSide] = input.value === '' ? '' : Number(input.value);
+      saveState(); renderMedals();
+    });
   }
   async function renderTournamentStaff() {
     const list = $('#tournamentStaffList'); if (!list) return;
@@ -862,8 +935,12 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
         if (pendingControlWrite) return;
         const formatChanged = incoming.schedulerVersion !== 7, scheduleChanged = Number(incoming.scheduleBaselineStartMinutes) !== config.event.roundRobinStartMinutes, testDraft = drawTestMode ? state.drawCeremonyDraft : null;
         cloudApplying = true;
-        const localCheckins = state.checkins || {}, normalized = normalizeState(incoming);
-        state = { ...normalized, checkins: demoMode ? normalized.checkins : { ...normalized.checkins, ...localCheckins }, liveScoring: formatChanged ? {} : state.liveScoring || {} };
+        const localCheckins = state.checkins || {}, normalized = normalizeState(incoming), matchLive = {}, matchScores = { ...(normalized.scores || {}) };
+        latestMatchDocs.forEach((item, matchId) => {
+          if (Object.prototype.hasOwnProperty.call(item, 'live')) { if (item.live) matchLive[matchId] = item.live; }
+          if (Object.prototype.hasOwnProperty.call(item, 'score')) { if (item.score) matchScores[matchId] = item.score; else delete matchScores[matchId]; }
+        });
+        state = { ...normalized, checkins: demoMode ? normalized.checkins : { ...normalized.checkins, ...localCheckins }, scores: formatChanged ? normalized.scores : matchScores, liveScoring: formatChanged ? {} : latestMatchDocsReady ? matchLive : state.liveScoring || {} };
         if (drawTestMode) { state.drawCeremonyDraft = testDraft; state.opponentDrawHistory = []; }
         if (demoMode) { state.demo = true; demoSnapshotReady = true; }
         controlReady = true; hydrateRegisteredTeams(false); localStorage.setItem(storageKey, JSON.stringify(state)); renderAll();
@@ -879,13 +956,14 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
       watchMatches(items => {
         if (demoMode && demoMatchesReady) return;
         cloudApplying = true;
+        latestMatchDocsReady = true; latestMatchDocs.clear(); items.forEach(item => latestMatchDocs.set(item.id, item));
         const localLive = state.liveScoring || {}, nextLive = {}, nextScores = { ...(state.scores || {}) };
         items.forEach(item => {
           if (pendingMatchWrites.has(item.id)) {
             if (localLive[item.id]) nextLive[item.id] = localLive[item.id];
           } else {
-            if (item.live) nextLive[item.id] = item.live;
-            if (item.score) nextScores[item.id] = item.score;
+            if (Object.prototype.hasOwnProperty.call(item, 'live') && item.live) nextLive[item.id] = item.live;
+            if (Object.prototype.hasOwnProperty.call(item, 'score')) { if (item.score) nextScores[item.id] = item.score; else delete nextScores[item.id]; }
           }
         });
         pendingMatchWrites.forEach((_, matchId) => { if (localLive[matchId]) nextLive[matchId] = localLive[matchId]; });
