@@ -1,4 +1,5 @@
 const SDK_VERSION = '10.13.2';
+import(`./cache-refresh.js?boot=${Date.now()}`).catch(()=>{});
 const LEGACY_EVENT_ID = 'ocpc-rally-rebels-dual-meet-2026';
 
 function waitForAuth(auth, onAuthStateChanged) {

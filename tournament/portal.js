@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
+import(`./cache-refresh.js?boot=${Date.now()}`).catch(()=>{});
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
 import { getFirestore, doc, collection, getDoc, getDocs, query, where, setDoc, updateDoc, writeBatch, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
 

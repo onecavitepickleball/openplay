@@ -1,5 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
 import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
+import('../cache-refresh.js?boot='+Date.now());
 
 const firebaseConfig={apiKey:'AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo',authDomain:'ocpc-website-faf5e.firebaseapp.com',projectId:'ocpc-website-faf5e',storageBucket:'ocpc-website-faf5e.firebasestorage.app',messagingSenderId:'15833259684',appId:'1:15833259684:web:0f2f4400f9995517ae5031'};
 const $=selector=>document.querySelector(selector), $$=selector=>[...document.querySelectorAll(selector)];
