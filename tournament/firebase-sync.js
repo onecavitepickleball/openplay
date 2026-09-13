@@ -88,7 +88,7 @@ export async function publishMatch(matchId, live, score) {
   if (safeScore?.confirmation) { safeScore.confirmation.ocpcSigned = Boolean(safeScore.confirmation.ocpcSignature); safeScore.confirmation.rebelsSigned = Boolean(safeScore.confirmation.rebelsSignature); delete safeScore.confirmation.ocpcSignature; delete safeScore.confirmation.rebelsSignature; }
   await setDoc(doc(matchesRef, matchId), { live: structuredClone(live), score: safeScore, updatedAt: serverTimestamp() }, { merge: true });
 }
-export function publishPublicView(token, payload) { return setDoc(doc(db,'tournamentPublicViews',token), { ...structuredClone(payload), eventId, active:true, revoked:false, updatedAt:serverTimestamp() }); }
+export function publishPublicView(token, payload) { const sanitized=JSON.parse(JSON.stringify(payload)); return setDoc(doc(db,'tournamentPublicViews',token), { ...sanitized, eventId, active:true, revoked:false, updatedAt:serverTimestamp() }); }
 export function revokePublicView(token) { return token ? updateDoc(doc(db,'tournamentPublicViews',token), { active:false, revoked:true, revokedAt:serverTimestamp() }) : Promise.resolve(); }
 export function requestMatchPromotion(matchId, courtNo, refereeEmail) {
   return setDoc(doc(matchesRef, matchId), { promotionRequest: { courtNo: Number(courtNo), refereeEmail: String(refereeEmail || '').trim().toLowerCase(), requestedAt: serverTimestamp() }, updatedAt: serverTimestamp() }, { merge: true });
