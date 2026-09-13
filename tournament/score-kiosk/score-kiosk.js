@@ -1,11 +1,15 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
+const { loadTournamentContext } = await import(`../event-context.js?v=${encodeURIComponent(revision)}`);
+await loadTournamentContext();
 const { watchAuth, watchControl, watchMatches, publishMatch } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   const config = window.TOURNAMENT_CONFIG, $ = selector => document.querySelector(selector), $$ = selector => [...document.querySelectorAll(selector)], esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
+  document.querySelector('.field-brand img').src = config.brand.logo; const controlLink = document.querySelector('.field-header a'); if (controlLink) controlLink.href = window.MATCHDAY_EVENT_URL('../control.html');
   let state = null, user = null, selectedMatchId = '';
   const names = (category, code) => { const pair = state?.pairs?.[`${category}|${code}`] || {}; return [pair.player1, pair.player2].filter(Boolean).join(' / ') || 'Players not assigned'; };
-  const display = (category, code) => `${category === 'Novice' ? 'NOV' : category === 'Low Intermediate' ? 'LOW' : 'HIGH'}-${code}`;
+  const display = (category, code) => `${category === 'Novice' ? 'NOV' : category === 'Low Intermediate' ? 'LOW' : category === 'High Intermediate' ? 'HIGH' : String(category).replace(/[^a-z0-9 ]/gi,'').split(/\s+/).filter(Boolean).map(word=>word[0]).join('').slice(0,4).toUpperCase() || 'CAT'}-${code}`;
+  const clubName = id => config.clubs.find(club => club.id === id)?.short || (id === 'ocpc' ? 'Club 1' : 'Club 2');
   const toast = message => { const element = $('#officialToast'); element.textContent = message; element.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => element.classList.remove('show'), 1800); };
   const scoreComplete = id => { const score = state?.scores?.[id]; return score && score.a !== '' && score.b !== ''; };
 
@@ -32,7 +36,8 @@ const { watchAuth, watchControl, watchMatches, publishMatch } = await import(`..
   function openScoreSheet(matchId) {
     const match = state.matches.find(item => item.id === matchId); if (!match) return;
     selectedMatchId = matchId; $('#kioskMatchMeta').textContent = `Court ${match.court} · ${match.category} · ${match.id}`;
-    $('#kioskMatchup').innerHTML = `<article><span>OCPC · ${display(match.category, match.a)}</span><b>${esc(names(match.category, match.a))}</b></article><strong>VS</strong><article><span>Rally Rebels · ${display(match.category, match.b)}</span><b>${esc(names(match.category, match.b))}</b></article>`;
+    $('#kioskMatchup').innerHTML = `<article><span>${esc(clubName('ocpc'))} · ${display(match.category, match.a)}</span><b>${esc(names(match.category, match.a))}</b></article><strong>VS</strong><article><span>${esc(clubName('rebels'))} · ${display(match.category, match.b)}</span><b>${esc(names(match.category, match.b))}</b></article>`;
+    $('#kioskScoreALabel').textContent = `${clubName('ocpc')} score`; $('#kioskScoreBLabel').textContent = `${clubName('rebels')} score`;
     $('#signatureALabel').textContent = `${names(match.category, match.a)} signature`; $('#signatureBLabel').textContent = `${names(match.category, match.b)} signature`;
     $('#kioskScoreA').value = ''; $('#kioskScoreB').value = ''; clearSignature('signatureA'); clearSignature('signatureB'); $('#scoreFormError').textContent = ''; $('#kioskScoreSheet').hidden = false;
   }

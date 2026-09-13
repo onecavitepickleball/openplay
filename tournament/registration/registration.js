@@ -1,8 +1,11 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
+const { loadTournamentContext } = await import(`../event-context.js?v=${encodeURIComponent(revision)}`);
+await loadTournamentContext();
 const { watchAuth, login, logout, watchControl, watchRegistrations, createRegistration, updateRegistration, deleteRegistration, publishControl } = await import(`../firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
 (() => {
   const config = window.TOURNAMENT_CONFIG, $ = selector => document.querySelector(selector), esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  document.querySelector('.field-brand img').src = config.brand.logo; document.querySelector('.field-header>a').href = window.MATCHDAY_EVENT_URL('../control.html');
   let state = null, registrations = [], editingId = '';
   const toast = message => { const el = $('#officialToast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 1800); };
   const club = () => config.clubs.find(item => item.id === $('#regClub').value);
