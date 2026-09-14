@@ -11,4 +11,9 @@ function rewriteEventLinks(root=document){root.querySelectorAll?.('a[href]').for
 rewriteEventLinks();new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)rewriteEventLinks(node)}))).observe(document.body,{childList:true,subtree:true});
 
 const moduleRevision = new URL(import.meta.url).searchParams.get('boot') || new URL(import.meta.url).searchParams.get('v') || Date.now();
-await import(`./app.js?v=${encodeURIComponent(moduleRevision)}`);
+try {
+  await import(`./app.js?v=${encodeURIComponent(moduleRevision)}`);
+} catch (error) {
+  console.error('Match Control application failed to load.', error);
+  document.body.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#edf3f6;color:#09283a;font-family:system-ui,sans-serif"><section style="max-width:560px;padding:32px;border-radius:24px;background:#fff;box-shadow:0 18px 48px #09283a24"><p style="font-size:12px;font-weight:800;letter-spacing:.12em;color:#1773a6">TOURNAMENT PORTAL</p><h1 style="margin:.25rem 0 1rem">Match Control could not start.</h1><p style="line-height:1.55">${String(error?.message || 'An application module could not be loaded.').replace(/[&<>]/g, '')}</p><a href="./" style="display:inline-block;margin-top:12px;padding:12px 18px;border-radius:10px;background:#086593;color:white;font-weight:800;text-decoration:none">Return to My Tournaments</a></section></main>`;
+}
