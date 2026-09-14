@@ -1,0 +1,28 @@
+---
+layout: null
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#063b56">
+  <meta name="robots" content="noindex,nofollow">
+  <title>My Matchday · Matchday</title>
+  <link rel="stylesheet" href="player.css?v={{ site.github.build_revision }}">
+</head>
+<body>
+  <main class="player-shell" aria-live="polite">
+    <section id="loadingState" class="state-card"><span class="loader"></span><p>Connecting to your matchday…</p></section>
+    <section id="errorState" class="state-card" hidden><span class="state-icon">!</span><h1 id="errorTitle">Portal unavailable</h1><p id="errorMessage"></p></section>
+    <section id="content" hidden>
+      <header class="event-header"><div><span class="eyebrow">Player matchday portal</span><h1 id="eventName">Tournament</h1><p id="eventMeta"></p></div><span class="live-pill"><i></i> Live</span></header>
+      <section class="pair-card"><span class="eyebrow">Your registered pair</span><h2 id="pairNames">Loading pair…</h2><p id="pairMeta"></p></section>
+      <section id="notice" class="notice waiting"><span class="notice-icon" id="noticeIcon">⌛</span><div><span id="noticeKicker">Match status</span><h2 id="noticeTitle">Checking your schedule</h2><p id="noticeCopy">Your live court notice will appear here.</p></div></section>
+      <section class="next-card"><header><div><span class="eyebrow">Your next match</span><h2>Schedule</h2></div><span id="lastUpdated">Live</span></header><div id="nextMatch"></div></section>
+      <section class="schedule-card"><span class="eyebrow">Your day</span><h2>All matches</h2><div id="matchList"></div></section>
+    </section>
+  </main>
+  <script type="module" src="player.js?v={{ site.github.build_revision }}"></script>
+</body>
+</html>

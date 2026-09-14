@@ -11,6 +11,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   const slug = value => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   let state;
   let draggedScheduleMatchId = '', selectedScheduleMatchId = '';
+  const busyCourtActions = new Set();
 
   document.documentElement.style.setProperty('--brand', config.brand.primary);
   document.documentElement.style.setProperty('--brand-dark', config.brand.primaryDark);
@@ -54,6 +55,14 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
       for (let index = 0; index < ocpcCount; index++) [...Array(rebelsCount).keys()].sort((a, b) => loads[a] - loads[b] || ((a - index + rebelsCount) % rebelsCount) - ((b - index + rebelsCount) % rebelsCount)).slice(0, opponentLimit).forEach((opponent, round) => { loads[opponent]++; matches.push({ category, round: round + 1, a: order.ocpc[index], b: order.rebels[opponent] }); });
     }
     return matches;
+  }
+  function opponentExclusions(category, order, counts = state?.pairCounts || defaultPairCounts(), settings = formatSettings()) {
+    const source = drawSourceClub(category), opponent = drawOpponentClub(category);
+    if (!order?.[source]?.length || !order?.[opponent]?.length) return {};
+    return Object.fromEntries(order[source].map(code => {
+      const played = categoryDrawMatches(category, order, counts, settings).filter(match => match[source === 'ocpc' ? 'a' : 'b'] === code).map(match => match[source === 'ocpc' ? 'b' : 'a']);
+      return [code, order[opponent].filter(other => !played.includes(other))];
+    }));
   }
   function generateMatches(pairCounts, opponentDraw, settings = formatSettings()) {
     return config.categories.flatMap(category => categoryDrawMatches(category, opponentDraw.categories[category], pairCounts, settings).map(match => ({ ...match, players: [`${category}|${match.a}`, `${category}|${match.b}`] })));
@@ -107,7 +116,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function freshState(pairCounts = defaultPairCounts(), retainedDraw = null, retainedFormat = formatSettings(), retainedScheduling = scheduleSettings(), retainedQualification = qualificationSettings()) {
     pairCounts = normalizedPairCounts(pairCounts);
     const format = formatSettings(retainedFormat), scheduling = scheduleSettings(retainedScheduling), opponentDraw = retainedDraw || createOpponentDraw(pairCounts), matches = generateSchedule(pairCounts, opponentDraw, format, scheduling);
-    return { version: 12, schedulerVersion: 7, scheduleBaselineStartMinutes: config.event.roundRobinStartMinutes, pairCounts, formatSettings: format, scheduleSettings: scheduling, qualificationSettings: qualificationSettings(retainedQualification), opponentDraw, currentWave: 1, matches, queue: matches.map(m => m.id), courtSchedules: initialCourtSchedules(matches), scheduleHistory: [], courts: emptyCourts(), matchSettings: {}, scores: {}, scoreAudit: [], refereeAssignments: {}, checkins: {}, pairs: emptyPairs(pairCounts), medals: blankMedals(), dreamBreaker: blankDreamBreaker(), updatedAt: new Date().toISOString() };
+    return { version: 12, schedulerVersion: 7, scheduleBaselineStartMinutes: config.event.roundRobinStartMinutes, pairCounts, formatSettings: format, scheduleSettings: scheduling, qualificationSettings: qualificationSettings(retainedQualification), opponentDraw, currentWave: 1, matches, queue: matches.map(m => m.id), courtSchedules: initialCourtSchedules(matches), scheduleHistory: [], activityLog: [], courts: emptyCourts(), matchSettings: {}, scores: {}, scoreAudit: [], refereeAssignments: {}, checkins: {}, pairs: emptyPairs(pairCounts), medals: blankMedals(), dreamBreaker: blankDreamBreaker(), updatedAt: new Date().toISOString() };
   }
   function normalizeState(incoming) {
     const normalized = { ...freshState(incoming?.pairCounts || defaultPairCounts()), ...(incoming || {}) };
@@ -115,7 +124,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     normalized.formatSettings = formatSettings(normalized.formatSettings); normalized.scheduleSettings = scheduleSettings(normalized.scheduleSettings); normalized.qualificationSettings = qualificationSettings(normalized.qualificationSettings);
     if (incoming?.schedulerVersion !== 7) { normalized.opponentDraw = createOpponentDraw(normalized.pairCounts); const matches = generateSchedule(normalized.pairCounts, normalized.opponentDraw, normalized.formatSettings, normalized.scheduleSettings); normalized.matches = matches; normalized.queue = matches.map(match => match.id); normalized.courtSchedules = initialCourtSchedules(matches); normalized.courts = emptyCourts(); normalized.scores = {}; normalized.matchSettings = {}; normalized.scoreAudit = []; normalized.refereeAssignments = {}; normalized.medals = blankMedals(); normalized.dreamBreaker = blankDreamBreaker(); normalized.drawCeremonyDraft = null; normalized.schedulerVersion = 7; normalized.scheduleBaselineStartMinutes = config.event.roundRobinStartMinutes; }
     else { const storedBaseline = Number(incoming?.scheduleBaselineStartMinutes), inferredBaseline = Math.min(...(incoming?.matches || []).map(match => Number(match.startMinutes)).filter(Number.isFinite)), baseline = Number.isFinite(storedBaseline) ? storedBaseline : inferredBaseline; if (Number.isFinite(baseline) && baseline !== config.event.roundRobinStartMinutes) { const shift = config.event.roundRobinStartMinutes - baseline; normalized.matches.forEach(match => { match.startMinutes = Math.max(0, Math.min(1435, Number(match.startMinutes) + shift)); }); } normalized.scheduleBaselineStartMinutes = config.event.roundRobinStartMinutes; }
-    normalized.courts = { ...emptyCourts(), ...(normalized.courts || {}) }; normalized.matchSettings ||= {}; normalized.scores ||= {}; normalized.scoreAudit ||= []; normalized.scheduleHistory ||= []; normalized.refereeAssignments ||= {}; normalized.checkins ||= {}; normalized.pairs = { ...emptyPairs(normalized.pairCounts), ...(normalized.pairs || {}) }; normalized.medals = { ...blankMedals(), ...(normalized.medals || {}) }; normalized.dreamBreaker = { ...blankDreamBreaker(), ...(normalized.dreamBreaker || {}), scores: { ...blankDreamBreaker().scores, ...(normalized.dreamBreaker?.scores || {}) }, history: normalized.dreamBreaker?.history || [] };
+    normalized.courts = { ...emptyCourts(), ...(normalized.courts || {}) }; normalized.matchSettings ||= {}; normalized.scores ||= {}; normalized.scoreAudit ||= []; normalized.scheduleHistory ||= []; normalized.activityLog ||= []; normalized.refereeAssignments ||= {}; normalized.checkins ||= {}; normalized.pairs = { ...emptyPairs(normalized.pairCounts), ...(normalized.pairs || {}) }; normalized.medals = { ...blankMedals(), ...(normalized.medals || {}) }; normalized.dreamBreaker = { ...blankDreamBreaker(), ...(normalized.dreamBreaker || {}), scores: { ...blankDreamBreaker().scores, ...(normalized.dreamBreaker?.scores || {}) }, history: normalized.dreamBreaker?.history || [] };
     sanitizeMedalMatchups(normalized.medals);
     if (!normalized.drawAuditReset20260909) { normalized.opponentDrawHistory = []; normalized.drawCeremonyDraft = null; normalized.drawAuditReset20260909 = true; }
     if (!normalized.drawRecordReset20260910) { normalized.opponentDrawHistory = []; normalized.drawCeremonyDraft = null; normalized.opponentDrawRecorded = false; normalized.drawRecordReset20260910 = true; }
@@ -143,6 +152,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     return freshState();
   }
   state = loadState();
+  if (allRoundRobinComplete() && Object.values(state.medals || {}).some(medal => medal?.seeded)) syncMedalCalendar();
   let registrations = [], refereeDirectory = [], controlReady = false, refereeBoardPublished = false, activeView = 'overview', standingsCategory = config.categories[0], teamCategory = config.categories[0], medalCategory = config.categories[0], activeMatchId = null, cloudUser = null, cloudApplying = false, cloudSaveTimer, publicWriteTimer, controlWriteChain = Promise.resolve(), publicWriteChain = Promise.resolve(), publicWriteSequence = 0, canAdminTournament = false, pendingPromotionRequests = [], demoClockMinutes = 600, demoClockStartedAt = Date.now(), demoSnapshotReady = demoMode && Boolean(localStorage.getItem(storageKey)), demoMatchesReady = demoSnapshotReady, demoRegistrationsReady = demoSnapshotReady, demoCheckinsReady = demoSnapshotReady, matchWriteSequence = 0, controlWriteSequence = 0, pendingControlWrite = 0, latestMatchDocsReady = false;
   const pendingMatchWrites = new Map(), matchWriteChains = new Map(), latestMatchDocs = new Map();
   function operationalClock() {
@@ -152,9 +162,9 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   }
   function clockLabel(totalMinutes) { const seconds = Math.floor(totalMinutes * 60) % 60, minutes = Math.floor(totalMinutes) % 60, hours24 = Math.floor(totalMinutes / 60) % 24, hours = hours24 % 12 || 12; return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} ${hours24 >= 12 ? 'PM' : 'AM'}`; }
   function setDemoClock(minute) { demoClockMinutes = Math.max(0, Math.min(1439, minute)); demoClockStartedAt = Date.now(); renderCourtTimeline(); }
-  function saveState() {
+  function saveState(operational = false) {
     state.updatedAt = new Date().toISOString(); localStorage.setItem(storageKey, JSON.stringify(state));
-    if (!demoMode && !drawTestMode && cloudUser && !cloudApplying) {
+    if (!operational && !demoMode && !drawTestMode && cloudUser && !cloudApplying) {
       const pendingState = structuredClone(state), sequence = ++controlWriteSequence; pendingControlWrite = sequence;
       clearTimeout(cloudSaveTimer);
       cloudSaveTimer = setTimeout(() => {
@@ -162,8 +172,8 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
           .catch(() => toast('Cloud sync failed. Check Firebase access.'))
           .finally(() => { if (pendingControlWrite === sequence) pendingControlWrite = 0; });
       }, 0);
-      queuePublicProjection();
     }
+    queuePublicProjection();
   }
   function queuePublicProjection(){
     if(!state.publicShare?.token||demoMode||drawTestMode)return;
@@ -191,6 +201,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
       .finally(() => { if (pendingMatchWrites.get(matchId) === sequence) pendingMatchWrites.delete(matchId); if(matchWriteChains.get(matchId)===chain)matchWriteChains.delete(matchId); });
   }
   function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2200); }
+  function recordActivity(text, matchId = '') { state.activityLog ||= []; state.activityLog.unshift({ at: new Date().toISOString(), text, matchId }); if (state.activityLog.length > 30) state.activityLog.length = 30; }
   function pairData(category, code) { return state.pairs[`${category}|${code}`] || { player1: '', player2: '' }; }
   function pairNames(category, code) { const p = pairData(category, code); return [p.player1, p.player2].filter(Boolean).join(' / ') || 'Players not assigned'; }
   function clubLabel(id, short = false) { const club = config.clubs.find(item => item.id === id); return club ? (short ? club.short : club.name) : id; }
@@ -201,6 +212,9 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function categoryClass(category) { return `category-${slug(category)}`; }
   function scoreFor(id) { return state.scores[id] || { a: '', b: '' }; }
   function isComplete(id) { const s = scoreFor(id); return s.a !== '' && s.b !== ''; }
+  function isRoundRobinMatch(match) { return match && match.stage !== 'medal'; }
+  function roundRobinMatches(category = '') { return state.matches.filter(match => isRoundRobinMatch(match) && (!category || match.category === category)); }
+  function allRoundRobinComplete() { const matches = roundRobinMatches(); return matches.length > 0 && matches.every(match => isComplete(match.id)); }
   function winnerCode(match) { const score = scoreFor(match.id); if (!isComplete(match.id) || Number(score.a) === Number(score.b)) return ''; return Number(score.a) > Number(score.b) ? match.a : match.b; }
   function hydrateRegisteredTeams(shouldSave = true) {
     if (!controlReady) return false;
@@ -214,7 +228,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     const club = config.clubs.find(c => c.id === clubId), opponentPrefix = clubId === 'ocpc' ? 'R' : 'O';
     const rows = Array.from({ length: pairCount(category, clubId) }, (_, index) => {
       const code = `${club.pairPrefix}${index + 1}`;
-      const relevant = state.matches.filter(m => m.category === category && (clubId === 'ocpc' ? m.a === code : m.b === code));
+      const relevant = roundRobinMatches(category).filter(m => clubId === 'ocpc' ? m.a === code : m.b === code);
       let played = 0, wins = 0, pointsFor = 0, pointsAgainst = 0;
       relevant.forEach(match => {
         if (!isComplete(match.id)) return;
@@ -225,7 +239,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
       });
       return { code, names: pairNames(category, code), played, wins, losses: played - wins, winRate: played ? wins / played : 0, pointsFor, pointsAgainst, diff: pointsFor - pointsAgainst, diffPerMatch: played ? (pointsFor - pointsAgainst) / played : 0, pointsPerMatch: played ? pointsFor / played : 0 };
     });
-    const headToHead = (a, b) => { const match = state.matches.find(item => item.category === category && ((item.a === a && item.b === b) || (item.a === b && item.b === a)) && isComplete(item.id)); if (!match) return 0; const winner = winnerCode(match); return winner === a ? -1 : winner === b ? 1 : 0; };
+    const headToHead = (a, b) => { const match = roundRobinMatches(category).find(item => ((item.a === a && item.b === b) || (item.a === b && item.b === a)) && isComplete(item.id)); if (!match) return 0; const winner = winnerCode(match); return winner === a ? -1 : winner === b ? 1 : 0; };
     const compare = (a, b) => { for (const criterion of qualificationSettings().order) { const result = criterion === 'wins' ? b.wins - a.wins : criterion === 'pointsFor' ? b.pointsFor - a.pointsFor : criterion === 'pointsAgainst' ? a.pointsAgainst - b.pointsAgainst : criterion === 'pointDifferential' ? b.diff - a.diff : headToHead(a.code, b.code); if (result) return result; } return 0; };
     const sorted = rows.sort(compare); let rank = 1; return sorted.map((row, index) => { if (index && compare(sorted[index - 1], row) !== 0) rank = index + 1; return { ...row, rank }; });
   }
@@ -264,6 +278,8 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
       const leader = [a, b].sort((x, y) => y.wins - x.wins || y.diff - x.diff)[0];
       return `<div class="leader-item"><div class="leader-rank">1</div><div><b>${esc(category)} · ${leader.code}</b><small>${esc(leader.names)}</small></div><div class="leader-wins">${leader.wins} W</div></div>`;
     }).join('');
+    const activity = (state.activityLog || []).slice(0, 5);
+    $('#activityLog').innerHTML = activity.length ? activity.map(item => `<div class="leader-item"><div class="leader-rank">•</div><div><b>${esc(item.text)}</b><small>${new Date(item.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</small></div></div>`).join('') : '<p class="empty">Match promotions, final scores, and court vacancies will appear here.</p>';
     bindScoreButtons();
   }
   function elapsedSeconds(court) { return (court.elapsed || 0) + (court.running && court.startedAt ? Math.max(0, Math.floor((Date.now() - court.startedAt) / 1000)) : 0); }
@@ -297,8 +313,8 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function matchPlayers(id) { const match = state.matches.find(item => item.id === id); if (!match) return []; return [['ocpc', match.a], ['rebels', match.b]].flatMap(([clubId, code]) => [0, 1].map(index => playerIdentity(match.category, clubId, code, index))); }
   function checkinPhoto(category, code, clubId, index) { return Object.values(state.checkins || {}).find(item => item.category === category && item.pair === code && item.club === clubId && Number(item.playerIndex) === index)?.photoThumb || ''; }
   function playerPortraits(match, side) { const code = side === 'a' ? match.a : match.b, clubId = side === 'a' ? 'ocpc' : 'rebels', pair = pairData(match.category, code); return [pair.player1, pair.player2].map((name, index) => { const photo = checkinPhoto(match.category, code, clubId, index); return `<span>${photo ? `<img src="${photo}" alt="">` : '<i class="court-photo-placeholder"></i>'}<b>${esc(name || 'Player pending')}</b></span>`; }).join(''); }
-  function defaultMatchRules(mode = 'round-robin') { return mode === 'gold-final' ? { mode, label: 'Gold / Silver', scoring: 'side-out', target: 15, suddenDeathAt: 19, timer: false } : mode === 'custom' ? { mode, label: 'Custom', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true } : { mode: 'round-robin', label: 'Round Robin', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true }; }
-  function rulesFor(id) { return state.matchSettings[id] ||= defaultMatchRules(); }
+  function defaultMatchRules(mode = 'round-robin') { return mode === 'gold-final' ? { mode, label: 'Medal match', scoring: 'side-out', target: 15, suddenDeathAt: 19, timer: false } : mode === 'custom' ? { mode, label: 'Custom', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true } : { mode: 'round-robin', label: 'Round Robin', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true }; }
+  function rulesFor(id) { const match = state.matches.find(item => item.id === id); return state.matchSettings[id] ||= defaultMatchRules(match?.stage === 'medal' ? 'gold-final' : 'round-robin'); }
   function conflictsFor(id, courtNo) {
     const players = matchPlayers(id), conflicts = [], slot = slotMinutesFor(courtNo, id), schedule = state.courtSchedules[courtNo] || [];
     schedule.filter(otherId => otherId !== id && !isComplete(otherId) && Math.abs(slotMinutesFor(courtNo, otherId) - slot) < config.event.slotMinutes).forEach(() => conflicts.push(`Overlapping match on Court ${courtNo}`));
@@ -427,7 +443,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function bindCourtControls() {
     bindScoreButtons();
     $$('[data-end-match]').forEach(button => button.onclick = () => openEndMatch(button.dataset.endMatch));
-    $$('[data-promote-court]').forEach(button => button.onclick = () => { if (button.disabled) return; button.disabled = true; if (!assignNext(Number(button.dataset.promoteCourt))) button.disabled = false; });
+    $$('[data-promote-court]').forEach(button => button.onclick = () => { const courtNo = Number(button.dataset.promoteCourt); if (button.disabled || busyCourtActions.has(courtNo)) return; busyCourtActions.add(courtNo); button.disabled = true; const promoted = assignNext(courtNo); if (!promoted) button.disabled = false; setTimeout(() => busyCourtActions.delete(courtNo), 350); });
     $$('[data-timer-toggle]').forEach(button => button.onclick = () => toggleTimer(Number(button.dataset.timerToggle)));
     $$('[data-vacate-court]').forEach(button => button.onclick = () => vacateCourt(Number(button.dataset.vacateCourt)));
     $$('[data-court-tools]').forEach(button => button.onclick = () => showCourtTools(Number(button.dataset.courtTools)));
@@ -456,7 +472,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     const court = state.courts[courtNo]; if (!court?.matchId) return; const id = court.matchId, done = isComplete(id);
     if (!confirm(done ? `Confirm Court ${courtNo} is vacant after ${id}? The next match will remain scheduled until you promote it.` : `Remove ${id} from Court ${courtNo} before it is complete? Its live timer and scoring progress will be reset.`)) return;
     if (!done) { if (!state.queue.includes(id)) state.queue.unshift(id); delete state.liveScoring?.[id]; if (cloudUser) deleteMatch(id).catch(() => toast('Court cleared locally, but cloud cleanup failed.')); }
-    state.courts[courtNo] = { matchId: '', running: false, startedAt: null, elapsed: 0 }; saveState(); renderAll(); toast(`Court ${courtNo} is vacant.`);
+    state.courts[courtNo] = { matchId: '', running: false, startedAt: null, elapsed: 0 }; recordActivity(`Court ${courtNo} vacated after ${id}`, id); saveState(); renderAll(); toast(`Court ${courtNo} is vacant.`);
   }
   function showCourtTools(courtNo) {
     const court = state.courts[courtNo], match = state.matches.find(item => item.id === court?.matchId); if (!match) return;
@@ -475,12 +491,12 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     if (teamTimeout && (live.timeouts?.[type.slice(-1)] || 0) >= 1) return toast('That club has already used its one timeout.');
     live.timeouts ||= { a: 0, b: 0 }; if (type === 'timeout-a') live.timeouts.a++; else if (type === 'timeout-b') live.timeouts.b++; else if (type === 'medical') live.medical = (live.medical || 0) + 1; else if (type === 'technical') live.technicalTimeouts = (live.technicalTimeouts || 0) + 1; else if (type === 'referee') live.refereeTimeouts = (live.refereeTimeouts || 0) + 1; else if (type === 'equipment') live.equipmentTimeouts = (live.equipmentTimeouts || 0) + 1;
     const resumeMatchOnEnd = Boolean(live.running); if (resumeMatchOnEnd) { live.elapsed = elapsedSeconds(live); live.running = false; live.startedAt = null; }
-    live.interruption = { type, label, active: true, running: true, startedAt: Date.now(), elapsed: 0, resumeMatchOnEnd }; live.log ||= []; live.log.unshift({ at: new Date().toISOString(), text: `${label} started; match timer ${resumeMatchOnEnd ? 'paused automatically' : 'was already paused'}` }); saveState(); syncMatch(id).catch(() => {}); $('#courtToolsModal')?.remove(); renderCourts(); toast(`${label} started. Match timer paused.`);
+    live.interruption = { type, label, active: true, running: true, startedAt: Date.now(), elapsed: 0, resumeMatchOnEnd }; live.log ||= []; live.log.unshift({ at: new Date().toISOString(), text: `${label} started; match timer ${resumeMatchOnEnd ? 'paused automatically' : 'was already paused'}` }); saveState(true); syncMatch(id).catch(() => {}); $('#courtToolsModal')?.remove(); renderCourts(); toast(`${label} started. Match timer paused.`);
   }
-  function endInterruption(courtNo) { const id = state.courts[courtNo]?.matchId, live = state.liveScoring?.[id]; if (!live?.interruption?.active) return; const expired = interruptionHasExpired(live.interruption), resumeMatch = !live.complete && !state.scores[id] && (expired || Boolean(live.interruption.resumeMatchOnEnd)); live.interruption.elapsed = elapsedSeconds(live.interruption); live.interruption.running = false; live.interruption.active = false; live.interruption.resumeMatchOnEnd = false; if (resumeMatch) { live.running = true; live.startedAt = Date.now(); } live.log ||= []; live.log.unshift({ at: new Date().toISOString(), text: `${live.interruption.label} ended after ${clockText(live.interruption.elapsed)}; match timer ${resumeMatch ? 'resumed' : 'remained paused'}` }); saveState(); syncMatch(id).catch(() => {}); $('#courtToolsModal')?.remove(); renderCourts(); toast(`Interruption ended. Match timer ${resumeMatch ? 'resumed' : 'remains paused'}.`); }
+  function endInterruption(courtNo) { const id = state.courts[courtNo]?.matchId, live = state.liveScoring?.[id]; if (!live?.interruption?.active) return; const expired = interruptionHasExpired(live.interruption), resumeMatch = !live.complete && !state.scores[id] && (expired || Boolean(live.interruption.resumeMatchOnEnd)); live.interruption.elapsed = elapsedSeconds(live.interruption); live.interruption.running = false; live.interruption.active = false; live.interruption.resumeMatchOnEnd = false; if (resumeMatch) { live.running = true; live.startedAt = Date.now(); } live.log ||= []; live.log.unshift({ at: new Date().toISOString(), text: `${live.interruption.label} ended after ${clockText(live.interruption.elapsed)}; match timer ${resumeMatch ? 'resumed' : 'remained paused'}` }); saveState(true); syncMatch(id).catch(() => {}); $('#courtToolsModal')?.remove(); renderCourts(); toast(`Interruption ended. Match timer ${resumeMatch ? 'resumed' : 'remains paused'}.`); }
   function activePlayerCourtConflicts(matchId) { const players = matchPlayers(matchId); return Object.entries(state.courts).filter(([, court]) => court.matchId && court.matchId !== matchId && matchPlayers(court.matchId).some(player => players.includes(player))).map(([courtNo, court]) => ({ courtNo: Number(courtNo), matchId: court.matchId })); }
   function showDispatchWarning(courtNo, matchId, conflicts) { $('#dispatchWarning')?.remove(); document.body.insertAdjacentHTML('beforeend', `<div class="dispatch-warning" id="dispatchWarning"><section><span class="section-label">Active player conflict</span><h2>Player already on court</h2><p>${esc(matchId)} includes a player currently active in ${conflicts.map(item => `${item.matchId} on Court ${item.courtNo}`).join(', ')}. Sending this match to Court ${courtNo} would place that player on two courts at once.</p><div><button class="btn btn-danger" id="confirmConflictDispatch">Send anyway</button><button class="btn btn-quiet" id="cancelConflictDispatch">Keep in schedule</button></div></section></div>`); $('#confirmConflictDispatch').onclick = () => { $('#dispatchWarning').remove(); assignMatch(courtNo, matchId, true); }; $('#cancelConflictDispatch').onclick = () => $('#dispatchWarning').remove(); }
-  function assignMatch(courtNo, matchId, override = false) { if (!state.courts[courtNo] || state.courts[courtNo].matchId) return false; const conflicts = activePlayerCourtConflicts(matchId); if (conflicts.length && !override) { showDispatchWarning(courtNo, matchId, conflicts); return false; } state.courts[courtNo] = { matchId, running: false, startedAt: null, elapsed: 0 }; state.queue = state.queue.filter(id => id !== matchId); saveState(); renderAll(); return true; }
+  function assignMatch(courtNo, matchId, override = false) { if (!state.courts[courtNo] || state.courts[courtNo].matchId) return false; const conflicts = activePlayerCourtConflicts(matchId); if (conflicts.length && !override) { showDispatchWarning(courtNo, matchId, conflicts); return false; } state.courts[courtNo] = { matchId, running: false, startedAt: null, elapsed: 0 }; state.queue = state.queue.filter(id => id !== matchId); recordActivity(`${matchId} promoted to Court ${courtNo}`, matchId); saveState(); renderAll(); return true; }
   function assignNext(courtNo) {
     if (state.courts[courtNo]?.matchId) { toast(`Court ${courtNo} is not vacant.`); return false; }
     const id = nextForCourt(courtNo); if (!id) { toast('No waiting matches.'); return false; }
@@ -505,7 +521,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function processRefereePromotionRequests() { if (controlReady && !demoMode && !drawTestMode) pendingPromotionRequests.forEach(handleRefereePromotionRequest); }
   function sendMatchToFreeCourt(id) { const free = Object.keys(state.courts).find(no => !state.courts[no].matchId); if (!free) return toast('No court is currently available.'); assignMatch(Number(free), id); }
   function fillCourts() { Object.keys(state.courts).forEach(no => { if (!state.courts[no].matchId) { const id = nextForCourt(Number(no)); if (id) state.courts[no] = { matchId: id, running: false, startedAt: null, elapsed: 0 }; } }); state.queue = state.queue.filter(id => !Object.values(state.courts).some(c => c.matchId === id)); saveState(); renderAll(); }
-  function toggleTimer(courtNo) { const court = state.courts[courtNo]; if (!court?.matchId) return; state.liveScoring ||= {}; const timer = state.liveScoring[court.matchId] ||= { a: 0, b: 0, timeouts: { a: 0, b: 0 }, medical: 0, technicalTimeouts: 0, refereeTimeouts: 0, equipmentTimeouts: 0, log: [], running: false, startedAt: null, elapsed: 0 }; if (timer.running) { timer.elapsed = elapsedSeconds(timer); timer.running = false; timer.startedAt = null; } else { timer.running = true; timer.startedAt = Date.now(); } saveState(); syncMatch(court.matchId).catch(() => {}); renderCourts(); }
+  function toggleTimer(courtNo) { const court = state.courts[courtNo]; if (!court?.matchId || busyCourtActions.has(courtNo)) return; busyCourtActions.add(courtNo); state.liveScoring ||= {}; const timer = state.liveScoring[court.matchId] ||= { a: 0, b: 0, timeouts: { a: 0, b: 0 }, medical: 0, technicalTimeouts: 0, refereeTimeouts: 0, equipmentTimeouts: 0, log: [], running: false, startedAt: null, elapsed: 0 }; if (timer.running) { timer.elapsed = elapsedSeconds(timer); timer.running = false; timer.startedAt = null; } else { timer.running = true; timer.startedAt = Date.now(); } saveState(true); syncMatch(court.matchId).catch(() => {}).finally(() => busyCourtActions.delete(courtNo)); renderCourts(); }
   function releaseCourt(courtNo) {
     const court = state.courts[courtNo];
     if (!court?.matchId) return;
@@ -544,13 +560,13 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     $$('[data-standing-category]').forEach(btn => btn.onclick = () => { standingsCategory = btn.dataset.standingCategory; renderStandings(); });
     renderPublicShare();
   }
-  function publicProjection() { return { version:2, sourceUpdatedAt:state.updatedAt||new Date().toISOString(), event:{ name:config.event.name,date:config.event.date,displayDate:config.event.displayDate,venue:config.event.venue,location:config.event.location }, brand:{ organizer:config.brand.organizer,logo:config.brand.logo,primary:config.brand.primary,primaryDark:config.brand.primaryDark,accent:config.brand.accent,highlight:config.brand.highlight }, clubs:config.clubs.map(club=>({id:club.id,name:club.name,short:club.short,logo:club.logo||'',color:club.color||config.brand.primary})), categories:config.categories, clubStandings:clubTotals().map(club=>({clubId:club.id,played:club.played,wins:club.wins,losses:club.losses,pointsFor:club.pointsFor,pointsAgainst:club.pointsAgainst,differential:club.differential,dreamPoints:club.dreamPoints,total:club.total,recentWins:club.recentWins})), pairStandings:Object.fromEntries(config.categories.map(category=>[category,Object.fromEntries(config.clubs.map(club=>[club.id,standingsFor(category,club.id)]))])), pairs:structuredClone(state.pairs), medals:structuredClone(state.medals), qualification:qualificationSettings(), dreamBreaker:state.dreamBreaker?.enabled?{enabled:true,target:state.dreamBreaker.target,scores:state.dreamBreaker.scores}:{enabled:false} }; }
+  function publicProjection() { return { version:2, sourceUpdatedAt:state.updatedAt||new Date().toISOString(), event:{ name:config.event.name,date:config.event.date,displayDate:config.event.displayDate,venue:config.event.venue,location:config.event.location }, brand:{ organizer:config.brand.organizer,logo:config.brand.logo,primary:config.brand.primary,primaryDark:config.brand.primaryDark,accent:config.brand.accent,highlight:config.brand.highlight }, clubs:config.clubs.map(club=>({id:club.id,name:club.name,short:club.short,logo:club.logo||'',color:club.color||config.brand.primary})), categories:config.categories, clubStandings:clubTotals().map(club=>({clubId:club.id,played:club.played,wins:club.wins,losses:club.losses,pointsFor:club.pointsFor,pointsAgainst:club.pointsAgainst,differential:club.differential,dreamPoints:club.dreamPoints,total:club.total,recentWins:club.recentWins})), pairStandings:Object.fromEntries(config.categories.map(category=>[category,Object.fromEntries(config.clubs.map(club=>[club.id,standingsFor(category,club.id)]))])), pairs:structuredClone(state.pairs), medals:structuredClone(state.medals), qualification:qualificationSettings(), dreamBreaker:state.dreamBreaker?.enabled?{enabled:true,target:state.dreamBreaker.target,scores:state.dreamBreaker.scores}:{enabled:false}, playerPortal:{ matches:state.matches.map(match=>({id:match.id,category:match.category,a:match.a,b:match.b,court:match.court||null,startMinutes:match.startMinutes??null,time:match.time||'',wave:match.wave||null})), courtSchedules:structuredClone(state.courtSchedules||{}), courts:Object.fromEntries(Object.entries(state.courts||{}).map(([courtNo,court])=>[courtNo,{matchId:court.matchId||'',running:Boolean(state.liveScoring?.[court.matchId]?.running),paused:Boolean(court.matchId&&!state.liveScoring?.[court.matchId]?.running&&Number(state.liveScoring?.[court.matchId]?.elapsed)>0}])), scores:Object.fromEntries(Object.entries(state.scores||{}).map(([matchId,score])=>[matchId,{a:score.a,b:score.b,completedAt:score.completedAt||null}]))} }; }
   function publicUrl(token) { const url=new URL('public/',location.href);url.searchParams.set('token',token);return url.href; }
   function renderPublicShare(){const link=$('#publicStandingsLink'),copy=$('#copyPublicLink'),qr=$('#publicStandingsQr'),button=$('#generatePublicLink'),token=state.publicShare?.token;if(!link||!qr)return;qr.innerHTML='';if(!token){link.textContent='No public link generated yet.';link.removeAttribute('href');copy.hidden=true;if(button)button.textContent='Generate secure link';return}const url=publicUrl(token);link.href=url;link.textContent=url;copy.hidden=false;if(button)button.textContent='Regenerate secure link';if(window.QRCode)new QRCode(qr,{text:url,width:148,height:148,colorDark:'#09283a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
   async function generatePublicLink(){if(demoMode||drawTestMode)return toast('Public links cannot be changed in simulation mode.');const button=$('#generatePublicLink'),old=state.publicShare?.token,token=[...crypto.getRandomValues(new Uint8Array(18))].map(value=>value.toString(16).padStart(2,'0')).join('');button.disabled=true;try{if(old)await revokePublicView(old);await publishPublicView(token,publicProjection());state.publicShare={token,generatedAt:new Date().toISOString()};saveState();renderPublicShare();toast(old?'New link created. The previous link is disabled.':'Public standings link created.');}catch(error){console.error('Public standings link failed',error);toast(`Public link failed: ${error?.code||error?.message||'unknown error'}`);}finally{button.disabled=false}}
   function clubTotals() {
     const stats = Object.fromEntries(config.clubs.map(club => [club.id, { wins: 0, losses: 0, played: 0, pointsFor: 0, pointsAgainst: 0, recentWins: [] }]));
-    state.matches.forEach(match => { const score = scoreFor(match.id); if (!isComplete(match.id)) return; const winner = Number(score.a) > Number(score.b) ? 'ocpc' : 'rebels', loser = winner === 'ocpc' ? 'rebels' : 'ocpc'; stats[winner].wins++; stats[winner].played++; stats[loser].losses++; stats[loser].played++; stats.ocpc.pointsFor += Number(score.a); stats.ocpc.pointsAgainst += Number(score.b); stats.rebels.pointsFor += Number(score.b); stats.rebels.pointsAgainst += Number(score.a); const winningCode = winner === 'ocpc' ? match.a : match.b, losingCode = winner === 'ocpc' ? match.b : match.a; stats[winner].recentWins.push({ completedAt: score.completedAt || '', category: match.category, names: pairNames(match.category, winningCode), opponent: pairNames(match.category, losingCode), score: winner === 'ocpc' ? `${score.a}-${score.b}` : `${score.b}-${score.a}` }); });
+    roundRobinMatches().forEach(match => { const score = scoreFor(match.id); if (!isComplete(match.id)) return; const winner = Number(score.a) > Number(score.b) ? 'ocpc' : 'rebels', loser = winner === 'ocpc' ? 'rebels' : 'ocpc'; stats[winner].wins++; stats[winner].played++; stats[loser].losses++; stats[loser].played++; stats.ocpc.pointsFor += Number(score.a); stats.ocpc.pointsAgainst += Number(score.b); stats.rebels.pointsFor += Number(score.b); stats.rebels.pointsAgainst += Number(score.a); const winningCode = winner === 'ocpc' ? match.a : match.b, losingCode = winner === 'ocpc' ? match.b : match.a; stats[winner].recentWins.push({ completedAt: score.completedAt || '', category: match.category, names: pairNames(match.category, winningCode), opponent: pairNames(match.category, losingCode), score: winner === 'ocpc' ? `${score.a}-${score.b}` : `${score.b}-${score.a}` }); });
     const dream = state.dreamBreaker.enabled ? state.dreamBreaker.scores : { ocpc: 0, rebels: 0 };
     return config.clubs.map(club => { const s = stats[club.id], dreamPoints = Number(dream[club.id]) || 0; return { ...club, ...s, matchWins: s.wins, dreamPoints, total: s.wins + dreamPoints, winRate: s.played ? s.wins / s.played : 0, differential: s.pointsFor - s.pointsAgainst, recentWins: s.recentWins.sort((a,b) => String(b.completedAt).localeCompare(String(a.completedAt))).slice(0, 3) }; }).sort((a, b) => b.total - a.total || b.matchWins - a.matchWins);
   }
@@ -564,13 +580,13 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   function playerOptions(clubId, selected) { return `<option value="">Select player</option>${rosterPlayers(clubId).map(name => `<option ${name === selected ? 'selected' : ''}>${esc(name)}</option>`).join('')}`; }
   function renderDreamBreakerBoard() {
     const board = $('#dreamBreakerBoard'), dream = state.dreamBreaker;
-    if (!dream.enabled) { board.innerHTML = `<section class="dream-board disabled"><span class="section-label">Optional tiebreaker</span><h2>Dream Breaker is not enabled</h2><p>Match Control can activate it in Settings if tournament time permits.</p></section>`; return; }
+    if (!dream.enabled) { board.innerHTML = `<section class="dream-board disabled"><span class="section-label">Optional tiebreaker</span><h2>Dream Breaker is ready when you are</h2><p>Enable it here only when Match Control confirms there is time for the club decider.</p><div class="stack-form"><label>Winning target<input id="dreamBreakerTarget" type="number" min="1" max="200" value="${dream.target}"></label><button class="btn btn-primary" id="enableDreamBreaker">Enable Dream Breaker</button></div></section>`; $('#enableDreamBreaker').onclick = () => { dream.target = Math.max(1, Math.min(200, Number($('#dreamBreakerTarget').value) || 52)); dream.enabled = true; saveState(); renderDreamBreakerBoard(); toast('Dream Breaker enabled. Assign the first serve when both clubs are ready.'); }; return; }
     const totalRallies = Number(dream.scores.ocpc) + Number(dream.scores.rebels), remainder = totalRallies % 4, nextSwitch = remainder ? 4 - remainder : 4, switchDue = totalRallies > 0 && remainder === 0 && dream.acknowledgedSwitchAt !== totalRallies, endsDue = Math.max(dream.scores.ocpc, dream.scores.rebels) >= 26 && !dream.endsChanged, winner = Number(dream.scores.ocpc) >= dream.target ? 'ocpc' : Number(dream.scores.rebels) >= dream.target ? 'rebels' : '', servingClub = config.clubs.find(club => club.id === dream.serving), servingScore = dream.serving ? Number(dream.scores[dream.serving]) : 0, servingSide = servingScore % 2 === 0 ? 'RIGHT' : 'LEFT';
     const tossPanel = dream.serving ? `<div class="dream-serve-status"><span>Serving now</span><b>${esc(servingClub?.name || '')}</b><strong>${servingSide} side</strong><small>${servingScore} is ${servingScore % 2 === 0 ? 'even' : 'odd'}</small></div>` : '';
     const tossOverlay = '';
     const overlay = winner ? '' : endsDue ? `<div class="dream-interruption"><div><span>CHANGE ENDS</span><h2>First club reached 26</h2><p>Pause play and confirm both clubs have changed court ends.</p><button id="confirmDreamEnds">Teams changed ends · Continue play</button></div></div>` : switchDue ? `<div class="dream-interruption"><div><span>PLAYER SWITCH</span><h2>Four rallies completed</h2><p>Both clubs must send in their next captain-selected players before the next serve.</p><button id="confirmDreamSwitch">Players switched · Continue play</button></div></div>` : '';
-    board.innerHTML = `<section class="dream-board scoring"><div class="club-scoreboard-title"><div><span class="section-label">Rally-scoring desk</span><h2>Dream Breaker · First to ${dream.target}</h2></div><strong>${winner ? `${esc(config.clubs.find(club => club.id === winner).short)} wins` : dream.serving ? `Switch in ${nextSwitch} rallies` : 'Choose first server'}</strong></div>${tossPanel}<div class="dream-live-score">${config.clubs.map(club => `<article class="${winner === club.id ? 'winner' : ''} ${dream.serving === club.id ? 'serving' : ''}"><span>${esc(club.name)}</span><b>${dream.scores[club.id]}</b><button data-dream-point="${club.id}" ${winner || !dream.serving ? 'disabled' : ''}>+1 rally</button></article>`).join('')}</div>${dream.serving && !winner ? `<button class="dream-sideout" id="dreamSideout">Serving team fault · Point and side out to ${esc(config.clubs.find(club => club.id !== dream.serving)?.short || '')}</button>` : ''}<div class="dream-progress"><span style="width:${Math.min(100, totalRallies / Math.max(1, dream.target * 2) * 100)}%"></span></div><p>${totalRallies} total rallies logged. Rally scoring has no first or second server. Serving side follows the serving club's score: even on the right, odd on the left.</p><div class="stack-actions"><button class="btn btn-quiet" id="undoDreamPoint" ${dream.history?.length ? '' : 'disabled'}>Undo last action</button><button class="btn btn-danger" id="resetDreamScore">Reset Dream Breaker</button></div>${overlay}${tossOverlay}</section>`;
-    if(!dream.serving){const actions=$('.stack-actions',board),status=$('.club-scoreboard-title>strong',board);if(status)status.textContent='Choose first server';actions?.insertAdjacentHTML('afterbegin',`<div class="dream-first-choice"><span>Who serves first?</span>${config.clubs.map(club=>`<button data-dream-first-server="${club.id}">${esc(club.short)}</button>`).join('')}</div>`);$$('[data-dream-first-server]',board).forEach(button=>button.onclick=()=>{dream.serving=button.dataset.dreamFirstServer;dream.tossResult='';dream.tossWinner='';dream.tossChoice='';saveState();renderDreamBreakerBoard();toast(`${clubLabel(dream.serving,true)} assigned to serve first.`);});}
+    board.innerHTML = `<section class="dream-board scoring"><div class="club-scoreboard-title"><div><span class="section-label">Rally-scoring desk</span><h2>Dream Breaker · First to ${dream.target}</h2></div><strong>${winner ? `${esc(config.clubs.find(club => club.id === winner).short)} wins` : dream.serving ? `Switch in ${nextSwitch} rallies` : 'Choose first server'}</strong></div>${tossPanel}<div class="dream-live-score">${config.clubs.map(club => `<article class="${winner === club.id ? 'winner' : ''} ${dream.serving === club.id ? 'serving' : ''}"><span>${esc(club.name)}</span><b>${dream.scores[club.id]}</b><button data-dream-point="${club.id}" ${winner || !dream.serving ? 'disabled' : ''}>+1 rally</button></article>`).join('')}</div>${dream.serving && !winner ? `<button class="dream-sideout" id="dreamSideout">Serving team fault · Point and side out to ${esc(config.clubs.find(club => club.id !== dream.serving)?.short || '')}</button>` : ''}<div class="dream-progress"><span style="width:${Math.min(100, totalRallies / Math.max(1, dream.target * 2) * 100)}%"></span></div><p>${totalRallies} total rallies logged. Rally scoring has no first or second server. Serving side follows the serving club's score: even on the right, odd on the left.</p><div class="stack-actions"><button class="btn btn-quiet" id="undoDreamPoint" ${dream.history?.length ? '' : 'disabled'}>Undo last action</button><button class="btn btn-danger" id="resetDreamScore">Reset Dream Breaker</button><button class="btn btn-quiet" id="disableDreamBreaker">Turn off Dream Breaker</button></div>${overlay}${tossOverlay}</section>`;
+    if(!dream.serving){const actions=$('.stack-actions',board),status=$('.club-scoreboard-title>strong',board);if(status)status.textContent='Match Control: assign the first serve';actions?.insertAdjacentHTML('afterbegin',`<div class="dream-first-choice"><b>Who serves first?</b><small>Select the club that will take the opening serve.</small>${config.clubs.map(club=>`<button data-dream-first-server="${club.id}"><strong>${esc(club.name)}</strong><span>Serve first</span></button>`).join('')}</div>`);$$('[data-dream-first-server]',board).forEach(button=>button.onclick=()=>{dream.serving=button.dataset.dreamFirstServer;dream.tossResult='';dream.tossWinner='';dream.tossChoice='';saveState();renderDreamBreakerBoard();toast(`${clubLabel(dream.serving,true)} assigned to serve first.`);});}
     $$('[data-dream-toss-winner]').forEach(button => button.onclick = () => { if (button.disabled) return; button.disabled = true; dream.tossWinner = button.dataset.dreamTossWinner; renderAll(); saveState(); });
     $$('[data-dream-toss-choice]').forEach(button => button.onclick = () => { if (button.disabled) return; button.disabled = true; document.querySelector('.dream-coin-overlay')?.remove(); dream.tossChoice = button.dataset.dreamTossChoice; dream.serving = dream.tossChoice === 'serve' ? dream.tossWinner : config.clubs.find(club => club.id !== dream.tossWinner).id; renderAll(); saveState(); toast(`${config.clubs.find(club => club.id === dream.tossWinner).short} chose ${dream.tossChoice === 'side' ? 'court side' : dream.tossChoice}.`); });
     $$('[data-dream-point]').forEach(button => button.onclick = () => { const clubId = button.dataset.dreamPoint; dream.history ||= []; dream.history.push({ scores: { ...dream.scores }, serving: dream.serving, acknowledgedSwitchAt: dream.acknowledgedSwitchAt, endsChanged: dream.endsChanged }); dream.scores[clubId] = Math.min(dream.target, Number(dream.scores[clubId]) + 1); dream.serving = clubId; saveState(); renderAll(); });
@@ -579,14 +595,20 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     $('#confirmDreamEnds')?.addEventListener('click', () => { dream.endsChanged = true; saveState(); renderAll(); toast('Change of ends confirmed.'); });
     $('#undoDreamPoint').onclick = () => { const prior = dream.history?.pop(); if (!prior) return; if (prior.scores) { dream.scores = prior.scores; dream.serving = prior.serving; dream.acknowledgedSwitchAt = prior.acknowledgedSwitchAt || 0; dream.endsChanged = !!prior.endsChanged; } else dream.scores = prior; saveState(); renderAll(); toast('Last Dream Breaker action undone.'); };
     $('#resetDreamScore').onclick = () => { if (!confirm('Reset scores, serving team, toss, switches, and change of ends?')) return; Object.assign(dream, { scores: { ocpc: 0, rebels: 0 }, history: [], serving: '', tossResult: '', tossWinner: '', tossChoice: '', acknowledgedSwitchAt: 0, endsChanged: false }); saveState(); renderAll(); };
+    $('#disableDreamBreaker').onclick = () => { if (!confirm('Turn off Dream Breaker? The score stays recorded but stops counting toward the club standings.')) return; dream.enabled = false; saveState(); renderAll(); };
   }
   function renderTeams() {
     $('#teamTabs').innerHTML = config.categories.map(category => `<button class="category-tab ${category === teamCategory ? 'active' : ''}" data-team-category="${esc(category)}">${esc(category)}</button>`).join('');
     $('#teamGrid').innerHTML = config.clubs.map(club => { const count = pairCount(teamCategory, club.id); return `<article class="team-card"><div class="card-title"><h2>${esc(club.name)}</h2><span>${count} pairs</span></div>${Array.from({ length: count }, (_, i) => {
       const code = `${club.pairPrefix}${i + 1}`, key = `${teamCategory}|${code}`, pair = state.pairs[key];
-      return `<div class="team-row"><label>${code}</label><input value="${esc(pair.player1)}" placeholder="Awaiting registration" readonly><input value="${esc(pair.player2)}" placeholder="Awaiting registration" readonly></div>`;
+      const playerLink = state.publicShare?.token ? `${new URL('player/', location.href).href}?token=${encodeURIComponent(state.publicShare.token)}&category=${encodeURIComponent(teamCategory)}&pair=${encodeURIComponent(code)}` : '';
+      return `<div class="team-row"><label>${code}</label><input value="${esc(pair.player1)}" placeholder="Awaiting registration" readonly><input value="${esc(pair.player2)}" placeholder="Awaiting registration" readonly>${playerLink ? `<button class="text-btn" type="button" data-player-qr="${esc(playerLink)}" data-player-qr-label="${esc(`${teamCategory} · ${code}`)}">Player QR</button>` : '<small>Generate the live standings link to create the player portal QR.</small>'}</div>`;
     }).join('')}</article>`; }).join('');
     $$('[data-team-category]').forEach(btn => btn.onclick = () => { captureTeamInputs(); teamCategory = btn.dataset.teamCategory; renderTeams(); });
+    $$('[data-player-qr]').forEach(button => button.onclick = () => showPlayerPortalQr(button.dataset.playerQr, button.dataset.playerQrLabel));
+  }
+  function showPlayerPortalQr(url, label) {
+    $('#playerPortalQrModal')?.remove(); document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="playerPortalQrModal"><section><button class="modal-close contrast-close" data-close-player-qr>×</button><span class="section-label">Player portal</span><h2>${esc(label)}</h2><p>Scan this QR code to open this pair's live court calls, up-next notice, and schedule.</p><div id="playerPortalQr"></div><a class="btn btn-quiet" href="${esc(url)}" target="_blank" rel="noopener">Open player portal</a></section></div>`); const modal = $('#playerPortalQrModal'); if (window.QRCode) new QRCode($('#playerPortalQr'), { text:url, width:220, height:220, colorDark:'#09283a', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M }); modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-player-qr]')) modal.remove(); };
   }
   function captureTeamInputs() { $$('[data-pair-key]').forEach(input => { if (state.pairs[input.dataset.pairKey]) state.pairs[input.dataset.pairKey][input.dataset.field] = input.value.trim(); }); }
 
@@ -639,15 +661,42 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     }).join('');
   }
   function medalRoundRobinStatus(category) {
-    const matches = state.matches.filter(match => match.category === category), complete = matches.filter(match => isComplete(match.id)).length;
+    const matches = roundRobinMatches(category), complete = matches.filter(match => isComplete(match.id)).length;
     return { total: matches.length, complete, ready: matches.length > 0 && complete === matches.length };
+  }
+  function medalCalendarId(category, key) { return `MED-${categoryPrefix(category)}-${key.toUpperCase()}`; }
+  function syncMedalResult(category, key) {
+    const medal = state.medals?.[category]?.[key], id = medalCalendarId(category, key);
+    if (!medal || medal.scoreA === '' || medal.scoreB === '' || Number(medal.scoreA) === Number(medal.scoreB)) return;
+    state.scores[id] = { a: Number(medal.scoreA), b: Number(medal.scoreB), resultType: 'manual-medal-score', completedAt: state.scores[id]?.completedAt || new Date().toISOString() };
+  }
+  function syncMedalCalendar() {
+    const rr = roundRobinMatches(), baseStart = Math.max(config.event.roundRobinStartMinutes, ...rr.map(match => Number(match.startMinutes) + config.event.slotMinutes).filter(Number.isFinite));
+    const existing = new Map(state.matches.filter(match => match.stage === 'medal').map(match => [match.id, match]));
+    const removedIds = new Set(state.matches.filter(match => match.stage === 'medal').map(match => match.id));
+    state.matches = state.matches.filter(match => match.stage !== 'medal');
+    state.queue = (state.queue || []).filter(id => !removedIds.has(id));
+    if (!allRoundRobinComplete()) { rebuildCourtSchedules(); return false; }
+    config.categories.forEach((category, index) => {
+      const medal = state.medals[category];
+      if (!medal?.seeded || !medal.bronze?.a || !medal.bronze?.b || !medal.final?.a || !medal.final?.b) return;
+      const court = [1, 3, 5][index];
+      if (!court || court > config.event.courts) return;
+      [['bronze', medal.bronze, baseStart], ['final', medal.final, baseStart + config.event.slotMinutes]].forEach(([key, sides, startMinutes]) => {
+        const id = medalCalendarId(category, key), retained = existing.get(id);
+        state.matches.push({ id, stage: 'medal', medalKey: key, category, round: key === 'bronze' ? 1 : 2, wave: rr.length + (key === 'bronze' ? 1 : 2), court, startMinutes: retained?.startMinutes ?? startMinutes, time: `${timeLabel(retained?.startMinutes ?? startMinutes)}-${timeLabel((retained?.startMinutes ?? startMinutes) + config.event.slotMinutes)}`, a: sides.a, b: sides.b, players: [`${category}|${sides.a}`, `${category}|${sides.b}`] });
+      });
+    });
+    state.queue = [...new Set([...(state.queue || []), ...state.matches.filter(match => match.stage === 'medal' && !isComplete(match.id)).map(match => match.id)])];
+    rebuildCourtSchedules();
+    return state.matches.some(match => match.stage === 'medal');
   }
   function seedMedals() {
     const category = medalCategory, status = medalRoundRobinStatus(category), incomplete = status.total - status.complete;
     if (incomplete && !confirm(`${incomplete} ${category} round-robin ${incomplete === 1 ? 'match remains' : 'matches remain'} without a result. Seed this category using the current standings anyway?`)) return;
     const ocpc = standingsFor(category, 'ocpc'), rebels = standingsFor(category, 'rebels'), medal = state.medals[category];
     medal.seeded = true; medal.sf1 = { a: '', b: '', scoreA: '', scoreB: '' }; medal.sf2 = { a: '', b: '', scoreA: '', scoreB: '' }; medal.final = { a: ocpc[0]?.code || '', b: rebels[0]?.code || '', scoreA: '', scoreB: '' }; medal.bronze = { a: ocpc[1]?.code || '', b: rebels[1]?.code || '', scoreA: '', scoreB: '' };
-    saveState(); renderMedals(); toast(`${category} medal matches seeded from standings.`);
+    const scheduled = syncMedalCalendar(); saveState(); renderAll(); toast(scheduled ? `${category} medal matches added to the live calendar.` : `${category} medal matches seeded. They will enter Courts 1, 3, and 5 after every round-robin match is complete.`);
   }
   function bracketMatch(category, key, label, time, court, a, b, scores) {
     const result = medalResult({ a, b, scoreA: scores.scoreA, scoreB: scores.scoreB });
@@ -655,13 +704,14 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     return `<article class="playoff-match"><div class="bracket-meta"><span>${label}</span><span>${time} · Court ${court}</span></div><div class="bracket-match">${side(a, scores.scoreA, 'scoreA', 'a')}${side(b, scores.scoreB, 'scoreB', 'b')}</div></article>`;
   }
   function renderMedals() {
-    const category = medalCategory, index = config.categories.indexOf(category), medal = state.medals[category], high = index === 2;
+    const category = medalCategory, index = config.categories.indexOf(category), medal = state.medals[category], court = [1, 3, 5][index] || 1;
     const seedStatus = medalRoundRobinStatus(category), seedButton = $('#seedMedalsBtn');
     if (seedButton) { const action = medal.seeded ? 'Re-seed' : 'Seed'; seedButton.textContent = `${seedStatus.ready ? action : 'Seed'} ${category} from standings`; seedButton.classList.toggle('is-ready', seedStatus.ready); seedButton.classList.toggle('is-pending', !seedStatus.ready); seedButton.title = seedStatus.ready ? `All ${category} round-robin matches are complete. ${action} the medal matchups from the standings.` : `${seedStatus.complete} of ${seedStatus.total} ${category} round-robin matches have results. You can still seed early, with confirmation.`; }
     const finalA = medal.final.a, finalB = medal.final.b, bronzeA = medal.bronze.a, bronzeB = medal.bronze.b;
     const finalResult = medalResult({ a: finalA, b: finalB, scoreA: medal.final.scoreA, scoreB: medal.final.scoreB }), bronzeResult = medalResult({ a: bronzeA, b: bronzeB, scoreA: medal.bronze.scoreA, scoreB: medal.bronze.scoreB });
     const podium = (place, code, tone) => `<div class="podium-card ${tone}"><span>${place}</span><strong>${esc(code || 'TBD')}</strong><small>${code ? esc(pairNames(category, code)) : 'Awaiting medal results'}</small></div>`;
-    $('#medalBoard').innerHTML = `<article class="playoff-bracket direct-medal-bracket"><header><div><span class="section-label">Dual-meet medal pathway</span><h2>${esc(category)}</h2><p>Final standings directly determine the two medal matchups. No semifinal can displace a pair from the place it earned.</p></div><div class="bracket-key"><span>Club rank</span><b>→</b><span>Direct medal match</span></div></header><div class="podium-preview">${podium('Silver', finalResult.loser, 'silver')}${podium('Champion', finalResult.winner, 'gold')}${podium('Bronze', bronzeResult.winner, 'bronze')}</div><div class="direct-medal-grid"><section class="playoff-stage medal-stage"><h3>#1 vs #1 · Gold / Silver</h3>${bracketMatch(category, 'final', 'Championship', high ? '4:15 PM' : '4:00 PM', index * 2 + 2 > 5 ? 2 : index * 2 + 2, finalA, finalB, medal.final)}</section><section class="playoff-stage medal-stage"><h3>#2 vs #2 · Bronze / 4th</h3>${bracketMatch(category, 'bronze', 'Bronze medal', high ? '4:15 PM' : '4:00 PM', index * 2 + 1 > 5 ? 1 : index * 2 + 1, bronzeA, bronzeB, medal.bronze)}</section></div><datalist id="${medalSeedListId(category)}">${medalSeedOptions(category)}</datalist></article>`;
+    const rrDone = allRoundRobinComplete();
+    $('#medalBoard').innerHTML = `<article class="playoff-bracket direct-medal-bracket"><header><div><span class="section-label">Dual-meet medal pathway</span><h2>${esc(category)}</h2><p>Final standings directly determine the two medal matchups. Bronze starts first, followed by Gold/Silver. All medal matches run only after the full round robin is complete, using Courts 1, 3, and 5.</p></div><div class="bracket-key"><span>${rrDone ? `Court ${court} ready` : 'Round robin in progress'}</span><b>→</b><span>Direct medal match</span></div></header><div class="podium-preview">${podium('Silver', finalResult.loser, 'silver')}${podium('Champion', finalResult.winner, 'gold')}${podium('Bronze', bronzeResult.winner, 'bronze')}</div><div class="direct-medal-grid"><section class="playoff-stage medal-stage"><h3>#1 vs #1 · Gold / Silver</h3>${bracketMatch(category, 'final', 'Championship', rrDone ? 'After Bronze' : 'After round robin', court, finalA, finalB, medal.final)}</section><section class="playoff-stage medal-stage"><h3>#2 vs #2 · Bronze / 4th</h3>${bracketMatch(category, 'bronze', 'Bronze medal', rrDone ? 'First medal wave' : 'After round robin', court, bronzeA, bronzeB, medal.bronze)}</section></div><datalist id="${medalSeedListId(category)}">${medalSeedOptions(category)}</datalist></article>`;
     $$('[data-medal-category]').forEach(input => input.onchange = () => {
       const match = state.medals[input.dataset.medalCategory][input.dataset.medalMatch], isSeed = input.dataset.medalSide === 'a' || input.dataset.medalSide === 'b';
       if (isSeed) {
@@ -671,8 +721,14 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
           return renderMedals();
         }
         match[input.dataset.medalSide] = nextCode;
-      } else match[input.dataset.medalSide] = input.value === '' ? '' : Number(input.value);
-      saveState(); renderMedals();
+        delete state.scores[medalCalendarId(input.dataset.medalCategory, input.dataset.medalMatch)];
+        delete state.liveScoring?.[medalCalendarId(input.dataset.medalCategory, input.dataset.medalMatch)];
+        match.scoreA = ''; match.scoreB = '';
+      } else {
+        match[input.dataset.medalSide] = input.value === '' ? '' : Number(input.value);
+        syncMedalResult(input.dataset.medalCategory, input.dataset.medalMatch);
+      }
+      syncMedalCalendar(); saveState(); renderAll();
     });
   }
   async function renderTournamentStaff() {
@@ -683,9 +739,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   }
   function confirmStaffRemoval(email, role, label) { if (demoMode || drawTestMode) return toast('Staff access is read-only in simulation modes.'); $('#staffRemovalModal')?.remove(); document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="staffRemovalModal"><section class="staff-removal-modal"><button class="modal-close contrast-close" data-close-staff>×</button><span class="section-label">Remove staff access</span><h2>Remove ${esc(label)} access?</h2><p><b>${esc(email)}</b> will immediately lose ${esc(label)} permission. Other roles assigned to this account will remain unchanged.</p><div class="form-actions"><button class="btn btn-quiet" data-close-staff>Keep access</button><button class="btn btn-danger" id="confirmStaffRemoval">Remove access</button></div></section></div>`); const modal = $('#staffRemovalModal'), close = () => modal.remove(); modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-staff]')) close(); }; $('#confirmStaffRemoval').onclick = async () => { const button = $('#confirmStaffRemoval'); button.disabled = true; try { await changeTournamentStaffRole(email,role,false); close(); await renderTournamentStaff(); toast('Staff access removed.'); } catch (_) { button.disabled = false; toast('Only an administrator can remove staff access.'); } }; }
   function showNotice(message, title = 'Notice') { $('#appNoticeModal')?.remove(); document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="appNoticeModal"><section><button class="modal-close contrast-close" data-close-notice>×</button><span class="section-label">Match Control</span><h2>${esc(title)}</h2><p>${esc(message)}</p><button class="btn btn-primary" data-close-notice>Okay</button></section></div>`); const modal = $('#appNoticeModal'); modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-notice]')) modal.remove(); }; }
-  function renderDreamBreakerSettings() {
-    const dream = state.dreamBreaker; $('#dreamBreakerEnabled').checked = dream.enabled; $('#dreamBreakerTarget').value = dream.target;
-  }
+  function renderDreamBreakerSettings() {}
   function renderOpponentDraw() {
     const panel = $('#opponentDrawPanel'); if (!panel) return; const draw = state.opponentDraw, needed = drawSuggested(), rules = formatSettings();
     $('#matchupFormatMode').value = rules.mode; $('#matchupCap').value = rules.matchCap; $('#matchupCap').disabled = rules.mode === 'full'; $('#drawModeSelector').hidden = !needed;
@@ -744,7 +798,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     const neededCategories = config.categories.filter(category => categoryNeedsDraw(category));
     if (!draft || !neededCategories.every(category => draft.categories[category]?.revealed === pairCount(category, drawSourceClub(category)))) return toast('Complete every recommended category before locking the draw.');
     if (!confirm('Officially lock this opponent draw? This will rebuild the schedule and clear any match-day scores, court assignments, and referee assignments.')) return;
-    const lockedAt = new Date().toISOString(), draw = { id: draft.id, createdAt: draft.startedAt, lockedAt, locked: true, categories: Object.fromEntries(config.categories.map(category => { const source = draft.categories[category] || state.opponentDraw?.categories?.[category] || { ocpc: shuffledCodes('O', pairCount(category, 'ocpc')), rebels: shuffledCodes('R', pairCount(category, 'rebels')) }; return [category, { ocpc: source.ocpc, rebels: source.rebels }]; })), ceremonyLog: [...draft.log, { action: 'draw-locked', at: lockedAt }] };
+    const lockedAt = new Date().toISOString(), draw = { id: draft.id, createdAt: draft.startedAt, lockedAt, locked: true, categories: Object.fromEntries(config.categories.map(category => { const source = draft.categories[category] || state.opponentDraw?.categories?.[category] || { ocpc: shuffledCodes('O', pairCount(category, 'ocpc')), rebels: shuffledCodes('R', pairCount(category, 'rebels')) }; return [category, { ocpc: source.ocpc, rebels: source.rebels, sourceClub: drawSourceClub(category), exclusions: opponentExclusions(category, source) }]; })), ceremonyLog: [...draft.log, { action: 'draw-locked', at: lockedAt }] };
     const priorDraws = [...(state.opponentDrawHistory || []), ...(state.opponentDrawRecorded === false ? [] : [state.opponentDraw])].filter(Boolean), retainedPairs = state.pairs, retainedCheckins = state.checkins;
     state = freshState(state.pairCounts, draw); state.opponentDrawHistory = priorDraws; state.opponentDrawRecorded = true; state.drawRecordReset20260910 = true; state.pairs = { ...state.pairs, ...retainedPairs }; state.checkins = retainedCheckins; state.drawCeremonyDraft = null;
     saveState(); $('#opponentDrawCeremony')?.remove(); renderAll(); showView('settings'); toast(`Draw ${draw.id} officially locked and recorded.`);
@@ -759,10 +813,6 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     const allComplete = config.categories.filter(item => categoryNeedsDraw(item)).every(item => ceremony.categories[item]?.revealed === pairCount(item, drawSourceClub(item)));
     document.body.insertAdjacentHTML('beforeend', `<div class="draw-ceremony" id="opponentDrawCeremony"><section><header><div><span class="section-label">Transparent opponent randomizer</span><h2>Opponent Draw Ceremony</h2><p>Pending Draw ID <b>${esc(ceremony.id)}</b> · nothing changes in the official schedule until this draw is locked.</p></div><button id="closeOpponentDraw" aria-label="Close">×</button></header><div class="draw-method"><b>Live ceremony workflow</b><ol><li>Only categories with omitted opponents need a draw.</li><li>The club with more pairs draws first; tied categories begin with OCPC.</li><li>Each selected exclusion leaves the wheel until the balanced draw bag is exhausted.</li><li>Review recommended categories, then lock the result into the schedule.</li></ol><p>The selected match cap is applied as evenly as mathematically possible. Closing this screen keeps the ceremony draft so it can be resumed.</p></div><nav>${config.categories.map(item => { const needed = categoryNeedsDraw(item), categoryDraft = ceremony.categories[item], required = pairCount(item, drawSourceClub(item)), status = !needed ? 'Not needed' : !categoryDraft ? 'Not started' : categoryDraft.revealed === required ? 'Complete' : `${categoryDraft.revealed}/${required}`; return `<button class="${item === category ? 'active' : ''}" data-draw-category="${esc(item)}" ${needed ? '' : 'disabled'}>${esc(item)} <small>${status}</small></button>`; }).join('')}</nav>${order ? `<div class="draw-order"><article><span>${esc(sourceLabel)} draw order · ${order[source].length} pairs</span><div>${order[source].map((code, index) => index < revealed ? pairChip(code) : '<span class="draw-ball concealed"><b>Sealed</b><small>Awaiting draw</small></span>').join('')}</div></article><article><span>${esc(opponentLabel)} draw bag · ${order[opponent].length} pairs</span><div>${order[opponent].map(pairChip).join('')}</div></article></div><div class="draw-progress"><b>${esc(category)}</b><span>${revealed} of ${count} ${esc(sourceLabel)} pair assignments revealed</span><i><u style="width:${revealed / count * 100}%"></u></i></div><div class="draw-matrix" style="--draw-cols:${rounds + 2}"><div class="draw-matrix-head"><b>${esc(sourceLabel)} pair</b>${Array.from({ length: rounds }, (_, index) => `<b>Opponent ${index + 1}</b>`).join('')}<b>Not scheduled</b></div>${rows}</div>` : `<div class="draw-blank"><span>Category not started</span><h3>${esc(category)}</h3><p>${pairCount(category, 'ocpc')} OCPC pairs and ${pairCount(category, 'rebels')} Rally Rebels pairs. ${esc(sourceLabel)} will draw because this format omits at least one possible opposing pair.</p><button class="btn btn-primary" id="startDrawCategory">Start ${esc(category)} draw</button></div>`}<footer><div>${order && revealed < count ? `<button class="btn btn-primary" id="revealNextDraw">Draw next pair assignment</button>` : order ? '<span class="draw-complete">Category draw complete</span>' : ''}</div><button class="btn ${allComplete ? 'btn-primary' : 'btn-quiet'}" id="lockOpponentDraw" ${allComplete ? '' : 'disabled'}>Officially lock and apply to schedule</button></footer></section></div>`);
     $('#closeOpponentDraw').onclick = () => { saveState(); $('#opponentDrawCeremony').remove(); renderOpponentDraw(); }; $('#opponentDrawCeremony').onclick = event => { if (event.target.id === 'opponentDrawCeremony') { saveState(); event.currentTarget.remove(); renderOpponentDraw(); } }; $$('[data-draw-category]').forEach(button => button.onclick = () => openOpponentDrawCeremony(button.dataset.drawCategory)); if ($('#startDrawCategory')) $('#startDrawCategory').onclick = () => startDrawCategory(category); if ($('#revealNextDraw')) $('#revealNextDraw').onclick = () => revealNextDraw(category); $('#lockOpponentDraw').onclick = lockOpponentDrawCeremony;
-  }
-  function saveDreamBreakerSetup() {
-    state.dreamBreaker.enabled = $('#dreamBreakerEnabled').checked; state.dreamBreaker.target = Math.max(1, Math.min(200, Number($('#dreamBreakerTarget').value) || 52));
-    state.dreamBreaker.scores.ocpc = Math.min(state.dreamBreaker.scores.ocpc, state.dreamBreaker.target); state.dreamBreaker.scores.rebels = Math.min(state.dreamBreaker.scores.rebels, state.dreamBreaker.target); saveState(); renderAll(); toast('Dream Breaker setup saved.');
   }
   function renderSettings() {
     if(!$('#whiteLabelClubALogo')){$('#whiteLabelClubAShort').parentElement.insertAdjacentHTML('afterend','<label>Club 1 logo<input id="whiteLabelClubALogo" type="file" accept="image/*"><img class="club-logo-preview" id="whiteLabelClubALogoPreview" alt="Club 1 logo preview"></label>');$('#whiteLabelClubBShort').parentElement.insertAdjacentHTML('afterend','<label>Club 2 logo<input id="whiteLabelClubBLogo" type="file" accept="image/*"><img class="club-logo-preview" id="whiteLabelClubBLogoPreview" alt="Club 2 logo preview"></label>');}['ocpc','rebels'].forEach((id,index)=>{const file=$(`#whiteLabelClub${index?'B':'A'}Logo`),preview=$(`#whiteLabelClub${index?'B':'A'}LogoPreview`),logo=config.clubs.find(club=>club.id===id)?.logo||'';file.dataset.logo=logo;if(preview)preview.src=logo||'';file.onchange=async()=>{const picked=file.files?.[0];if(!picked)return;const image=new Image();image.onload=()=>{const canvas=document.createElement('canvas'),size=512;canvas.width=size;canvas.height=size;const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,size,size);const scale=Math.min(size/image.width,size/image.height),width=image.width*scale,height=image.height*scale;context.drawImage(image,(size-width)/2,(size-height)/2,width,height);file.dataset.logo=canvas.toDataURL('image/webp',.86);if(preview)preview.src=file.dataset.logo;};image.src=URL.createObjectURL(picked);};});
@@ -821,6 +871,14 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     state = freshState(state.pairCounts, draw, next, state.scheduleSettings, state.qualificationSettings); state.pairs = { ...state.pairs, ...retainedPairs }; state.checkins = retainedCheckins; state.opponentDrawHistory = retainedHistory; state.opponentDrawRecorded = next.mode === 'full'; state.drawCeremonyDraft = null; saveState(); renderAll(); showView('draw'); toast(next.mode === 'full' ? 'Full round robin applied. Opponent draw is not needed.' : 'Capped format applied. Review the draw recommendation.');
   }
   function renderAll() { const total = totalMatchCount(); $('#heroMatchCount').textContent = total; $('#scheduleMatchCount').textContent = `All ${total} matches`; renderOverview(); renderCourts(); renderSchedule(); renderStandings(); renderDreamBreakerBoard(); renderTeams(); renderMedals(); renderSettings(); }
+  function renderLiveUpdate() {
+    if (activeView === 'courts') renderCourts();
+    else if (activeView === 'schedule') renderSchedule();
+    else if (activeView === 'standings') renderStandings();
+    else if (activeView === 'medals') renderMedals();
+    else if (activeView === 'dream') renderDreamBreakerBoard();
+    else renderOverview();
+  }
   function changeWave(delta) { const waves = Math.ceil(totalMatchCount() / config.event.courts); state.currentWave = Math.max(1, Math.min(waves, state.currentWave + delta)); saveState(); renderOverview(); renderCourts(); }
   function showView(name) {
     activeView = name; $$('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`)); $$('.nav-item').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name)); $('#sidebar').classList.remove('open');
@@ -862,7 +920,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     const values = scoreInput(activeMatchId); if (!values) return;
     state.liveScoring ||= {}; const live = state.liveScoring[activeMatchId] ||= { elapsed: 0, startedAt: null, running: false, log: [] };
     Object.assign(live, { a: values.a, b: values.b, complete: false }); live.log ||= []; live.log.unshift({ at: new Date().toISOString(), text: `Current score updated by Match Control: ${values.a}-${values.b}` });
-    saveState(); syncMatch(activeMatchId).catch(() => {}); closeScore(); renderAll(); toast('Current score updated. Match remains live.');
+    saveState(true); syncMatch(activeMatchId).catch(() => {}); closeScore(); renderAll(); toast('Current score updated. Match remains live.');
   }
   function openEndMatch(id) { openScore(id); if (!state.scores[id]) requestEndMatch(id); }
   function requestEndMatch(id) {
@@ -876,9 +934,12 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
     const prior = state.scores[id], live = state.liveScoring ||= {}; const current = live[id] ||= { elapsed: 0, startedAt: null, running: false, log: [] };
     if (current.running) current.elapsed = elapsedSeconds(current); Object.assign(current, { a: values.a, b: values.b, complete: true, running: false, startedAt: null }); current.log ||= []; current.log.unshift({ at: new Date().toISOString(), text: `Match ended by Match Control at ${values.a}-${values.b}` });
     state.scores[id] = { a: values.a, b: values.b, resultType: 'manual-current-score', completedAt: prior?.completedAt || new Date().toISOString() }; if (prior) state.scoreAudit.push({ matchId: id, previous: prior, revised: state.scores[id], revisedAt: new Date().toISOString(), source: 'match-control' });
-    closeGuard?.(); saveState(); syncMatch(id).catch(() => {}); closeScore(); renderAll(); toast('Match ended. Final score sent to standings.');
+    const match = state.matches.find(item => item.id === id);
+    if (match?.stage === 'medal' && state.medals?.[match.category]?.[match.medalKey]) Object.assign(state.medals[match.category][match.medalKey], { scoreA: values.a, scoreB: values.b });
+    const calendarChanged = isRoundRobinMatch(match) && syncMedalCalendar(); recordActivity(`${id} finalized ${values.a}-${values.b}`, id);
+    closeGuard?.(); saveState(Boolean(!calendarChanged && match?.stage !== 'medal')); syncMatch(id).catch(() => {}); closeScore(); renderAll(); toast('Match ended. Final score sent to standings.');
   }
-  function clearScore() { if (activeMatchId) { delete state.scores[activeMatchId]; const live = state.liveScoring?.[activeMatchId]; if (live) Object.assign(live, { a: 0, b: 0, complete: false }); syncMatch(activeMatchId).catch(() => {}); } saveState(); closeScore(); renderAll(); toast('Score cleared.'); }
+  function clearScore() { if (activeMatchId) { delete state.scores[activeMatchId]; const live = state.liveScoring?.[activeMatchId]; if (live) Object.assign(live, { a: 0, b: 0, complete: false }); syncMatch(activeMatchId).catch(() => {}); } saveState(true); closeScore(); renderAll(); toast('Score cleared.'); }
   function exportBackup() {
     const blob = new Blob([JSON.stringify({ configSnapshot: config, state }, null, 2)], { type: 'application/json' }), link = document.createElement('a');
     link.href = URL.createObjectURL(blob); link.download = `${slug(config.event.name)}-backup.json`; link.click(); URL.revokeObjectURL(link.href);
@@ -967,9 +1028,11 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
           }
         });
         pendingMatchWrites.forEach((_, matchId) => { if (localLive[matchId]) nextLive[matchId] = localLive[matchId]; });
-        state.liveScoring = nextLive; state.scores = nextScores; state.updatedAt = new Date().toISOString();
+        state.liveScoring = nextLive; state.scores = nextScores;
+        state.matches.filter(match => match.stage === 'medal').forEach(match => { const score = nextScores[match.id]; if (score && state.medals?.[match.category]?.[match.medalKey]) Object.assign(state.medals[match.category][match.medalKey], { scoreA: score.a, scoreB: score.b }); });
+        state.updatedAt = new Date().toISOString();
         pendingPromotionRequests = items.filter(item => item.promotionRequest); if (demoMode) demoMatchesReady = true;
-        localStorage.setItem(storageKey, JSON.stringify(state)); renderAll(); queuePublicProjection(); cloudApplying = false; processRefereePromotionRequests();
+        localStorage.setItem(storageKey, JSON.stringify(state)); renderLiveUpdate(); queuePublicProjection(); cloudApplying = false; processRefereePromotionRequests();
       }, () => toast('Live match feed unavailable.'));
     });
   }
@@ -1001,7 +1064,6 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   $('#optimizeScheduleBtn').onclick = optimizeTournamentSchedule;
   $('#saveQualificationBtn').onclick = saveQualificationOrder;
   $('#saveWhiteLabelBtn').onclick = saveWhiteLabelSettings;
-  $('#saveDreamBreakerBtn').onclick = saveDreamBreakerSetup;
   const resetDemo = () => { localStorage.removeItem(`${config.storageKey}.demo`); if (demoMode) location.reload(); else toast('Saved demo snapshot cleared. The next demo loads current tournament data.'); };
   $('#launchDemoBtn').onclick = () => { localStorage.removeItem(`${config.storageKey}.demo`); window.open(window.MATCHDAY_EVENT_URL(location.pathname, { demo:'1' }), '_blank', 'noopener'); }; $('#resetDemoBtn').onclick = resetDemo;
   $('#launchDrawTestBtn').onclick = () => window.open(window.MATCHDAY_EVENT_URL(location.pathname, { drawtest:'1' }), '_blank', 'noopener');
