@@ -1,6 +1,6 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
-const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, publishPublicView, revokePublicView, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole } = await import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`);
 
+import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, publishPublicView, revokePublicView, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole }) => {
 (() => {
   'use strict';
   const config = window.TOURNAMENT_CONFIG;
@@ -1091,3 +1091,7 @@ const { watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, w
   setInterval(() => { if (activeView === 'courts') { tickLiveDisplay(); Object.entries(state.courts||{}).forEach(([courtNo,court])=>{const live=state.liveScoring?.[court.matchId]||court,card=$(`[data-active-court="${courtNo}"]`),button=$(`[data-timer-toggle="${courtNo}"]`),paused=Boolean(court.matchId&&!isComplete(court.matchId)&&!live.running&&elapsedSeconds(live)>0);card?.classList.toggle('match-paused',paused);button?.classList.toggle('is-paused',paused);button?.classList.toggle('is-running',Boolean(live.running));}); } }, 1000);
   renderAll(); renderOperationsViews(); showView(activeView); startCloud();
 })();
+}).catch(error => {
+  console.error('Match Control module failed to load.', error);
+  document.body.insertAdjacentHTML('afterbegin', '<div style="position:fixed;inset:0;z-index:99999;padding:32px;background:#f6fbfd;color:#09283a;font:16px system-ui"><h1>Match Control could not start</h1><p>Please return to My Tournaments and open this event again. If this remains visible, the page will now report the exact error in the browser console.</p></div>');
+});
