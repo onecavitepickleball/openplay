@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Operations Pack · Matchday</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="operations.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" id="controlLink" href="../"><img id="brandLogo" alt=""><span><small>Matchday</small><b>Operations Pack</b></span></a>
+    <div class="top-actions"><span class="read-only">Read-only live data</span><button id="printAll" class="button primary" type="button">Print full pack</button></div>
+  </header>
+  <main>
+    <section class="cover" id="cover">
+      <div><span class="eyebrow">Tournament operations</span><h1 id="eventName">Loading tournament…</h1><p id="eventMeta"></p></div>
+      <div class="cover-note"><b>Prepared for matchday</b><span id="generatedAt"></span></div>
+    </section>
+    <nav class="pack-nav" aria-label="Operations pack sections">
+      <a href="#schedules">Court schedules</a><a href="#checkin">Check-in roster</a><a href="#officials">Referee assignments</a><a href="#scoresheets">Emergency score sheets</a><a href="#medals">Medal round</a>
+    </nav>
+    <p class="status" id="status">Connecting to tournament data…</p>
+    <section id="schedules" class="pack-section"><div class="section-head"><div><span class="eyebrow">01 · Court operations</span><h2>Schedules per court</h2></div><button class="button" data-print-section="schedules" type="button">Print schedules</button></div><div id="courtSchedules" class="court-grid"></div></section>
+    <section id="checkin" class="pack-section"><div class="section-head"><div><span class="eyebrow">02 · Arrival desk</span><h2>Check-in roster</h2></div><button class="button" data-print-section="checkin" type="button">Print roster</button></div><div id="checkinRoster" class="print-table"></div></section>
+    <section id="officials" class="pack-section"><div class="section-head"><div><span class="eyebrow">03 · Officials</span><h2>Referee assignments</h2></div><button class="button" data-print-section="officials" type="button">Print assignments</button></div><div id="refereeAssignments" class="print-table"></div></section>
+    <section id="scoresheets" class="pack-section"><div class="section-head"><div><span class="eyebrow">04 · Emergency fallback</span><h2>Score sheets</h2></div><button class="button" data-print-section="scoresheets" type="button">Print score sheets</button></div><p class="helper">Blank, court-ready record sheets for continuing play if devices or connection are unavailable.</p><div id="scoreSheets" class="score-sheet-grid"></div></section>
+    <section id="medals" class="pack-section"><div class="section-head"><div><span class="eyebrow">05 · Finals</span><h2>Medal-round sheets</h2></div><button class="button" data-print-section="medals" type="button">Print medal sheets</button></div><div id="medalSheets" class="medal-grid"></div></section>
+  </main>
+  <template id="empty"><div class="empty">No data is available yet.</div></template>
+  <script type="module" src="operations.js"></script>
+</body>
+</html>

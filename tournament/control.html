@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="rolling.css?v={{ site.github.build_revision }}">
 </head>
 <body>
+  <div class="offline-banner" id="offlineBanner" hidden><b>Offline emergency mode</b><span>Changes are saved on this device and will sync when connection returns.</span><button class="btn btn-quiet" id="downloadEmergencyBackup">Download backup</button></div>
   <section class="staff-portal" id="staffPortal" hidden>
     <div class="staff-portal-card">
       <div class="staff-portal-head"><div class="brand-mark"><img src="../assets/logo-2026.png" alt="OCPC"></div><div><span class="brand-product">Tournament staff portal</span><h1>Your matchday tools</h1><p id="staffPortalIdentity"></p></div><button class="btn btn-quiet" id="staffPortalLogout" type="button">Sign out</button></div>
@@ -39,6 +40,8 @@
         <button class="nav-item" data-view="medals"><span>07</span>Medal Round</button>
         <button class="nav-item" data-view="draw"><span>08</span>Opponent Draw</button>
         <button class="nav-item" data-view="settings"><span>09</span>Settings</button>
+        <button class="nav-item" data-view="announcements"><span>10</span>Announcements</button>
+        <button class="nav-item" data-view="archive"><span>11</span>Archive</button>
       </nav>
       <div class="sidebar-foot">
         <div class="sync-dot"></div><span>Firebase live sync</span>
@@ -63,6 +66,7 @@
             <a href="referee/" data-event-app="referee/" target="_blank" rel="noopener"><span>⚑</span><b>Referee App</b><small>Assignments and live scoring</small></a>
             <a href="score-kiosk/" data-event-app="score-kiosk/" target="_blank" rel="noopener"><span>#</span><b>Score Kiosk</b><small>Unofficiated match results</small></a>
             <a href="broadcast/" data-event-app="broadcast/" target="_blank" rel="noopener"><span>◉</span><b>Live Broadcast</b><small>Courts, scores and status</small></a>
+            <a href="operations/" data-event-app="operations/" target="_blank" rel="noopener"><span>▤</span><b>Operations Pack</b><small>Print schedules and backup sheets</small></a>
           </div>
         </div>
       </header>
@@ -82,6 +86,8 @@
           <article class="panel next-panel"><div class="panel-head"><div><span class="section-label">Rolling dispatch</span><h2>Next matches</h2></div><button class="text-btn" data-go="courts">Manage queue</button></div><div id="overviewWave"></div></article>
           <article class="panel"><div class="panel-head"><div><span class="section-label">Advancement</span><h2>Category leaders</h2></div><button class="text-btn" data-go="standings">All standings</button></div><div class="leader-list" id="leaderList"></div></article>
           <article class="panel"><div class="panel-head"><div><span class="section-label">Operations</span><h2>Recent activity</h2></div><button class="text-btn" data-go="courts">Live courts</button></div><div class="leader-list" id="activityLog"></div></article>
+          <article class="panel"><div class="panel-head"><div><span class="section-label">Court readiness</span><h2>Ready for dispatch</h2></div><button class="text-btn" data-go="courts">Open courts</button></div><div class="leader-list" id="courtReadiness"></div></article>
+          <article class="panel"><div class="panel-head"><div><span class="section-label">Court pace</span><h2>Utilization</h2></div><button class="text-btn" data-go="courts">Live view</button></div><div class="leader-list" id="courtUtilization"></div></article>
         </div>
       </section>
 
@@ -110,6 +116,8 @@
         <div class="page-head"><div><span class="eyebrow dark">Optional club decider</span><h1>Dream Breaker</h1><p>Dedicated rally-scoring desk with automatic four-rally player-switch reminders.</p></div></div>
         <div id="dreamBreakerBoard"></div>
       </section>
+      <section class="view" id="view-announcements"><div class="page-head"><div><span class="eyebrow dark">Broadcast control</span><h1>Announcements</h1><p>Publish a short notice to the live broadcast and player-facing screens.</p></div></div><section class="panel"><div class="stack-form"><label>Announcement<input id="announcementText" maxlength="180" placeholder="Low Intermediate players, please stand by."></label><label class="setting-check"><input type="checkbox" id="announcementEnabled"> Show on live broadcast</label><div class="stack-actions"><button class="btn btn-primary" id="publishAnnouncement">Publish announcement</button><button class="btn btn-quiet" id="clearAnnouncement">Clear</button></div></div><div id="announcementPreview"></div></section></section>
+      <section class="view" id="view-archive"><div class="page-head"><div><span class="eyebrow dark">Post-event</span><h1>Event Archive</h1><p>Preserve the tournament outcome as a shareable recap snapshot.</p></div></div><section class="panel"><p>Creates a snapshot of podiums, standings, club winner, results, and event branding without changing match-day data.</p><div class="stack-actions"><button class="btn btn-primary" id="createArchive">Create or refresh archive</button><button class="btn btn-quiet" id="openArchive" hidden>Open archive</button></div><div id="archiveStatus"></div></section></section>
 
       <section class="view" id="view-teams">
         <div class="page-head"><div><span class="eyebrow dark">Tournament roster</span><h1>Teams</h1><p>This roster is linked from secure player registrations. Edit private registration records at the Registration Desk.</p></div><a class="btn btn-primary" href="registration/">Open registration desk</a></div>
