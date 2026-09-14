@@ -687,7 +687,19 @@
 
   // This page is the public OCPC membership roster, not the tournament-staff
   // directory. Keep approved organizers out unless they are confirmed members.
-  const excludedRosterMembers = new Set(['tito chuck']);
+  function isExcludedRosterMember(profile, fullName){
+    // Tito Chuck's account remains valid for Tournament Organizer access.
+    // Exclude every name variant that could be used for the public profile.
+    const identity = [
+      fullName,
+      profile.firstName,
+      profile.lastName,
+      profile.nickname,
+      profile.name,
+      profile.displayName,
+    ].filter(Boolean).join(' ').toLowerCase();
+    return /\bchuck\b/.test(identity);
+  }
 
   // Syncs approved player signups (from the "roster" collection) into the
   // static team lists above. If a roster name matches an EXISTING static
@@ -704,7 +716,7 @@
 
       roster.forEach(p => {
         const name = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
-        if (!name || !p.photoURL || excludedRosterMembers.has(name.toLowerCase())) return;
+        if (!name || !p.photoURL || isExcludedRosterMember(p, name)) return;
         const match = allStatic.find(m => m.name.trim().toLowerCase() === name.toLowerCase());
         if (match){
           match.photo = p.photoURL;
