@@ -1,6 +1,6 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
 
-import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, publishPublicView, revokePublicView, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole }) => {
+import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, publishPublicView, revokePublicView, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole, uploadTournamentImage }) => {
 (() => {
   'use strict';
   const config = window.TOURNAMENT_CONFIG;
@@ -12,6 +12,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
   let state;
   let draggedScheduleMatchId = '', selectedScheduleMatchId = '';
   const busyCourtActions = new Set();
+  const pendingClubLogos = new Map();
 
   document.documentElement.style.setProperty('--brand', config.brand.primary);
   document.documentElement.style.setProperty('--brand-dark', config.brand.primaryDark);
@@ -315,7 +316,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
     return `slot:${category}|${clubId}|${code}|${playerIndex}`;
   }
   function matchPlayers(id) { const match = state.matches.find(item => item.id === id); if (!match) return []; return [['ocpc', match.a], ['rebels', match.b]].flatMap(([clubId, code]) => [0, 1].map(index => playerIdentity(match.category, clubId, code, index))); }
-  function checkinPhoto(category, code, clubId, index) { return Object.values(state.checkins || {}).find(item => item.category === category && item.pair === code && item.club === clubId && Number(item.playerIndex) === index)?.photoThumb || ''; }
+  function checkinPhoto(category, code, clubId, index) { const checkin = Object.values(state.checkins || {}).find(item => item.category === category && item.pair === code && item.club === clubId && Number(item.playerIndex) === index); return checkin?.photoURL || checkin?.photoThumb || ''; }
   function playerPortraits(match, side) { const code = side === 'a' ? match.a : match.b, clubId = side === 'a' ? 'ocpc' : 'rebels', pair = pairData(match.category, code); return [pair.player1, pair.player2].map((name, index) => { const photo = checkinPhoto(match.category, code, clubId, index); return `<span>${photo ? `<img src="${photo}" alt="">` : '<i class="court-photo-placeholder"></i>'}<b>${esc(name || 'Player pending')}</b></span>`; }).join(''); }
   function defaultMatchRules(mode = 'round-robin') { return mode === 'gold-final' ? { mode, label: 'Medal match', scoring: 'side-out', target: 15, suddenDeathAt: 19, timer: false } : mode === 'custom' ? { mode, label: 'Custom', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true } : { mode: 'round-robin', label: 'Round Robin', scoring: 'side-out', target: 11, suddenDeathAt: 10, timer: true }; }
   function rulesFor(id) { const match = state.matches.find(item => item.id === id); return state.matchSettings[id] ||= defaultMatchRules(match?.stage === 'medal' ? 'gold-final' : 'round-robin'); }
@@ -572,7 +573,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
       return [courtNo, { matchId: court.matchId || '', running: Boolean(live.running), paused: Boolean(court.matchId && !live.running && Number(live.elapsed) > 0) }];
     }));
     const scores = Object.fromEntries(Object.entries(state.scores || {}).map(([matchId, score]) => [matchId, { a:score.a, b:score.b, completedAt:score.completedAt || null, revised:Boolean(score.revised) }]));
-    const publicCheckins = Object.fromEntries(Object.entries(state.checkins || {}).map(([id, item]) => [id, { category:item.category, pair:item.pair, club:item.club, playerIndex:item.playerIndex, photoThumb:item.photoThumb || '' }]));
+    const publicCheckins = Object.fromEntries(Object.entries(state.checkins || {}).map(([id, item]) => [id, { category:item.category, pair:item.pair, club:item.club, playerIndex:item.playerIndex, photoURL:item.photoURL || item.photoThumb || '' }]));
     return { version:3, sourceUpdatedAt:state.updatedAt || new Date().toISOString(), event:{ name:config.event.name, date:config.event.date, displayDate:config.event.displayDate, venue:config.event.venue, location:config.event.location }, brand:{ organizer:config.brand.organizer, logo:config.brand.logo, primary:config.brand.primary, primaryDark:config.brand.primaryDark, accent:config.brand.accent, highlight:config.brand.highlight }, clubs:config.clubs.map(club => ({ id:club.id, name:club.name, short:club.short, logo:club.logo || '', color:club.color || config.brand.primary })), categories:config.categories, announcement:structuredClone(state.announcement || {}), archive:structuredClone(state.archive || null), clubStandings:clubTotals().map(club => ({ clubId:club.id, played:club.played, wins:club.wins, losses:club.losses, pointsFor:club.pointsFor, pointsAgainst:club.pointsAgainst, differential:club.differential, dreamPoints:club.dreamPoints, total:club.total, recentWins:club.recentWins })), pairStandings:Object.fromEntries(config.categories.map(category => [category, Object.fromEntries(config.clubs.map(club => [club.id, standingsFor(category, club.id)]))])), pairs:structuredClone(state.pairs), checkins:publicCheckins, medals:structuredClone(state.medals), qualification:qualificationSettings(), dreamBreaker:state.dreamBreaker?.enabled ? { enabled:true, target:state.dreamBreaker.target, scores:state.dreamBreaker.scores } : { enabled:false }, playerPortal:{ matches:state.matches.map(match => ({ id:match.id, category:match.category, a:match.a, b:match.b, court:match.court || null, startMinutes:match.startMinutes ?? null, time:match.time || '', wave:match.wave || null })), courtSchedules:structuredClone(state.courtSchedules || {}), courts, scores } };
   }
   function publicUrl(token) { const url=new URL('public/',location.href);url.searchParams.set('token',token);return url.href; }
@@ -829,8 +830,47 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
     document.body.insertAdjacentHTML('beforeend', `<div class="draw-ceremony" id="opponentDrawCeremony"><section><header><div><span class="section-label">Transparent opponent randomizer</span><h2>Opponent Draw Ceremony</h2><p>Pending Draw ID <b>${esc(ceremony.id)}</b> · nothing changes in the official schedule until this draw is locked.</p></div><button id="closeOpponentDraw" aria-label="Close">×</button></header><div class="draw-method"><b>Live ceremony workflow</b><ol><li>Only categories with omitted opponents need a draw.</li><li>The club with more pairs draws first; tied categories begin with OCPC.</li><li>Each selected exclusion leaves the wheel until the balanced draw bag is exhausted.</li><li>Review recommended categories, then lock the result into the schedule.</li></ol><p>The selected match cap is applied as evenly as mathematically possible. Closing this screen keeps the ceremony draft so it can be resumed.</p></div><nav>${config.categories.map(item => { const needed = categoryNeedsDraw(item), categoryDraft = ceremony.categories[item], required = pairCount(item, drawSourceClub(item)), status = !needed ? 'Not needed' : !categoryDraft ? 'Not started' : categoryDraft.revealed === required ? 'Complete' : `${categoryDraft.revealed}/${required}`; return `<button class="${item === category ? 'active' : ''}" data-draw-category="${esc(item)}" ${needed ? '' : 'disabled'}>${esc(item)} <small>${status}</small></button>`; }).join('')}</nav>${order ? `<div class="draw-order"><article><span>${esc(sourceLabel)} draw order · ${order[source].length} pairs</span><div>${order[source].map((code, index) => index < revealed ? pairChip(code) : '<span class="draw-ball concealed"><b>Sealed</b><small>Awaiting draw</small></span>').join('')}</div></article><article><span>${esc(opponentLabel)} draw bag · ${order[opponent].length} pairs</span><div>${order[opponent].map(pairChip).join('')}</div></article></div><div class="draw-progress"><b>${esc(category)}</b><span>${revealed} of ${count} ${esc(sourceLabel)} pair assignments revealed</span><i><u style="width:${revealed / count * 100}%"></u></i></div><div class="draw-matrix" style="--draw-cols:${rounds + 2}"><div class="draw-matrix-head"><b>${esc(sourceLabel)} pair</b>${Array.from({ length: rounds }, (_, index) => `<b>Opponent ${index + 1}</b>`).join('')}<b>Not scheduled</b></div>${rows}</div>` : `<div class="draw-blank"><span>Category not started</span><h3>${esc(category)}</h3><p>${pairCount(category, 'ocpc')} OCPC pairs and ${pairCount(category, 'rebels')} Rally Rebels pairs. ${esc(sourceLabel)} will draw because this format omits at least one possible opposing pair.</p><button class="btn btn-primary" id="startDrawCategory">Start ${esc(category)} draw</button></div>`}<footer><div>${order && revealed < count ? `<button class="btn btn-primary" id="revealNextDraw">Draw next pair assignment</button>` : order ? '<span class="draw-complete">Category draw complete</span>' : ''}</div><button class="btn ${allComplete ? 'btn-primary' : 'btn-quiet'}" id="lockOpponentDraw" ${allComplete ? '' : 'disabled'}>Officially lock and apply to schedule</button></footer></section></div>`);
     $('#closeOpponentDraw').onclick = () => { saveState(); $('#opponentDrawCeremony').remove(); renderOpponentDraw(); }; $('#opponentDrawCeremony').onclick = event => { if (event.target.id === 'opponentDrawCeremony') { saveState(); event.currentTarget.remove(); renderOpponentDraw(); } }; $$('[data-draw-category]').forEach(button => button.onclick = () => openOpponentDrawCeremony(button.dataset.drawCategory)); if ($('#startDrawCategory')) $('#startDrawCategory').onclick = () => startDrawCategory(category); if ($('#revealNextDraw')) $('#revealNextDraw').onclick = () => revealNextDraw(category); $('#lockOpponentDraw').onclick = lockOpponentDrawCeremony;
   }
+  function imageBlob(file, edge = 1024) {
+    return new Promise((resolve, reject) => {
+      const image = new Image(), source = URL.createObjectURL(file);
+      image.onload = () => {
+        URL.revokeObjectURL(source);
+        const scale = Math.min(1, edge / Math.max(image.width, image.height)), width = Math.max(1, Math.round(image.width * scale)), height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+        const context = canvas.getContext('2d'); context.imageSmoothingEnabled = true; context.imageSmoothingQuality = 'high';
+        context.drawImage(image, 0, 0, width, height);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('IMAGE_PREP_FAILED')), 'image/webp', .9);
+      };
+      image.onerror = () => { URL.revokeObjectURL(source); reject(new Error('IMAGE_READ_FAILED')); };
+      image.src = source;
+    });
+  }
+  function bindClubLogoUpload(id, index) {
+    const suffix = index ? 'B' : 'A', file = $(`#whiteLabelClub${suffix}Logo`), preview = $(`#whiteLabelClub${suffix}LogoPreview`), saved = config.clubs.find(club => club.id === id)?.logo || '', logo = pendingClubLogos.get(id) || saved;
+    file.dataset.logo = logo;
+    if (preview) preview.src = logo;
+    file.onchange = async () => {
+      const picked = file.files?.[0]; if (!picked) return;
+      file.disabled = true;
+      if (preview) preview.classList.add('is-uploading');
+      try {
+        const url = await uploadTournamentImage(await imageBlob(picked), 'club-logo');
+        pendingClubLogos.set(id, url); file.dataset.logo = url;
+        if (preview) preview.src = url;
+        toast(`${clubLabel(id)} logo uploaded. Save tournament setup to publish it.`);
+      } catch (_) { toast('Logo upload failed. Please try a JPG, PNG, or WebP image.'); }
+      finally { file.disabled = false; if (preview) preview.classList.remove('is-uploading'); }
+    };
+  }
+  async function durableClubLogo(value) {
+    if (!String(value || '').startsWith('data:')) return value || '';
+    const response = await fetch(value);
+    if (!response.ok) throw new Error('LEGACY_LOGO_READ_FAILED');
+    return uploadTournamentImage(await response.blob(), 'club-logo');
+  }
   function renderSettings() {
-    if(!$('#whiteLabelClubALogo')){$('#whiteLabelClubAShort').parentElement.insertAdjacentHTML('afterend','<label>Club 1 logo<input id="whiteLabelClubALogo" type="file" accept="image/*"><img class="club-logo-preview" id="whiteLabelClubALogoPreview" alt="Club 1 logo preview"></label>');$('#whiteLabelClubBShort').parentElement.insertAdjacentHTML('afterend','<label>Club 2 logo<input id="whiteLabelClubBLogo" type="file" accept="image/*"><img class="club-logo-preview" id="whiteLabelClubBLogoPreview" alt="Club 2 logo preview"></label>');}['ocpc','rebels'].forEach((id,index)=>{const file=$(`#whiteLabelClub${index?'B':'A'}Logo`),preview=$(`#whiteLabelClub${index?'B':'A'}LogoPreview`),logo=config.clubs.find(club=>club.id===id)?.logo||'';file.dataset.logo=logo;if(preview)preview.src=logo||'';file.onchange=async()=>{const picked=file.files?.[0];if(!picked)return;const image=new Image();image.onload=()=>{const canvas=document.createElement('canvas'),size=512;canvas.width=size;canvas.height=size;const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,size,size);const scale=Math.min(size/image.width,size/image.height),width=image.width*scale,height=image.height*scale;context.drawImage(image,(size-width)/2,(size-height)/2,width,height);file.dataset.logo=canvas.toDataURL('image/webp',.86);if(preview)preview.src=file.dataset.logo;};image.src=URL.createObjectURL(picked);};});
+    if(!$('#whiteLabelClubALogo')){$('#whiteLabelClubAShort').parentElement.insertAdjacentHTML('afterend','<label>Club 1 logo<input id="whiteLabelClubALogo" type="file" accept="image/*"><img class="club-logo-preview" id="whiteLabelClubALogoPreview" alt="Club 1 logo preview"></label>');$('#whiteLabelClubBShort').parentElement.insertAdjacentHTML('afterend','<label>Club 2 logo<input id="whiteLabelClubBLogo" type="file" accept="image/*"><img class="club-logo-preview" id="whiteLabelClubBLogoPreview" alt="Club 2 logo preview"></label>');}
+    ['ocpc','rebels'].forEach(bindClubLogoUpload);
     $('#configList').innerHTML = [['Organizer', config.brand.organizer], ['Event', config.event.name], ['Venue', `${config.event.venue}, ${config.event.location}`], ['Courts', config.event.courts], ['Categories', config.categories.join(', ')], ['Storage', 'Firebase live sync with local cache']].map(([a, b]) => `<div class="config-row"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join('');
     const assignedIds = Object.keys(state.refereeAssignments);
     $('#refereeMatch').innerHTML = state.matches.filter(m => !isComplete(m.id) && (!matchHasStarted(m.id) || state.refereeAssignments?.[m.id])).map(m => `<option value="${m.id}">${m.id} · ${timeLabel(m.startMinutes)} · ${pairNames(m.category,m.a)} vs ${pairNames(m.category,m.b)}</option>`).join('');
@@ -869,15 +909,20 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
     const categoriesChanged = JSON.stringify(categories) !== JSON.stringify(config.categories), structural = categoriesChanged || courts !== Number(config.event.courts) || startMinutes !== Number(config.event.roundRobinStartMinutes) || slotMinutes !== Number(config.event.slotMinutes);
     if (structural && (Object.values(state.courts || {}).some(court=>court.matchId) || Object.keys(state.scores || {}).length || Object.values(state.liveScoring || {}).some(live=>live?.elapsed || live?.startedAt))) return showNotice('Court and schedule structure cannot be changed after match play begins. Identity, club names, logo, and colors can still be updated.','Schedule structure locked');
     const retainedPairs = structuredClone(state.pairs || {}), retainedCheckins = structuredClone(state.checkins || {}), retainedHistory = structuredClone(state.opponentDrawHistory || []), priorCounts = structuredClone(state.pairCounts || {});
+    $('#saveWhiteLabelBtn').disabled=true; try {
     Object.assign(config.event,{name:$('#whiteLabelEventName').value.trim(),date,displayDate:new Date(`${date}T12:00:00`).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),venue:$('#whiteLabelVenue').value.trim(),location:$('#whiteLabelLocation').value.trim()});
     Object.assign(config.brand,{organizer:$('#whiteLabelOrganizer').value.trim(),shortName:$('#whiteLabelShortName').value.trim(),logo:$('#whiteLabelLogo').value.trim()||'/assets/logo-2026.png',primary});
-    Object.assign(config.clubs.find(club=>club.id==='ocpc'),{name:$('#whiteLabelClubA').value.trim(),short:$('#whiteLabelClubAShort').value.trim(),logo:$('#whiteLabelClubALogo').dataset.logo||''}); Object.assign(config.clubs.find(club=>club.id==='rebels'),{name:$('#whiteLabelClubB').value.trim(),short:$('#whiteLabelClubBShort').value.trim(),logo:$('#whiteLabelClubBLogo').dataset.logo||''});
+    const [clubALogo, clubBLogo] = await Promise.all([
+      durableClubLogo($('#whiteLabelClubALogo').dataset.logo || ''),
+      durableClubLogo($('#whiteLabelClubBLogo').dataset.logo || '')
+    ]);
+    Object.assign(config.clubs.find(club=>club.id==='ocpc'),{name:$('#whiteLabelClubA').value.trim(),short:$('#whiteLabelClubAShort').value.trim(),logo:clubALogo}); Object.assign(config.clubs.find(club=>club.id==='rebels'),{name:$('#whiteLabelClubB').value.trim(),short:$('#whiteLabelClubBShort').value.trim(),logo:clubBLogo});
     if (structural) {
       Object.assign(config.event,{courts,slotMinutes,roundRobinStartMinutes:startMinutes,startTime:timeLabel(startMinutes)}); config.categories=categories;
       const nextCounts=Object.fromEntries(categories.map(category=>[category,priorCounts[category] || config.pairsPerCategory?.[category] || {ocpc:6,rebels:6}])); config.pairsPerCategory=structuredClone(nextCounts);
       state=freshState(nextCounts,categoriesChanged?null:state.opponentDraw,state.formatSettings,state.scheduleSettings,state.qualificationSettings); state.pairs={...state.pairs,...Object.fromEntries(Object.entries(retainedPairs).filter(([key])=>categories.includes(key.split('|')[0])))};state.checkins=retainedCheckins;state.opponentDrawHistory=retainedHistory;config.event.roundRobinWaves=Math.ceil(state.matches.length/courts);standingsCategory=teamCategory=medalCategory=categories[0];
     }
-    $('#saveWhiteLabelBtn').disabled=true; try { localStorage.setItem(storageKey,JSON.stringify(state)); await updateEventConfiguration(config); if(structural)await publishControl(state); location.reload(); } catch (_) { $('#saveWhiteLabelBtn').disabled=false; showNotice('Tournament setup could not be saved. Confirm the updated Firebase rules and Functions have been deployed.','White-label update failed'); }
+    localStorage.setItem(storageKey,JSON.stringify(state)); await updateEventConfiguration(config); if(structural)await publishControl(state); pendingClubLogos.clear(); location.reload(); } catch (_) { $('#saveWhiteLabelBtn').disabled=false; showNotice('Tournament setup could not be saved. Confirm the image upload and Firebase connection, then try again.','White-label update failed'); }
   }
   function applyMatchupFormat() {
     const next = formatSettings({ mode: $('#matchupFormatMode').value, matchCap: Number($('#matchupCap').value) }), current = formatSettings();

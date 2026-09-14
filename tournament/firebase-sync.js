@@ -5,6 +5,12 @@ import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, updateDoc, g
 const firebaseConfig = {
   apiKey: 'AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo', authDomain: 'ocpc-website-faf5e.firebaseapp.com', projectId: 'ocpc-website-faf5e', storageBucket: 'ocpc-website-faf5e.firebasestorage.app', messagingSenderId: '15833259684', appId: '1:15833259684:web:0f2f4400f9995517ae5031'
 };
+// The main OCPC site keeps uploaded portraits in Cloudinary and writes only
+// their durable HTTPS URL to Firestore.  Tournament images use that same
+// path: browser data URLs are only suitable for a temporary preview and can
+// make an event document exceed Firestore's document-size limit.
+const CLOUDINARY_CLOUD_NAME = 'spakpfuj';
+const CLOUDINARY_UPLOAD_PRESET = 'ocpc_player_photos';
 const eventId = window.TOURNAMENT_CONFIG.firebaseEventId;
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app), db = getFirestore(app), controlRef = doc(db, 'tournamentEvents', eventId), membersRef = collection(controlRef, 'members'), refereeBoardRef = doc(db, 'tournamentRefereeBoards', eventId), matchesRef = collection(db, 'tournamentEvents', eventId, 'matches'), registrationsRef = collection(db, 'tournamentEvents', eventId, 'registrations'), checkinsRef = collection(db, 'tournamentEvents', eventId, 'checkins');
@@ -19,6 +25,20 @@ export function watchAuth(callback) { return onAuthStateChanged(auth, callback);
 export async function login(email, password) { await setPersistence(auth, browserLocalPersistence); return signInWithEmailAndPassword(auth, email, password); }
 export async function createAccount(email, password, displayName = '') { const credential = await createUserWithEmailAndPassword(auth, email, password), normalizedEmail = String(email).trim().toLowerCase(), name = String(displayName || normalizedEmail.split('@')[0].replace(/[._-]+/g,' ')).trim(); await setDoc(doc(db,'tournamentUsers',credential.user.uid), { uid:credential.user.uid, displayName:name, email:normalizedEmail, accountStatus:'active', platformRole:'user', organizerStatus:'none', createdAt:serverTimestamp(), updatedAt:serverTimestamp() }); await setDoc(doc(db,'tournamentAccountDirectory',normalizedEmail), { uid:credential.user.uid,email:normalizedEmail,name,updatedAt:serverTimestamp() }); return credential; }
 export function logout() { return signOut(auth); }
+export async function uploadTournamentImage(file, kind = 'matchday') {
+  if (!(file instanceof Blob)) throw new Error('IMAGE_REQUIRED');
+  if (file.size > 12 * 1024 * 1024) throw new Error('IMAGE_TOO_LARGE');
+  const formData = new FormData();
+  formData.append('file', file, `matchday-${kind}-${Date.now()}.${file.type.includes('webp') ? 'webp' : 'jpg'}`);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', `tournament-assets/${eventId}/${kind}`);
+  formData.append('tags', `matchday,tournament,${eventId},${kind}`);
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+  if (!response.ok) throw new Error('IMAGE_UPLOAD_FAILED');
+  const payload = await response.json();
+  if (!payload?.secure_url) throw new Error('IMAGE_URL_MISSING');
+  return payload.secure_url;
+}
 export async function updateEventConfiguration(config) { const metadata = { name:config.event.name, date:config.event.date, venue:config.event.venue, location:config.event.location, status:'private', primary:config.brand.primary }, members = await getDocs(membersRef), batch = writeBatch(db); batch.set(controlRef, { config:structuredClone(config), metadata, updatedAt:serverTimestamp() }, { merge:true }); members.docs.forEach(member => { const roles = roleList(member.data()).filter(role => EVENT_ROLES.includes(role)); batch.set(doc(db,'tournamentAccess',member.id,'events',eventId), { eventId, ...metadata, roles, role:primaryRole(roles), updatedAt:serverTimestamp() }, { merge:true }); }); await batch.commit(); }
 export async function getCurrentProfile(user) {
   if (!user) return null;
@@ -49,7 +69,14 @@ export function watchRefereeBoard(onData, onError) { return onSnapshot(refereeBo
 export function watchMatches(onData, onError) { return onSnapshot(matchesRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
 export function watchRegistrations(onData, onError) { return onSnapshot(registrationsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
 export function watchCheckins(onData, onError) { return onSnapshot(checkinsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
-export function publishCheckin(id, data) { return setDoc(doc(checkinsRef, id), { ...structuredClone(data), updatedAt: serverTimestamp() }, { merge: true }); }
+export function publishCheckin(id, data) {
+  const safe = structuredClone(data);
+  // Legacy base64 thumbnails are intentionally never written again. Existing
+  // records remain readable as a fallback while new captures use photoURL.
+  if (String(safe.photoThumb || '').startsWith('data:')) delete safe.photoThumb;
+  if (!safe.photoURL && safe.photoThumb) safe.photoURL = safe.photoThumb;
+  return setDoc(doc(checkinsRef, id), { ...safe, updatedAt: serverTimestamp() }, { merge: true });
+}
 export function deleteCheckin(id) { return deleteDoc(doc(checkinsRef, id)); }
 export function createRegistration(data) { return addDoc(registrationsRef, { ...structuredClone(data), createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); }
 export function updateRegistration(id, data) { return updateDoc(doc(registrationsRef, id), { ...structuredClone(data), updatedAt: serverTimestamp() }); }
@@ -77,7 +104,11 @@ export async function changeTournamentStaffRole(email, role, enabled) {
 }
 export async function publishControl(state) {
   const safe = structuredClone(state); delete safe.liveScoring;
-  Object.values(safe.checkins || {}).forEach(player => delete player.photo);
+  Object.values(safe.checkins || {}).forEach(player => {
+    delete player.photo;
+    if (String(player.photoThumb || '').startsWith('data:')) delete player.photoThumb;
+    if (!player.photoURL && player.photoThumb) player.photoURL = player.photoThumb;
+  });
   Object.values(safe.scores || {}).forEach(score => { if (score.confirmation) { delete score.confirmation.ocpcSignature; delete score.confirmation.rebelsSignature; } });
   const refereeState = { matches:safe.matches || [], pairs:safe.pairs || {}, courts:safe.courts || {}, scores:safe.scores || {}, matchSettings:safe.matchSettings || {}, refereeAssignments:safe.refereeAssignments || {}, updatedAt:safe.updatedAt || new Date().toISOString() };
   const batch=writeBatch(db);batch.set(controlRef,{state:safe,refereeEmails:[...new Set(Object.values(state.refereeAssignments||{}))],updatedAt:serverTimestamp()},{merge:true});batch.set(refereeBoardRef,{state:refereeState,updatedAt:serverTimestamp()},{merge:true});

@@ -26,7 +26,7 @@ const { watchAuth, login, logout, getCurrentProfile, watchMembership, watchRefer
       .finally(() => { if (pendingMatchWrites.get(matchId) === sequence) pendingMatchWrites.delete(matchId); if(matchWriteChains.get(matchId)===chain)matchWriteChains.delete(matchId); });
   }
   function players(category, code) { const p = state.pairs[`${category}|${code}`] || {}; return [p.player1 || `${code} Player 1`, p.player2 || `${code} Player 2`]; }
-  function playerPhoto(category, code, clubId, index) { return Object.values(state.checkins || {}).find(item => item.category === category && item.pair === code && item.club === clubId && Number(item.playerIndex) === index)?.photoThumb || ''; }
+  function playerPhoto(category, code, clubId, index) { const checkin = Object.values(state.checkins || {}).find(item => item.category === category && item.pair === code && item.club === clubId && Number(item.playerIndex) === index); return checkin?.photoURL || checkin?.photoThumb || ''; }
   function names(category, code) { return players(category, code).join(' / '); }
   function prefix(category) { if (category === 'Novice') return 'NOV'; if (category === 'Low Intermediate') return 'LOW'; if (category === 'High Intermediate') return 'HIGH'; return String(category).replace(/[^a-z0-9 ]/gi,'').split(/\s+/).filter(Boolean).map(word=>word[0]).join('').slice(0,4).toUpperCase() || 'CAT'; }
   function toast(message) { const el = $('#officialToast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 1800); }
