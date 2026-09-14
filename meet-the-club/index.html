@@ -582,7 +582,8 @@
   //
   // Each entry needs: name, photo (path to a square-ish image).
   // "role" is optional — leave it out for a plain member listing.
-  // Leave ALL three arrays empty to show the "Profiles Coming Soon" placeholder.
+  // Keep this list limited to confirmed OCPC members. Tournament staff and
+  // organizers are managed separately and do not automatically appear here.
   const team = {
     leadership: [
       { name: "Maria Sarah Asa", role: "Club President / Director of Operations", photo: "/assets/directory/ria-asa.jpg" },
@@ -609,22 +610,6 @@
       { name: "Denzel", photo: "/assets/directory/denzel.jpg" },
       { name: "Lanze Rex Belli Esperila", photo: "/assets/directory/lanze.jpg" },
       { name: "Carl Jerome Boglosa", photo: "/assets/directory/carl.jpg" },
-      { name: "Greg", photo: "/assets/directory/blank.svg" },
-      { name: "Bam", photo: "/assets/directory/blank.svg" },
-      { name: "Urie", photo: "/assets/directory/blank.svg" },
-      { name: "Jonas", photo: "/assets/directory/blank.svg" },
-      { name: "Dante", photo: "/assets/directory/blank.svg" },
-      { name: "Vic", photo: "/assets/directory/blank.svg" },
-      { name: "Liam", photo: "/assets/directory/blank.svg" },
-      { name: "Sean Xander Beltran", photo: "/assets/directory/blank.svg" },
-      { name: "Dirk Altea", photo: "/assets/directory/blank.svg" },
-      { name: "Dwayne Altea", photo: "/assets/directory/blank.svg" },
-      { name: "Niel", photo: "/assets/directory/blank.svg" },
-      { name: "Jay", photo: "/assets/directory/blank.svg" },
-      { name: "Ten", photo: "/assets/directory/blank.svg" },
-      { name: "Kath", photo: "/assets/directory/blank.svg" },
-      { name: "Gaea Sorino", photo: "/assets/directory/blank.svg" },
-      { name: "Laly", photo: "/assets/directory/blank.svg" },
     ],
   };
   // ===============================================================
@@ -700,6 +685,10 @@
     return String(str).replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   }
 
+  // This page is the public OCPC membership roster, not the tournament-staff
+  // directory. Keep approved organizers out unless they are confirmed members.
+  const excludedRosterMembers = new Set(['tito chuck']);
+
   // Syncs approved player signups (from the "roster" collection) into the
   // static team lists above. If a roster name matches an EXISTING static
   // entry (leadership/officers/members), that entry's photo is updated in
@@ -715,7 +704,7 @@
 
       roster.forEach(p => {
         const name = `${toTitleCase(p.firstName || '')} ${toTitleCase(p.lastName || '')}`.trim();
-        if (!name || !p.photoURL) return;
+        if (!name || !p.photoURL || excludedRosterMembers.has(name.toLowerCase())) return;
         const match = allStatic.find(m => m.name.trim().toLowerCase() === name.toLowerCase());
         if (match){
           match.photo = p.photoURL;
