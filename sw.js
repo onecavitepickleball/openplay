@@ -2,7 +2,7 @@
 // HTML pages (so content stays fresh; cache is only a fallback if offline).
 // Never intercepts cross-origin requests (Firebase, Cloudinary, Google
 // Analytics, gstatic, etc.) — those always go straight to the network.
-const CACHE_NAME = 'ocpc-v29';
+const CACHE_NAME = 'ocpc-v30';
 const PRECACHE_URLS = ['/styles.css', '/script.js', '/nav-auth.js', '/assets/logo-2026.png'];
 
 // Firebase Cloud Messaging needs to run inside this same service worker
@@ -63,6 +63,20 @@ self.addEventListener('fetch', (event) => {
   if (isHTML) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request).then(r => r || caches.match('/')))
+    );
+    return;
+  }
+
+  // Match Control is a live operations system. Never let an older cached
+  // module run beside newer tournament markup or Firebase rules; prefer the
+  // network and only fall back to cache while genuinely offline.
+  if (url.pathname.startsWith('/tournament/')) {
+    event.respondWith(
+      fetch(event.request).then(res => {
+        const resClone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+        return res;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
