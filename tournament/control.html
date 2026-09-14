@@ -41,7 +41,7 @@
         <button class="nav-item" data-view="draw"><span>08</span>Opponent Draw</button>
         <button class="nav-item" data-view="settings"><span>09</span>Settings</button>
         <button class="nav-item" data-view="announcements"><span>10</span>Announcements</button>
-        <button class="nav-item" data-view="archive"><span>11</span>Archive</button>
+        <button class="nav-item" data-view="archive" hidden><span>11</span>Archive</button>
       </nav>
       <div class="sidebar-foot">
         <div class="sync-dot"></div><span>Firebase live sync</span>
@@ -109,7 +109,7 @@
         <div id="clubStandings"></div>
         <div class="category-tabs" id="standingsTabs"></div><div class="standings-grid" id="standingsGrid"></div>
         <div id="dreamBreakerSummary"></div>
-        <section class="panel public-share-panel"><div><span class="section-label">Spectator access</span><h2>Share live standings</h2><p>Create one active QR code and link for this tournament's public standings and medal round. Regenerating it disables the old link.</p><div class="public-share-actions"><button class="btn btn-primary" id="generatePublicLink">Generate secure link</button><button class="btn btn-quiet" id="copyPublicLink" hidden>Copy link</button></div><a id="publicStandingsLink" target="_blank" rel="noopener"></a></div><div id="publicStandingsQr" aria-label="Public standings QR code"></div></section>
+        <section class="panel public-share-panel"><div><span class="section-label">Spectator access</span><h2>Share live standings</h2><p>Generate one secure link for the live standings and medal round. Pair names in the standings open their individual live player profile.</p><div class="public-share-actions"><button class="btn btn-primary" id="generatePublicLink">Generate secure link</button><button class="btn btn-quiet" id="copyPublicLink" hidden>Copy standings link</button></div><a id="publicStandingsLink" target="_blank" rel="noopener"></a></div><div id="publicStandingsQr" aria-label="Public standings QR code"></div></section>
       </section>
 
       <section class="view" id="view-dream">
