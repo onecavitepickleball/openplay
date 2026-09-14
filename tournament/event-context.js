@@ -4,7 +4,9 @@ const LEGACY_EVENT_ID = 'ocpc-rally-rebels-dual-meet-2026';
 
 function waitForAuth(auth, onAuthStateChanged) {
   return new Promise(resolve => {
-    const stop = onAuthStateChanged(auth, user => { stop(); resolve(user); });
+    let settled = false, stop = () => {}, timeout = setTimeout(() => finish(null), 5000);
+    const finish = user => { if (settled) return; settled = true; clearTimeout(timeout); stop(); resolve(user); };
+    stop = onAuthStateChanged(auth, finish, () => finish(null));
   });
 }
 
