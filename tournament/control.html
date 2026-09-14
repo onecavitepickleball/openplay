@@ -166,6 +166,8 @@
   </div>
   <div class="toast" id="toast" role="status"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script type="module" src="event-entry.js?v={{ site.github.build_revision }}"></script>
+  <!-- A unique module URL prevents an older service-worker cache from mixing
+       stale Match Control code with newly deployed tournament markup. -->
+  <script type="module">import(`./event-entry.js?boot=${Date.now()}`);</script>
 </body>
 </html>
