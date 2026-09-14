@@ -20,6 +20,7 @@
       <div><span class="eyebrow">Tournament operations</span><h1 id="eventName">Loading tournament…</h1><p id="eventMeta"></p></div>
       <div class="cover-note"><b>Prepared for matchday</b><span id="generatedAt"></span></div>
     </section>
+    <section class="front-desk-access" id="publicAccess"><div class="front-desk-copy"><span class="eyebrow">For players and spectators</span><h2>Follow the matchday live</h2><p>Scan this code for live court updates, club standings, medal rounds, and clickable pair profiles.</p><strong>Keep this poster at the front desk.</strong></div><div class="front-desk-qr"><div id="publicAccessQr" aria-label="QR code for live public standings"></div><small>Scan for live standings</small></div></section>
     <nav class="pack-nav" aria-label="Operations pack sections">
       <a href="#schedules">Court schedules</a><a href="#checkin">Check-in roster</a><a href="#officials">Referee assignments</a><a href="#scoresheets">Emergency score sheets</a><a href="#medals">Medal round</a>
     </nav>
@@ -31,6 +32,7 @@
     <section id="medals" class="pack-section"><div class="section-head"><div><span class="eyebrow">05 · Finals</span><h2>Medal-round sheets</h2></div><button class="button" data-print-section="medals" type="button">Print medal sheets</button></div><div id="medalSheets" class="medal-grid"></div></section>
   </main>
   <template id="empty"><div class="empty">No data is available yet.</div></template>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script type="module" src="operations.js"></script>
 </body>
 </html>

@@ -39,7 +39,8 @@ function renderMedals() {
   });
   $('#medalSheets').innerHTML = cards.length ? cards.join('') : '<div class="empty">Medal matches appear here once seeds are set and the round robin is complete.</div>';
 }
-function renderAll() { renderSchedules(); renderRoster(); renderOfficials(); renderScoreSheets(); renderMedals(); $('#generatedAt').textContent = `Last refreshed ${new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date())}`; }
+function renderPublicAccess() { const target = $('#publicAccessQr'), token = state.publicShare?.token; if (!target) return; target.innerHTML = ''; if (!token) { target.innerHTML = '<span class="qr-empty">Link not generated yet</span>'; return; } const url = new URL('../public/', location.href); url.searchParams.set('event', config.firebaseEventId); url.searchParams.set('token', token); if (window.QRCode) new QRCode(target, { text:url.href, width:190, height:190, colorDark:'#082a3e', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M }); target.dataset.url = url.href; }
+function renderAll() { renderSchedules(); renderRoster(); renderOfficials(); renderScoreSheets(); renderMedals(); renderPublicAccess(); $('#generatedAt').textContent = `Last refreshed ${new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date())}`; }
 function wirePrintButtons() { $('#printAll').onclick = () => window.print(); document.querySelectorAll('[data-print-section]').forEach(button => button.onclick = () => { const target = document.getElementById(button.dataset.printSection); document.body.dataset.printSection = button.dataset.printSection; target.scrollIntoView(); window.print(); delete document.body.dataset.printSection; }); }
 
 async function start() {
