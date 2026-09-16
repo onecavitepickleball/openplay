@@ -947,7 +947,14 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
       const nextCounts=Object.fromEntries(categories.map(category=>[category,priorCounts[category] || config.pairsPerCategory?.[category] || {ocpc:6,rebels:6}])); config.pairsPerCategory=structuredClone(nextCounts);
       state=freshState(nextCounts,categoriesChanged?null:state.opponentDraw,state.formatSettings,state.scheduleSettings,state.qualificationSettings); state.pairs={...state.pairs,...Object.fromEntries(Object.entries(retainedPairs).filter(([key])=>categories.includes(key.split('|')[0])))};state.checkins=retainedCheckins;state.opponentDrawHistory=retainedHistory;config.event.roundRobinWaves=Math.ceil(state.matches.length/courts);standingsCategory=teamCategory=medalCategory=categories[0];
     }
-    localStorage.setItem(storageKey,JSON.stringify(state)); await updateEventConfiguration(config); if(structural)await publishControl(state); pendingClubLogos.clear(); location.reload(); } catch (_) { $('#saveWhiteLabelBtn').disabled=false; showNotice('Tournament setup could not be saved. Confirm the image upload and Firebase connection, then try again.','White-label update failed'); }
+    localStorage.setItem(storageKey,JSON.stringify(state));
+    await updateEventConfiguration(config);
+    // Branding lives in the event configuration, while the field apps and
+    // public view consume the live state projection. Publish both together so
+    // a newly uploaded Cloudinary logo never leaves those views on stale URLs.
+    await publishControl(state);
+    if (state.publicShare?.token) await publishPublicView(state.publicShare.token, publicProjection());
+    pendingClubLogos.clear(); location.reload(); } catch (_) { $('#saveWhiteLabelBtn').disabled=false; showNotice('Tournament setup could not be saved. Confirm the image upload and Firebase connection, then try again.','White-label update failed'); }
   }
   function applyMatchupFormat() {
     const next = formatSettings({ mode: $('#matchupFormatMode').value, matchCap: Number($('#matchupCap').value) }), current = formatSettings();

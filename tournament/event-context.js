@@ -15,6 +15,11 @@ function absoluteLogo(value) {
   try { return new URL(value, `${location.origin}/tournament/`).href; } catch (_) { return `${location.origin}/assets/logo-2026.png`; }
 }
 
+function absoluteClubLogo(value) {
+  if (!String(value || '').trim()) return '';
+  try { return new URL(String(value).trim(), `${location.origin}/tournament/`).href; } catch (_) { return ''; }
+}
+
 export function currentEventId() {
   return new URLSearchParams(location.search).get('event') || sessionStorage.getItem('matchday.currentEvent') || LEGACY_EVENT_ID;
 }
@@ -51,6 +56,7 @@ export async function loadTournamentContext() {
   config.firebaseEventId = eventId;
   config.storageKey = `matchday.${eventId}`;
   config.brand.logo = absoluteLogo(config.brand.logo);
+  config.clubs = config.clubs.map(club => ({ ...club, logo:absoluteClubLogo(club.logo) }));
   window.TOURNAMENT_CONFIG = config;
   window.MATCHDAY_EVENT_ID = eventId;
   window.MATCHDAY_EVENT_URL = eventUrl;
