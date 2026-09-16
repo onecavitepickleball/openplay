@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <a class="sports360-btn" href="https://app.sports360.ph/sportshub/one-cavite-pickleball-club" target="_blank" rel="noopener" aria-label="Book on Sports360">
       <img src="/assets/partners/sports360.png" alt="Sports360" width="34" height="34">
     </a>
-    <span class="sports360-tooltip">Book on Sports360</span>
+    <span class="sports360-tooltip">Find us on Sports360</span>
   `;
   document.body.appendChild(sportsWidget);
 

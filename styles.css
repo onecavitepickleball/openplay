@@ -1028,7 +1028,7 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
 /* ---- FLOATING MESSENGER WIDGET ---- */
 .fb-msg-widget{
   position:fixed;
-  right:12px;
+  left:14px;
   bottom:12px;
   z-index:250;
   width:56px;
@@ -1044,25 +1044,25 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
   display:flex;
   align-items:center;
   justify-content:center;
-  box-shadow: 0 6px 20px rgba(11,36,54,0.3);
-  transition: transform .15s ease;
+  box-shadow: 0 8px 24px rgba(11,36,54,0.26);
+  transition: transform .2s ease, box-shadow .2s ease;
 }
-.fb-msg-btn:hover{ transform: scale(1.08); }
+.fb-msg-btn:hover{ transform: translateY(-3px) scale(1.04); box-shadow:0 12px 28px rgba(11,36,54,.35); }
 .fb-msg-tooltip{
   position:absolute;
-  right:calc(100% + 12px);
+  left:calc(100% + 10px);
   top:50%;
   background: var(--navy);
   color: var(--paper);
   font-family: var(--font-mono);
-  font-size:12px;
-  letter-spacing:0.04em;
-  padding:9px 14px;
-  border-radius:4px;
+  font-size:10px;
+  letter-spacing:0.02em;
+  padding:8px 11px;
+  border-radius:999px;
   white-space:nowrap;
   opacity:0;
-  transform: translateY(-50%) translateX(6px);
-  transition: opacity .15s ease, transform .15s ease;
+  transform: translateY(-50%) translateX(-5px);
+  transition: opacity .2s ease, transform .2s ease;
   pointer-events:none;
 }
 .fb-msg-widget:hover .fb-msg-tooltip{ opacity:1; transform: translateY(-50%) translateX(0); }
@@ -1070,7 +1070,7 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
 /* ---- FLOATING SPORTS360 BOOKING WIDGET ---- */
 .sports360-widget{
   position:fixed;
-  right:12px;
+  left:14px;
   bottom:80px;
   z-index:250;
   width:56px;
@@ -1080,17 +1080,17 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
   width:56px;
   height:56px;
   border-radius:50%;
-  background:#111;
+  background:#000;
   display:flex;
   align-items:center;
   justify-content:center;
-  box-shadow:0 6px 20px rgba(11,36,54,.28);
-  border:2px solid rgba(255,255,255,.85);
-  transition:transform .15s ease, box-shadow .15s ease;
+  box-shadow:0 8px 24px rgba(0,0,0,.28);
+  border:2px solid #000;
+  transition:transform .2s ease, box-shadow .2s ease;
 }
 .sports360-btn:hover{
-  transform:scale(1.08);
-  box-shadow:0 9px 24px rgba(242,102,42,.34);
+  transform:translateY(-3px) scale(1.04);
+  box-shadow:0 12px 28px rgba(242,102,42,.34);
 }
 .sports360-btn img{
   display:block;
@@ -1100,27 +1100,27 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
 }
 .sports360-tooltip{
   position:absolute;
-  right:calc(100% + 12px);
+  left:calc(100% + 10px);
   top:50%;
   background:var(--navy);
   color:var(--paper);
   font-family:var(--font-mono);
-  font-size:12px;
-  letter-spacing:.04em;
-  padding:9px 14px;
-  border-radius:4px;
+  font-size:10px;
+  letter-spacing:.02em;
+  padding:8px 11px;
+  border-radius:999px;
   white-space:nowrap;
   opacity:0;
-  transform:translateY(-50%) translateX(6px);
-  transition:opacity .15s ease, transform .15s ease;
+  transform:translateY(-50%) translateX(-5px);
+  transition:opacity .2s ease, transform .2s ease;
   pointer-events:none;
 }
 .sports360-widget:hover .sports360-tooltip{ opacity:1; transform:translateY(-50%) translateX(0); }
 
 @media (max-width: 560px){
-  .fb-msg-widget{ right:8px; bottom:8px; width:50px; height:50px; }
+  .fb-msg-widget{ left:8px; bottom:8px; width:50px; height:50px; }
   .fb-msg-btn{ width:50px; height:50px; }
-  .sports360-widget{ right:8px; bottom:66px; width:50px; height:50px; }
+  .sports360-widget{ left:8px; bottom:66px; width:50px; height:50px; }
   .sports360-btn{ width:50px; height:50px; }
   .sports360-btn img{ width:31px; height:31px; }
   .fb-msg-tooltip{ display:none; }
