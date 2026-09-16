@@ -1067,10 +1067,64 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
 }
 .fb-msg-widget:hover .fb-msg-tooltip{ opacity:1; transform: translateY(-50%) translateX(0); }
 
+/* ---- FLOATING SPORTS360 BOOKING WIDGET ---- */
+.sports360-widget{
+  position:fixed;
+  right:12px;
+  bottom:80px;
+  z-index:250;
+  width:56px;
+  height:56px;
+}
+.sports360-btn{
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background:#111;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 6px 20px rgba(11,36,54,.28);
+  border:2px solid rgba(255,255,255,.85);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.sports360-btn:hover{
+  transform:scale(1.08);
+  box-shadow:0 9px 24px rgba(242,102,42,.34);
+}
+.sports360-btn img{
+  display:block;
+  width:34px;
+  height:34px;
+  object-fit:contain;
+}
+.sports360-tooltip{
+  position:absolute;
+  right:calc(100% + 12px);
+  top:50%;
+  background:var(--navy);
+  color:var(--paper);
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:.04em;
+  padding:9px 14px;
+  border-radius:4px;
+  white-space:nowrap;
+  opacity:0;
+  transform:translateY(-50%) translateX(6px);
+  transition:opacity .15s ease, transform .15s ease;
+  pointer-events:none;
+}
+.sports360-widget:hover .sports360-tooltip{ opacity:1; transform:translateY(-50%) translateX(0); }
+
 @media (max-width: 560px){
   .fb-msg-widget{ right:8px; bottom:8px; width:50px; height:50px; }
   .fb-msg-btn{ width:50px; height:50px; }
+  .sports360-widget{ right:8px; bottom:66px; width:50px; height:50px; }
+  .sports360-btn{ width:50px; height:50px; }
+  .sports360-btn img{ width:31px; height:31px; }
   .fb-msg-tooltip{ display:none; }
+  .sports360-tooltip{ display:none; }
 }
 
 /* ---- ORDER MODAL (shared shop checkout — used by every product page) ---- */

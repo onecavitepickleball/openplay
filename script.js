@@ -358,6 +358,17 @@ document.addEventListener('DOMContentLoaded', () => {
   `;
   document.body.appendChild(msgWidget);
 
+  // ---- Floating Sports360 booking widget ----
+  const sportsWidget = document.createElement('div');
+  sportsWidget.className = 'sports360-widget';
+  sportsWidget.innerHTML = `
+    <a class="sports360-btn" href="https://app.sports360.ph/sportshub/one-cavite-pickleball-club" target="_blank" rel="noopener" aria-label="Book on Sports360">
+      <img src="/assets/partners/sports360.png" alt="Sports360" width="34" height="34">
+    </a>
+    <span class="sports360-tooltip">Book on Sports360</span>
+  `;
+  document.body.appendChild(sportsWidget);
+
   // ---- Scroll-reveal animations ----
   const revealEls = document.querySelectorAll('.reveal, .reveal-stagger');
   if (revealEls.length && 'IntersectionObserver' in window) {
