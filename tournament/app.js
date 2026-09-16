@@ -764,8 +764,33 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
     const mode = state.drawCeremonyDraft?.mode || 'crypto', modeInput = $(`[name="drawMode"][value="${mode}"]`); if (modeInput) modeInput.checked = true;
     if (!draw || state.opponentDrawRecorded === false) { panel.innerHTML = `<div class="draw-empty-state"><span class="section-label">Official record</span><h3>No official draw locked yet</h3><p>The current schedule remains unchanged. Start a ceremony when both clubs are ready, then lock it to create the first official Draw ID.</p><div class="draw-actions"><button class="btn btn-primary" id="presentOpponentDraw">${state.drawCeremonyDraft ? 'Resume draw ceremony' : 'Start new draw ceremony'}</button><span>0 prior draws retained in audit history</span></div></div>`; $('#presentOpponentDraw').onclick = () => openOpponentDrawCeremony(); return; }
     const rows = config.categories.map(category => { const codes = [...draw.categories[category].ocpc, ...draw.categories[category].rebels], exclusions = codes.map(code => { const opponents = state.matches.filter(match => match.category === category && (match.a === code || match.b === code)).map(match => code.startsWith('O') ? match.b : match.a), opponentClub = code.startsWith('O') ? config.clubs.find(club => club.id === 'rebels') : config.clubs.find(club => club.id === 'ocpc'), omitted = Array.from({ length: pairCount(category, opponentClub.id) }, (_, index) => `${opponentClub.pairPrefix}${index + 1}`).filter(other => !opponents.includes(other)); return `<div><b>${esc(displayPair(category, code))}</b><span>${omitted.length ? `Does not play ${omitted.map(other => esc(displayPair(category, other))).join(', ')}` : 'Plays every opposing pair'}</span></div>`; }).join(''); return `<section class="draw-category"><h3>${esc(category)} · ${pairCount(category, 'ocpc')} ${esc(clubLabel('ocpc',true))} / ${pairCount(category, 'rebels')} ${esc(clubLabel('rebels',true))} · ${categoryMatchCount(category)} matches</h3>${exclusions}</section>`; }).join('');
-    panel.innerHTML = `<div class="draw-lock"><b>Draw ID ${esc(draw.id)}</b><span>Locked ${new Date(draw.lockedAt || draw.createdAt).toLocaleString()}</span></div><div class="draw-actions"><button class="btn btn-primary" id="presentOpponentDraw">${state.drawCeremonyDraft ? 'Resume draw ceremony' : 'Start new draw ceremony'}</button><span>${state.opponentDrawHistory?.length || 0} prior draw${state.opponentDrawHistory?.length === 1 ? '' : 's'} retained in audit history</span></div>${rows}`;
+    panel.innerHTML = `<div class="draw-lock"><b>Draw ID ${esc(draw.id)}</b><span>Locked ${new Date(draw.lockedAt || draw.createdAt).toLocaleString()}</span></div><div class="draw-actions"><button class="btn btn-primary" id="presentOpponentDraw">${state.drawCeremonyDraft ? 'Resume draw ceremony' : 'Start new draw ceremony'}</button>${canAdminTournament ? '<button class="btn btn-quiet" id="resetOpponentDrawRecord">Reset draw record</button>' : ''}<span>${state.opponentDrawHistory?.length || 0} prior draw${state.opponentDrawHistory?.length === 1 ? '' : 's'} retained in audit history</span></div>${rows}`;
     $('#presentOpponentDraw').onclick = () => openOpponentDrawCeremony();
+    $('#resetOpponentDrawRecord')?.addEventListener('click', confirmOpponentDrawReset);
+  }
+  function confirmOpponentDrawReset() {
+    if (!canAdminTournament) return toast('Only Full Match Control can reset the official draw record.');
+    if (demoMode || drawTestMode) return toast('Official draw records cannot be changed in simulation mode.');
+    $('#opponentDrawResetModal')?.remove();
+    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="opponentDrawResetModal"><section class="staff-removal-modal"><button class="modal-close contrast-close" data-close-draw-reset>×</button><span class="section-label">Reset opponent draw</span><h2>Clear the official draw record?</h2><p>This permanently clears the current Draw ID, every retained draw-audit entry, and the unfinished ceremony draft. The existing live schedule, pair registrations, and match-day data will not change.</p><div class="form-actions"><button class="btn btn-quiet" data-close-draw-reset>Keep draw record</button><button class="btn btn-danger" id="confirmOpponentDrawReset">Clear draw record</button></div></section></div>`);
+    const modal = $('#opponentDrawResetModal'), close = () => modal?.remove();
+    modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-draw-reset]')) close(); };
+    $('#confirmOpponentDrawReset').onclick = async () => {
+      const button = $('#confirmOpponentDrawReset'); button.disabled = true;
+      state.opponentDrawRecorded = false;
+      state.opponentDrawHistory = [];
+      state.drawCeremonyDraft = null;
+      try {
+        state.updatedAt = new Date().toISOString();
+        localStorage.setItem(storageKey, JSON.stringify(state));
+        await publishControl(structuredClone(state));
+        close(); renderOpponentDraw();
+        toast('Opponent draw record cleared. The live schedule was preserved.');
+      } catch (_) {
+        button.disabled = false;
+        toast('The draw record could not be cleared. Check your connection and try again.');
+      }
+    };
   }
   function selectedDrawMode() { return $('[name="drawMode"]:checked')?.value || state.drawCeremonyDraft?.mode || 'crypto'; }
   function drawSourceClub(category) { return pairCount(category, 'rebels') > pairCount(category, 'ocpc') ? 'rebels' : 'ocpc'; }
