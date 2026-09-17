@@ -1382,14 +1382,17 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
 .privacy-choice-accept,.third-party-embed-notice button{ background:var(--navy); color:var(--paper); border:1.5px solid var(--navy); }
 .cookie-settings-link{
   appearance:none;
-  border:0;
-  background:transparent;
-  color:inherit;
-  padding:0;
-  font:inherit;
-  text-decoration:underline;
+  border:1px solid rgba(245,243,238,.48);
+  background:rgba(245,243,238,.08);
+  color:var(--paper);
+  padding:7px 11px;
+  border-radius:999px;
+  font:700 11px var(--font-mono);
+  letter-spacing:.02em;
   cursor:pointer;
 }
+.privacy-tools{ display:inline-flex; margin-left:10px; }
+.cookie-settings-link:hover{ background:rgba(245,243,238,.18); border-color:var(--paper); }
 .third-party-embed-notice{
   display:grid;
   place-items:center;

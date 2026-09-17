@@ -62,13 +62,15 @@
   function addFooterControls() {
     document.querySelectorAll('.foot-legal').forEach((footer) => {
       if (!footer.querySelector('[data-cookie-settings]')) {
-        const sep = document.createTextNode(' · ');
+        const tools = document.createElement('span');
+        tools.className = 'privacy-tools';
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'cookie-settings-link';
         button.dataset.cookieSettings = 'true';
         button.textContent = 'Cookie Settings';
-        footer.append(sep, button);
+        tools.appendChild(button);
+        footer.appendChild(tools);
       }
     });
     document.querySelectorAll('[data-cookie-settings]').forEach((button) => button.addEventListener('click', showChoices));
