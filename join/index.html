@@ -3,14 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script>(function(){try{var t=localStorage.getItem('ocpc-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-H86SSQPCJ6');
-</script>
+<script src="/privacy-controls.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Join OCPC — One Cavite Pickleball Club</title>
 <meta name="description" content="Sign up as an OCPC player — get on Meet the Club and birthday shoutouts once you've played a few sessions with us.">
@@ -260,7 +253,7 @@
       <span><b>How it works:</b> signing up doesn't check you in automatically — an OCPC officer records attendance after each session. Once you've been checked in <b>3 times</b> (no need to be back-to-back), your profile goes live on Meet the Club and you'll get a birthday shoutout from us.</span>
     </div>
 
-    <form class="join-form" id="joinForm">
+    <form class="join-form" id="joinForm" data-privacy-consent="profile">
       <div class="form-row-pair">
         <div class="form-row">
           <label for="fFirstName">First Name</label>
@@ -279,13 +272,13 @@
       </div>
 
       <div class="form-row">
-        <label for="fBirthday">Birthday</label>
-        <input type="date" id="fBirthday" required>
+        <label for="fBirthday">Birthday <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(optional)</span></label>
+        <input type="date" id="fBirthday">
       </div>
 
       <div class="form-row">
-        <label for="fAddress">Address</label>
-        <textarea id="fAddress" required placeholder="Street, barangay, city"></textarea>
+        <label for="fAddress">Address <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(optional)</span></label>
+        <textarea id="fAddress" placeholder="Only if you want OCPC to have it for a club-related purpose"></textarea>
       </div>
 
       <div class="form-row-pair">
@@ -397,6 +390,8 @@
       <p class="foot-copyright">© <span class="foot-year">2026</span> One Cavite Pickleball Club. All rights reserved.</p>
       <div class="foot-legal">
         <a href="/privacy-policy/">Privacy Policy</a>
+        <a href="/cookies/">Cookie Policy</a>
+        <a href="/refund-policy/">Refund Policy</a>
         <a href="/accessibility/">Accessibility Help</a>
         <a href="/privacy-notice/">Privacy Notice</a>
         <a href="/terms/">Terms &amp; Conditions</a>
@@ -479,8 +474,8 @@
     const skillRating = document.getElementById('fSkill').value;
     const photoFile = photoInput.files[0];
 
-    if (!firstName || !lastName || !birthdayVal || !address || !phone || !email || !password || !skillRating){
-      msgEl.textContent = 'Please fill in every field.';
+    if (!firstName || !lastName || !phone || !email || !password || !skillRating){
+      msgEl.textContent = 'Please complete the required fields.';
       return;
     }
     if (password.length < 6){
@@ -488,7 +483,9 @@
       return;
     }
 
-    const [birthYear, birthMonth, birthDay] = birthdayVal.split('-').map(n => parseInt(n, 10));
+    const [birthYear, birthMonth, birthDay] = birthdayVal
+      ? birthdayVal.split('-').map(n => parseInt(n, 10))
+      : [null, null, null];
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Signing Up…';

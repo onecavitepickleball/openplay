@@ -3,14 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script>(function(){try{var t=localStorage.getItem('ocpc-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-H86SSQPCJ6');
-</script>
+<script src="/privacy-controls.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Give, One Cavite Pickleball Club</title>
 <meta name="description" content="Give to OCPC's October fundraiser via GCash, bank transfer, or confirm a GoGetFunding gift, at donation tiers starting at ₱300.">
@@ -268,7 +261,7 @@
     <p>Pick a tier below, or set your own amount. Local gifts go through GCash or bank transfer, and if you already gave through GoGetFunding, use this same form to confirm it and claim your Donor Board tier.</p>
   </div>
 
-  <form class="booking-form reveal" id="givingForm">
+  <form class="booking-form reveal" id="givingForm" data-privacy-consent="payment">
     <div class="form-row">
       <label>Choose a Tier <span style="text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:11.5px; color:var(--ink-faint);">(or enter any amount below)</span></label>
       <div class="tier-pick-grid" id="tierPickGrid"></div>
@@ -423,6 +416,8 @@
       <p class="foot-copyright">© <span class="foot-year">2026</span> One Cavite Pickleball Club. All rights reserved.</p>
       <div class="foot-legal">
         <a href="/privacy-policy/">Privacy Policy</a>
+        <a href="/cookies/">Cookie Policy</a>
+        <a href="/refund-policy/">Refund Policy</a>
         <a href="/accessibility/">Accessibility Help</a>
         <a href="/privacy-notice/">Privacy Notice</a>
         <a href="/terms/">Terms &amp; Conditions</a>

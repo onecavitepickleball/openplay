@@ -3,14 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script>(function(){try{var t=localStorage.getItem('ocpc-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-H86SSQPCJ6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-H86SSQPCJ6');
-</script>
+<script src="/privacy-controls.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Checkout — One Cavite Pickleball Club</title>
 <meta name="description" content="Complete your OCPC shop order.">
@@ -276,7 +269,7 @@
         </div>
       </div>
 
-      <form id="checkoutForm">
+      <form id="checkoutForm" data-privacy-consent="payment">
         <div class="checkout-section">
           <div class="checkout-section-title">Your Details</div>
           <div class="form-row">
@@ -295,8 +288,8 @@
             </div>
           </div>
           <div class="form-row">
-            <label for="orderFb">Facebook Name / Messenger <span class="optional-tag">(or paste your profile link)</span></label>
-            <input type="text" id="orderFb" required>
+            <label for="orderFb">Facebook Name / Messenger <span class="optional-tag">(optional, for order follow-up)</span></label>
+            <input type="text" id="orderFb">
           </div>
         </div>
 
@@ -443,6 +436,8 @@
       <p class="foot-copyright">© <span class="foot-year">2026</span> One Cavite Pickleball Club. All rights reserved.</p>
       <div class="foot-legal">
         <a href="/privacy-policy/">Privacy Policy</a>
+        <a href="/cookies/">Cookie Policy</a>
+        <a href="/refund-policy/">Refund Policy</a>
         <a href="/accessibility/">Accessibility Help</a>
         <a href="/privacy-notice/">Privacy Notice</a>
         <a href="/terms/">Terms &amp; Conditions</a>

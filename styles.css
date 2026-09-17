@@ -1334,3 +1334,90 @@ footer .foot-legal a:hover{ color: rgba(245,243,238,0.8); }
 @media (max-width: 520px){
   #givingFloatWidget{ left:16px; right:16px; width:auto; bottom:76px; }
 }
+
+/* ---- PRIVACY + ACCESSIBILITY CONTROLS ---- */
+:focus-visible{
+  outline:3px solid #005E89;
+  outline-offset:3px;
+}
+.skip-link{
+  position:fixed;
+  left:16px;
+  top:-70px;
+  z-index:10000;
+  padding:11px 14px;
+  background:var(--navy);
+  color:var(--paper);
+  border-radius:5px;
+  font-weight:800;
+  text-decoration:none;
+}
+.skip-link:focus{ top:16px; }
+.privacy-choice-banner{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:10001;
+  max-width:530px;
+  padding:18px;
+  border:2px solid var(--navy);
+  border-radius:10px;
+  background:var(--paper);
+  color:var(--ink);
+  box-shadow:0 16px 48px rgba(11,36,54,.28);
+}
+.privacy-choice-copy strong{ font-family:var(--font-display); font-size:16px; text-transform:uppercase; }
+.privacy-choice-copy p{ margin:7px 0 0; color:var(--ink-soft); font-size:13px; line-height:1.55; }
+.privacy-choice-copy a{ color:var(--sky-deep); font-weight:700; }
+.privacy-choice-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+.privacy-choice-actions button,
+.third-party-embed-notice button{
+  min-height:42px;
+  border-radius:5px;
+  padding:9px 13px;
+  font:700 12px var(--font-mono);
+  cursor:pointer;
+}
+.privacy-choice-reject{ background:var(--white); color:var(--ink); border:1.5px solid var(--line); }
+.privacy-choice-accept,.third-party-embed-notice button{ background:var(--navy); color:var(--paper); border:1.5px solid var(--navy); }
+.cookie-settings-link{
+  appearance:none;
+  border:0;
+  background:transparent;
+  color:inherit;
+  padding:0;
+  font:inherit;
+  text-decoration:underline;
+  cursor:pointer;
+}
+.third-party-embed-notice{
+  display:grid;
+  place-items:center;
+  min-height:220px;
+  padding:24px;
+  text-align:center;
+  border:1.5px solid var(--line);
+  border-radius:7px;
+  background:var(--paper-dim);
+}
+.third-party-embed-notice p{ max-width:440px; margin:0 0 13px; color:var(--ink-soft); line-height:1.55; }
+.privacy-form-consent{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  margin:18px 0;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:5px;
+  color:var(--ink-soft);
+  font-size:12.5px;
+  line-height:1.5;
+  text-transform:none;
+  letter-spacing:0;
+}
+.privacy-form-consent input{ flex:0 0 auto; width:17px; height:17px; margin:2px 0 0; }
+.privacy-form-consent a{ color:var(--sky-deep); font-weight:700; }
+@media (max-width:560px){
+  .privacy-choice-banner{ left:12px; right:12px; bottom:12px; }
+  .privacy-choice-actions button{ flex:1 1 190px; }
+}
