@@ -18,8 +18,71 @@ const LEGACY_EVENT_ID = 'ocpc-rally-rebels-dual-meet-2026';
 const SUPER_ADMIN_EMAILS = ['ocpc.pickleball@gmail.com', 'jamescastillo37@gmail.com'];
 const EVENT_ROLES = ['owner', 'tournament_admin', 'match_control', 'tournament_registration', 'tournament_checkin', 'tournament_score_desk', 'tournament_referee'];
 const CONTROL_ROLES = ['owner', 'tournament_admin', 'match_control'];
+const CONTROL_WRITE_DELAY = 35;
+const MATCH_WRITE_DELAY = 35;
+const controlWriteState = { timer: null, pending: null, waiters: [] };
+const matchWriteStates = new Map();
 const roleList = value => [...new Set(Array.isArray(value?.roles) ? value.roles : (value?.role ? [value.role] : []))];
 const primaryRole = roles => EVENT_ROLES.find(role => roles.includes(role)) || 'staff';
+
+function stableValue(value, seen = new WeakSet()) {
+  if (value === undefined) return 'undefined';
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (seen.has(value)) return '[Circular]';
+  seen.add(value);
+  if (Array.isArray(value)) return `[${value.map(item => stableValue(item, seen)).join(',')}]`;
+  return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableValue(value[key], seen)}`).join(',')}}`;
+}
+
+function updateTime(value) {
+  if (!value || typeof value !== 'object') return 0;
+  const own = typeof value.updatedAt?.toMillis === 'function' ? value.updatedAt.toMillis() : Date.parse(value.updatedAt || '') || Number(value.updatedAt) || 0;
+  return Math.max(own, ...Object.values(value).map(updateTime));
+}
+
+function watchCollection(ref, onData, onError, mapSnapshot, ignoreStale = false) {
+  let lastKey = '', lastUpdateTime = 0;
+  return onSnapshot(ref, snapshot => {
+    const value = mapSnapshot(snapshot);
+    const key = stableValue(value);
+    // Firestore can replay an identical local/server snapshot; suppressing it
+    // keeps a replay from causing a full tournament render.
+    if (key === lastKey) return;
+    const nextUpdateTime = updateTime(value);
+    // Single-document feeds can briefly deliver an older cached snapshot after
+    // a server acknowledgement; do not let it replace newer optimistic state.
+    if (ignoreStale && nextUpdateTime && nextUpdateTime < lastUpdateTime) return;
+    lastKey = key;
+    lastUpdateTime = Math.max(lastUpdateTime, nextUpdateTime);
+    onData(value);
+  }, onError);
+}
+
+function settleWaiters(state, error) {
+  const waiters = state.waiters.splice(0);
+  waiters.forEach(({ resolve, reject }) => error ? reject(error) : resolve());
+}
+
+function flushControlWrite() {
+  const state = controlWriteState, pending = state.pending;
+  state.pending = null; state.timer = null;
+  if (!pending) return;
+  const writes = { state: pending };
+  writeControlNow(writes).then(() => settleWaiters(state), error => settleWaiters(state, error));
+}
+
+async function writeControlNow({ state }) {
+  const safe = structuredClone(state); delete safe.liveScoring;
+  Object.values(safe.checkins || {}).forEach(player => {
+    delete player.photo;
+    if (String(player.photoThumb || '').startsWith('data:')) delete player.photoThumb;
+    if (!player.photoURL && player.photoThumb) player.photoURL = player.photoThumb;
+  });
+  Object.values(safe.scores || {}).forEach(score => { if (score.confirmation) { delete score.confirmation.ocpcSignature; delete score.confirmation.rebelsSignature; } });
+  const refereeState = { matches:safe.matches || [], pairs:safe.pairs || {}, courts:safe.courts || {}, scores:safe.scores || {}, matchSettings:safe.matchSettings || {}, refereeAssignments:safe.refereeAssignments || {}, updatedAt:safe.updatedAt || new Date().toISOString() };
+  const batch=writeBatch(db);batch.set(controlRef,{state:safe,refereeEmails:[...new Set(Object.values(state.refereeAssignments||{}))],updatedAt:serverTimestamp()},{merge:true});batch.set(refereeBoardRef,{state:refereeState,updatedAt:serverTimestamp()},{merge:true});
+  try { await batch.commit(); } catch (_) { await setDoc(controlRef,{state:safe,refereeEmails:[...new Set(Object.values(state.refereeAssignments||{}))],updatedAt:serverTimestamp()},{merge:true}); }
+}
 
 export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
 export async function login(email, password) { await setPersistence(auth, browserLocalPersistence); return signInWithEmailAndPassword(auth, email, password); }
@@ -39,7 +102,23 @@ export async function uploadTournamentImage(file, kind = 'matchday') {
   if (!payload?.secure_url) throw new Error('IMAGE_URL_MISSING');
   return payload.secure_url;
 }
-export async function updateEventConfiguration(config) { const metadata = { name:config.event.name, date:config.event.date, venue:config.event.venue, location:config.event.location, status:'private', primary:config.brand.primary }, members = await getDocs(membersRef), batch = writeBatch(db); batch.set(controlRef, { config:structuredClone(config), metadata, updatedAt:serverTimestamp() }, { merge:true }); members.docs.forEach(member => { const roles = roleList(member.data()).filter(role => EVENT_ROLES.includes(role)); batch.set(doc(db,'tournamentAccess',member.id,'events',eventId), { eventId, ...metadata, roles, role:primaryRole(roles), updatedAt:serverTimestamp() }, { merge:true }); }); await batch.commit(); }
+export async function updateEventConfiguration(config) {
+  const [members, current] = await Promise.all([getDocs(membersRef), getDoc(controlRef)]), prior = current.data()?.metadata || {};
+  const metadata = { ...prior, name:config.event.name, date:config.event.date, venue:config.event.venue, location:config.event.location, status:prior.status || 'private', archived:Boolean(prior.archived), primary:config.brand.primary, competitionType:config.competitionType || 'dual-meet' }, batch = writeBatch(db);
+  batch.set(controlRef, { config:structuredClone(config), metadata, updatedAt:serverTimestamp() }, { merge:true });
+  members.docs.forEach(member => { const roles = roleList(member.data()).filter(role => EVENT_ROLES.includes(role)); batch.set(doc(db,'tournamentAccess',member.id,'events',eventId), { eventId, ...metadata, roles, role:primaryRole(roles), updatedAt:serverTimestamp() }, { merge:true }); });
+  await batch.commit();
+}
+export async function setEventArchived(archived) {
+  const [eventSnapshot, members] = await Promise.all([getDoc(controlRef), getDocs(membersRef)]);
+  if (!eventSnapshot.exists()) throw new Error('EVENT_NOT_FOUND');
+  const event = eventSnapshot.data(), date = event.config?.event?.date || event.metadata?.date || '', today = new Date().toISOString().slice(0,10), status = archived ? 'archived' : (date && date >= today ? 'upcoming' : 'completed');
+  const metadata = { ...(event.metadata || {}), status, archived:Boolean(archived), archivedAt:archived ? new Date().toISOString() : null, competitionType:event.config?.competitionType || 'dual-meet' }, batch = writeBatch(db);
+  batch.set(controlRef, { metadata, updatedAt:serverTimestamp() }, { merge:true });
+  members.docs.forEach(member => batch.set(doc(db,'tournamentAccess',member.id,'events',eventId), { eventId, status, archived:Boolean(archived), archivedAt:metadata.archivedAt, competitionType:metadata.competitionType, updatedAt:serverTimestamp() }, { merge:true }));
+  await batch.commit();
+  return metadata;
+}
 export async function getCurrentProfile(user) {
   if (!user) return null;
   const [profileSnapshot, tournamentSnapshot, membershipSnapshot] = await Promise.all([
@@ -63,12 +142,12 @@ export async function authorizeTournamentTool(user, toolRoles = []) {
   const allowed = Boolean(profile?.isSiteAdmin) || CONTROL_ROLES.some(role => eventRoles.has(role)) || toolRoles.some(role => eventRoles.has(role));
   return { allowed, profile, eventRoles };
 }
-export function watchControl(onData, onError) { return onSnapshot(controlRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
-export function watchMembership(userId, onData, onError) { return onSnapshot(doc(membersRef,userId), snapshot => onData(snapshot.exists() ? snapshot.data() : null), onError); }
-export function watchRefereeBoard(onData, onError) { return onSnapshot(refereeBoardRef, snapshot => onData(snapshot.exists() ? snapshot.data().state : null), onError); }
-export function watchMatches(onData, onError) { return onSnapshot(matchesRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
-export function watchRegistrations(onData, onError) { return onSnapshot(registrationsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
-export function watchCheckins(onData, onError) { return onSnapshot(checkinsRef, snapshot => onData(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError); }
+export function watchControl(onData, onError) { return watchCollection(controlRef, onData, onError, snapshot => snapshot.exists() ? snapshot.data().state : null, true); }
+export function watchMembership(userId, onData, onError) { return watchCollection(doc(membersRef,userId), onData, onError, snapshot => snapshot.exists() ? snapshot.data() : null, true); }
+export function watchRefereeBoard(onData, onError) { return watchCollection(refereeBoardRef, onData, onError, snapshot => snapshot.exists() ? snapshot.data().state : null, true); }
+export function watchMatches(onData, onError) { return watchCollection(matchesRef, onData, onError, snapshot => snapshot.docs.map(item => ({ id: item.id, ...item.data() }))); }
+export function watchRegistrations(onData, onError) { return watchCollection(registrationsRef, onData, onError, snapshot => snapshot.docs.map(item => ({ id: item.id, ...item.data() }))); }
+export function watchCheckins(onData, onError) { return watchCollection(checkinsRef, onData, onError, snapshot => snapshot.docs.map(item => ({ id: item.id, ...item.data() }))); }
 export function publishCheckin(id, data) {
   const safe = structuredClone(data);
   // Legacy base64 thumbnails are intentionally never written again. Existing
@@ -103,21 +182,32 @@ export async function changeTournamentStaffRole(email, role, enabled) {
   await batch.commit(); return {ok:true,uid:person.uid,roles:[...roles]};
 }
 export async function publishControl(state) {
-  const safe = structuredClone(state); delete safe.liveScoring;
-  Object.values(safe.checkins || {}).forEach(player => {
-    delete player.photo;
-    if (String(player.photoThumb || '').startsWith('data:')) delete player.photoThumb;
-    if (!player.photoURL && player.photoThumb) player.photoURL = player.photoThumb;
+  return new Promise((resolve, reject) => {
+    controlWriteState.pending = structuredClone(state);
+    controlWriteState.waiters.push({ resolve, reject });
+    // Coalesce same-turn control changes without delaying a normal interaction.
+    clearTimeout(controlWriteState.timer);
+    controlWriteState.timer = setTimeout(flushControlWrite, CONTROL_WRITE_DELAY);
   });
-  Object.values(safe.scores || {}).forEach(score => { if (score.confirmation) { delete score.confirmation.ocpcSignature; delete score.confirmation.rebelsSignature; } });
-  const refereeState = { matches:safe.matches || [], pairs:safe.pairs || {}, courts:safe.courts || {}, scores:safe.scores || {}, matchSettings:safe.matchSettings || {}, refereeAssignments:safe.refereeAssignments || {}, updatedAt:safe.updatedAt || new Date().toISOString() };
-  const batch=writeBatch(db);batch.set(controlRef,{state:safe,refereeEmails:[...new Set(Object.values(state.refereeAssignments||{}))],updatedAt:serverTimestamp()},{merge:true});batch.set(refereeBoardRef,{state:refereeState,updatedAt:serverTimestamp()},{merge:true});
-  try { await batch.commit(); } catch (_) { await setDoc(controlRef,{state:safe,refereeEmails:[...new Set(Object.values(state.refereeAssignments||{}))],updatedAt:serverTimestamp()},{merge:true}); }
 }
 export async function publishMatch(matchId, live, score) {
   const safeScore = score ? structuredClone(score) : null;
   if (safeScore?.confirmation) { safeScore.confirmation.ocpcSigned = Boolean(safeScore.confirmation.ocpcSignature); safeScore.confirmation.rebelsSigned = Boolean(safeScore.confirmation.rebelsSignature); delete safeScore.confirmation.ocpcSignature; delete safeScore.confirmation.rebelsSignature; }
-  await setDoc(doc(matchesRef, matchId), { live: structuredClone(live), score: safeScore, updatedAt: serverTimestamp() }, { merge: true });
+  let state = matchWriteStates.get(matchId);
+  if (!state) { state = { timer:null, pending:null, waiters:[] }; matchWriteStates.set(matchId, state); }
+  return new Promise((resolve, reject) => {
+    state.pending = { live: structuredClone(live), score: safeScore };
+    state.waiters.push({ resolve, reject });
+    clearTimeout(state.timer);
+    state.timer = setTimeout(async () => {
+      const pending = state.pending; state.pending = null; state.timer = null;
+      try {
+        await setDoc(doc(matchesRef, matchId), { ...pending, updatedAt: serverTimestamp() }, { merge: true });
+        settleWaiters(state);
+      } catch (error) { settleWaiters(state, error); }
+      if (!state.pending && !state.waiters.length) matchWriteStates.delete(matchId);
+    }, MATCH_WRITE_DELAY);
+  });
 }
 export function publishPublicView(token, payload) { const sanitized=JSON.parse(JSON.stringify(payload)); return setDoc(doc(db,'tournamentPublicViews',token), { ...sanitized, eventId, active:true, revoked:false, updatedAt:serverTimestamp() }); }
 export function revokePublicView(token) { return token ? updateDoc(doc(db,'tournamentPublicViews',token), { active:false, revoked:true, revokedAt:serverTimestamp() }) : Promise.resolve(); }

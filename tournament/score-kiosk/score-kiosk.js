@@ -9,7 +9,10 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
   let state = null, user = null, selectedMatchId = '', matchesReady = false;
   const names = (category, code) => { const pair = state?.pairs?.[`${category}|${code}`] || {}; return [pair.player1, pair.player2].filter(Boolean).join(' / ') || 'Players not assigned'; };
   const display = (category, code) => `${category === 'Novice' ? 'NOV' : category === 'Low Intermediate' ? 'LOW' : category === 'High Intermediate' ? 'HIGH' : String(category).replace(/[^a-z0-9 ]/gi,'').split(/\s+/).filter(Boolean).map(word=>word[0]).join('').slice(0,4).toUpperCase() || 'CAT'}-${code}`;
-  const clubName = id => config.clubs.find(club => club.id === id)?.short || (id === 'ocpc' ? 'Club 1' : 'Club 2');
+  const pairRecord = (category, code) => state?.pairs?.[`${category}|${code}`] || state?.pairs?.[category]?.[code] || {};
+  const affiliationId = (match, side) => { const pair = pairRecord(match.category, match[side]); return match?.[`${side}AffiliationId`] ?? pair.affiliationId ?? pair.club ?? (side === 'a' ? 'ocpc' : 'rebels'); };
+  const affiliation = (match, side) => { const id = affiliationId(match, side); return (config.affiliations || config.clubs || []).find(item => item.id === id) || { id, short:id || (side === 'a' ? 'Side A' : 'Side B') }; };
+  const clubName = (match, side) => affiliation(match, side).short || affiliation(match, side).name;
   const toast = message => { const element = $('#officialToast'); element.textContent = message; element.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => element.classList.remove('show'), 1800); };
   const scoreComplete = id => { const score = state?.scores?.[id]; return score && score.a !== '' && score.b !== ''; };
 
@@ -36,8 +39,8 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
   function openScoreSheet(matchId) {
     const match = state.matches.find(item => item.id === matchId); if (!match) return;
     selectedMatchId = matchId; $('#kioskMatchMeta').textContent = `Court ${match.court} · ${match.category} · ${match.id}`;
-    $('#kioskMatchup').innerHTML = `<article><span>${esc(clubName('ocpc'))} · ${display(match.category, match.a)}</span><b>${esc(names(match.category, match.a))}</b></article><strong>VS</strong><article><span>${esc(clubName('rebels'))} · ${display(match.category, match.b)}</span><b>${esc(names(match.category, match.b))}</b></article>`;
-    $('#kioskScoreALabel').textContent = `${clubName('ocpc')} score`; $('#kioskScoreBLabel').textContent = `${clubName('rebels')} score`;
+    $('#kioskMatchup').innerHTML = `<article><span>${esc(clubName(match, 'a'))} · ${display(match.category, match.a)}</span><b>${esc(names(match.category, match.a))}</b></article><strong>VS</strong><article><span>${esc(clubName(match, 'b'))} · ${display(match.category, match.b)}</span><b>${esc(names(match.category, match.b))}</b></article>`;
+    $('#kioskScoreALabel').textContent = `${clubName(match, 'a')} score`; $('#kioskScoreBLabel').textContent = `${clubName(match, 'b')} score`;
     $('#signatureALabel').textContent = `${names(match.category, match.a)} signature`; $('#signatureBLabel').textContent = `${names(match.category, match.b)} signature`;
     $('#kioskScoreA').value = ''; $('#kioskScoreB').value = ''; clearSignature('signatureA'); clearSignature('signatureB'); $('#scoreFormError').textContent = ''; $('#kioskScoreSheet').hidden = false;
   }
@@ -50,7 +53,7 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
     if (!Number.isInteger(a) || !Number.isInteger(b) || a === b || Math.max(a, b) > maximum || Math.min(a, b) < 0) return $('#scoreFormError').textContent = `Enter whole-number scores from 0 to ${maximum}. A timed match may finish below its target, but it cannot end tied.`;
     const prior = state.scores?.[match.id]; if (prior && !confirm(`A result already exists: ${prior.a}-${prior.b}. Send a replacement report?`)) return;
     const live = { ...(state.liveScoring?.[match.id] || {}), a, b, running:false, startedAt:null, complete:true }, submittedAt = new Date().toISOString();
-    const score = { a, b, resultType:'player-reported', completedAt: prior?.completedAt || submittedAt, confirmation: { source:'player-kiosk', submittedBy:user.email, submittedAt, ocpcSignature:signatureA.toDataURL(), rebelsSignature:signatureB.toDataURL() } };
+    const score = { a, b, resultType:'player-reported', completedAt: prior?.completedAt || submittedAt, confirmation: { source:'player-kiosk', submittedBy:user.email, submittedAt, aSignature:signatureA.toDataURL(), bSignature:signatureB.toDataURL() } };
     try { await publishMatch(match.id, live, score); state.scores ||= {}; state.scores[match.id] = score; renderCourts(); toast('Both signatures confirmed. Score sent to Match Control.'); closeScoreSheet(); } catch (_) { $('#scoreFormError').textContent = 'Score could not be sent. Ask Match Control to enter it manually.'; }
   };
   watchAuth(async account => {

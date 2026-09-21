@@ -57,6 +57,10 @@ export async function loadTournamentContext() {
   config.storageKey = `matchday.${eventId}`;
   config.brand.logo = absoluteLogo(config.brand.logo);
   config.clubs = config.clubs.map(club => ({ ...club, logo:absoluteClubLogo(club.logo) }));
+  config.affiliations = (Array.isArray(config.affiliations) ? config.affiliations : config.clubs).map(item => ({ ...item, logo:absoluteClubLogo(item.logo || item.logoUrl) }));
+  if (Array.isArray(config.clubs) && Array.isArray(config.affiliations) && config.clubs.length === config.affiliations.length) {
+    config.clubs = config.clubs.map((club, index) => ({ ...club, logo: config.affiliations[index]?.logo || club.logo }));
+  }
   window.TOURNAMENT_CONFIG = config;
   window.MATCHDAY_EVENT_ID = eventId;
   window.MATCHDAY_EVENT_URL = eventUrl;

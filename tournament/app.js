@@ -1,9 +1,24 @@
 const revision = new URL(import.meta.url).searchParams.get('v') || 'dev';
 
-import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth, login, logout, updateEventConfiguration, getCurrentProfile, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, publishPublicView, revokePublicView, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole, uploadTournamentImage }) => {
+import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth, login, logout, updateEventConfiguration, setEventArchived, getCurrentProfile, authorizeTournamentTool, watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch, publishPublicView, revokePublicView, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins, listTournamentStaff, changeTournamentStaffRole, uploadTournamentImage }) => {
 (() => {
   'use strict';
   const config = window.TOURNAMENT_CONFIG;
+  if (config.competitionType === 'standard') {
+    Promise.all([
+      import(`./engine/standard-engine.js?v=${encodeURIComponent(revision)}`),
+      import(`./standard-app.js?v=${encodeURIComponent(revision)}`)
+    ]).then(([, module]) => module.initializeStandardTournamentApp({
+      watchAuth, login, logout, updateEventConfiguration, setEventArchived, getCurrentProfile, authorizeTournamentTool,
+      watchControl, watchMatches, watchRegistrations, watchCheckins, publishControl, publishMatch,
+      publishPublicView, revokePublicView, deleteMatch, clearMatchPromotion, clearMatches, clearCheckins,
+      listTournamentStaff, changeTournamentStaffRole, uploadTournamentImage
+    })).catch(error => {
+      console.error(error);
+      document.body.insertAdjacentHTML('afterbegin', '<div style="position:fixed;inset:0;z-index:99999;padding:32px;background:#f6fbfd;color:#09283a;font:16px system-ui"><h1>Standard Tournament could not start</h1><p>Return to My Tournaments and try opening this event again.</p></div>');
+    });
+    return;
+  }
   const params = new URLSearchParams(location.search), demoMode = params.get('demo') === '1', drawTestMode = params.get('drawtest') === '1', storageKey = demoMode ? `${config.storageKey}.demo` : drawTestMode ? `${config.storageKey}.drawtest` : config.storageKey;
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -909,7 +924,8 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
     renderOpponentDraw();
     renderTournamentStaff();
   }
-  function renderArchiveDataTools() { const grid = $('[data-settings-panel="data"] .settings-grid'); if (!grid || $('#dataArchiveTools')) return; grid.insertAdjacentHTML('beforeend', '<article class="panel" id="dataArchiveTools"><span class="section-label">Post-event recap</span><h2>Event archive</h2><p>Preserve results, podiums, club winner, photos, and top statistics as a shareable recap after the tournament.</p><div class="stack-actions"><button class="btn btn-primary" id="dataCreateArchive">Create or refresh archive</button><button class="btn btn-quiet" id="dataOpenArchive" hidden>Open archive</button></div><div id="dataArchiveStatus"></div></article>'); $('#dataCreateArchive').onclick = createArchiveSnapshot; $('#dataOpenArchive').onclick = () => { if (!state.publicShare?.token) return toast('Generate the public standings link first.'); window.open(window.MATCHDAY_EVENT_URL('public/', { token:state.publicShare.token }), '_blank', 'noopener'); }; }
+  function renderArchiveDataTools() { const grid = $('[data-settings-panel="data"] .settings-grid'); if (!grid || $('#dataArchiveTools')) return; grid.insertAdjacentHTML('beforeend', '<article class="panel" id="dataArchiveTools"><span class="section-label">Post-event recap</span><h2>Event archive</h2><p>Preserve results, podiums, club winner, photos, and top statistics as a shareable recap after the tournament.</p><div class="stack-actions"><button class="btn btn-primary" id="dataCreateArchive">Create or refresh archive</button><button class="btn btn-quiet" id="dataOpenArchive" hidden>Open archive</button></div><div id="dataArchiveStatus"></div><hr><span class="section-label">Tournament lifecycle</span><h3>Move to completed tournaments</h3><p>Archiving keeps every result and setting, removes the event from active operations, and allows it to be unarchived later from the Tournament Portal.</p><button class="btn btn-danger" id="dataArchiveTournament">Archive tournament</button></article>'); $('#dataCreateArchive').onclick = createArchiveSnapshot; $('#dataOpenArchive').onclick = () => { if (!state.publicShare?.token) return toast('Generate the public standings link first.'); window.open(window.MATCHDAY_EVENT_URL('public/', { token:state.publicShare.token }), '_blank', 'noopener'); }; $('#dataArchiveTournament').onclick = archiveCurrentTournament; }
+  async function archiveCurrentTournament() { if (!canAdminTournament) return toast('Only the owner or Full Match Control can archive this tournament.'); if (!confirm('Archive this tournament? Results and settings will be preserved, and it can be unarchived from the Tournament Portal.')) return; const button=$('#dataArchiveTournament'); button.disabled=true; button.textContent='Archiving…'; try { await setEventArchived(true); location.href=window.MATCHDAY_EVENT_URL('./'); } catch (_) { button.disabled=false; button.textContent='Archive tournament'; showNotice('The tournament could not be archived. Check your connection and try again.','Archive failed'); } }
   function scheduleQuality(matches = state.matches) {
     const byPlayer = new Map(); matches.forEach(match => match.players.forEach(player => { if (!byPlayer.has(player)) byPlayer.set(player, []); byPlayer.get(player).push(Number(match.wave)); }));
     let backToBack = 0, longestGap = 0; byPlayer.forEach(waves => { waves.sort((a,b)=>a-b); for (let index=1; index<waves.length; index++) { const gap = waves[index] - waves[index-1]; if (gap === 1) backToBack++; longestGap = Math.max(longestGap, gap); } });

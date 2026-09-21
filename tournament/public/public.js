@@ -11,7 +11,7 @@ const tokenFromLocation=()=>{const query=new URLSearchParams(location.search).ge
 let data=null,activeCategory='',latestSourceUpdatedAt='';
 
 function logo(club){return `<span class="club-logo">${club.logo?`<img src="${esc(club.logo)}" alt="${esc(club.name)} logo" onerror="this.parentElement.innerHTML='<span>${esc(initials(club.short||club.name))}</span>'">`:`<span>${esc(initials(club.short||club.name))}</span>`}</span>`}
-function clubs(){return asArray(data?.clubs).slice(0,2).map((club,index)=>({id:club.id||`club${index+1}`,name:club.name||`Club ${index+1}`,short:club.short||club.name||`Club ${index+1}`,logo:club.logo||'',color:club.color||club.primary||[data?.brand?.primary,'#e0424d'][index]||'#005e89'}))}
+function clubs(){return asArray(data?.clubs).map((club,index)=>({id:club.id||`club${index+1}`,name:club.name||`Club ${index+1}`,short:club.short||club.name||`Club ${index+1}`,logo:club.logo||'',color:club.color||club.primary||[data?.brand?.primary,'#e0424d','#7b61ff','#ef9b32'][index]||'#005e89'}))}
 function categories(){const explicit=asArray(data?.categories);if(explicit.length)return explicit;return [...new Set(Object.keys(data?.pairStandings||{}).concat(Object.keys(data?.medals||{})))]}
 function clubById(id){return clubs().find(club=>club.id===id)||{id,name:id||'Club',short:id||'Club',logo:'',color:'#005e89'}}
 function pairNames(category,code){const pair=data?.pairs?.[`${category}|${code}`]||data?.pairs?.[category]?.[code]||{};return pair.names||[pair.player1,pair.player2].filter(Boolean).join(' / ')||code||'To be determined'}
