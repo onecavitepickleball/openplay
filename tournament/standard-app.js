@@ -1,6 +1,9 @@
 const CONTROL_ROLES = new Set(['admin', 'owner', 'tournament_admin', 'match_control']);
 const ADMIN_ROLES = new Set(['admin', 'owner', 'tournament_admin']);
 const FORMAT_LABELS = {
+  'cross-affiliation-round-robin': 'Cross-team round robin',
+  'cross-affiliation-round-robin-elimination': 'Cross-team round robin → elimination',
+  'affiliation-round-robin': 'Cross-team round robin',
   'full-round-robin': 'Full round robin',
   'round-robin-elimination': 'Round robin → elimination',
   'round-robin-to-elimination': 'Round robin → elimination',
@@ -124,7 +127,8 @@ function registrationDivision(registration, divisions) {
 
 function normalizedFormat(division, entryCount, warnings) {
   const configured = clean(division.format) || 'full-round-robin';
-  if (!['full-round-robin', 'round-robin', 'round-robin-elimination', 'round-robin-to-elimination',
+  if (!['cross-affiliation-round-robin', 'cross-affiliation-round-robin-elimination', 'affiliation-round-robin',
+    'full-round-robin', 'round-robin', 'round-robin-elimination', 'round-robin-to-elimination',
     'pools-elimination', 'pools-to-elimination', 'pools', 'single-elimination'].includes(configured)) {
     throw new Error(`${division.name} has an unsupported format: ${configured}`);
   }
@@ -137,6 +141,10 @@ function normalizedFormat(division, entryCount, warnings) {
     ...(division.standings?.points ? { points: division.standings.points } : {})
   };
   if (configured === 'single-elimination') return { format: configured, standings };
+  if (configured === 'cross-affiliation-round-robin'
+    || (configured === 'affiliation-round-robin' && !division.qualifiers)) {
+    return { format: 'affiliation-round-robin', standings };
+  }
   if (configured === 'full-round-robin' || (configured === 'round-robin' && !division.qualifiers)) {
     return { format: 'round-robin', standings };
   }
@@ -166,7 +174,12 @@ function normalizedFormat(division, entryCount, warnings) {
     };
   }
   const count = Math.max(0, Math.min(entryCount, Number(division.qualifiers?.count ?? division.qualifiers) || 0));
-  return { format: 'round-robin', standings, qualifiers: { count } };
+  return {
+    format: ['cross-affiliation-round-robin-elimination', 'affiliation-round-robin'].includes(configured)
+      ? 'affiliation-round-robin' : 'round-robin',
+    standings,
+    qualifiers: { count }
+  };
 }
 
 function buildDefinition(config, registrations) {

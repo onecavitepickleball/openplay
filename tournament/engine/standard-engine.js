@@ -7,7 +7,7 @@
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
 
-  const FORMATS = ['round-robin', 'pools', 'single-elimination'];
+  const FORMATS = ['round-robin', 'affiliation-round-robin', 'pools', 'single-elimination'];
   const CRITERIA = ['wins', 'standingPoints', 'headToHead', 'pointDifferential',
     'pointsFor', 'pointsAgainst', 'seed'];
   const DEFAULT_ORDER = ['wins', 'headToHead', 'pointDifferential', 'pointsFor', 'pointsAgainst'];
@@ -16,6 +16,7 @@
   const part = value => encodeURIComponent(value);
   const entrySlot = entryId => ({ type: 'entry', entryId });
   const byeSlot = () => ({ type: 'bye' });
+  const roundRobinFormat = format => format === 'round-robin' || format === 'affiliation-round-robin';
 
   function check(condition, message) {
     if (!condition) throw new Error(message);
@@ -72,7 +73,7 @@
     if (value === undefined || value === null) return null;
     check(format !== 'single-elimination', 'A single-elimination division cannot have qualifiers');
     check(value && typeof value === 'object' && !Array.isArray(value), 'Qualifiers must be an object');
-    if (format === 'round-robin') {
+    if (roundRobinFormat(format)) {
       check(Object.keys(value).every(key => key === 'count'), 'Round-robin qualifiers accept only count');
       const count = integer(value.count, 0, 'Qualifier count');
       check(count <= sizes[0], 'Qualifier count exceeds entry count');
@@ -147,6 +148,16 @@
       rotation.splice(1, 0, rotation.pop());
     }
     return matches;
+  }
+
+  function generateAffiliationRoundRobin(entryIds, entries, options = {}) {
+    const lookup = entries instanceof Map ? entries : new Map((entries || []).map(entry => [entry.id, entry]));
+    uniqueIds(entryIds).forEach(entryId => check(lookup.has(entryId), `Unknown entry ${entryId} in affiliation round robin`));
+    return generateRoundRobin(entryIds, options).filter(match => {
+      const a = lookup.get(match.participants.a)?.affiliationId || null;
+      const b = lookup.get(match.participants.b)?.affiliationId || null;
+      return a === null || b === null || a !== b;
+    });
   }
 
   function generatePools(entryIds, options = {}) {
@@ -316,7 +327,14 @@
     const qualifiers = qualification(format, options.qualifiers, sizes);
     const qualifierCount = !qualifiers ? 0 : format === 'pools'
       ? qualifiers.perPool * sizes.length + qualifiers.wildcards : qualifiers.count;
-    const preliminary = format === 'single-elimination' ? 0 : sizes.reduce((sum, n) => sum + n * (n - 1) / 2, 0);
+    let preliminary = format === 'single-elimination' ? 0 : sizes.reduce((sum, n) => sum + n * (n - 1) / 2, 0);
+    if (format === 'affiliation-round-robin') {
+      const counts = options.affiliationCounts || [];
+      check(Array.isArray(counts) && counts.every(value => Number.isSafeInteger(value) && value >= 0),
+        'Affiliation counts must be nonnegative integers');
+      check(counts.reduce((sum, value) => sum + value, 0) <= count, 'Affiliation counts exceed entry count');
+      preliminary -= counts.reduce((sum, value) => sum + value * (value - 1) / 2, 0);
+    }
     const bracketEntries = format === 'single-elimination' ? count : qualifierCount;
     const elimination = Math.max(0, bracketEntries - 1);
     const size = bracketSize(bracketEntries);
@@ -356,16 +374,21 @@
         const stageId = `${prefix}/${division.format}`;
         const pools = division.format === 'pools' ? generatePools(ordered,
           { id: stageId, poolCount: division.poolCount, divisionId: division.id }) : [];
-        const stage = { id: stageId, type: division.format, entryIds: ordered, qualifiers: division.qualifiers,
+        const stageType = roundRobinFormat(division.format) ? 'round-robin' : division.format;
+        const stage = { id: stageId, type: stageType, matchPolicy: division.format === 'affiliation-round-robin' ? 'cross-affiliation' : 'all-entries', entryIds: ordered, qualifiers: division.qualifiers,
           pools: pools.map(({ matches, ...pool }) => pool),
           matches: division.format === 'pools' ? pools.flatMap(pool => pool.matches)
-            : generateRoundRobin(ordered, { id: stageId, divisionId: division.id }) };
+            : division.format === 'affiliation-round-robin'
+              ? generateAffiliationRoundRobin(ordered, entries, { id: stageId, divisionId: division.id })
+              : generateRoundRobin(ordered, { id: stageId, divisionId: division.id }) };
         stages.push(stage);
         const slots = qualifierSlots(stage);
         if (slots.length) stages.push(generateBracket(slots, { id: `${prefix}/playoff`, divisionId: division.id }));
       }
+      const affiliationCounts = [...new Set(ordered.map(entryId => entries.get(entryId).affiliationId).filter(Boolean))]
+        .map(affiliationId => ordered.filter(entryId => entries.get(entryId).affiliationId === affiliationId).length);
       return { id: division.id, entryIds: ordered, standings: division.standings, stages,
-        estimate: estimateMatches({ ...division, entryCount: ordered.length }) };
+        estimate: estimateMatches({ ...division, entryCount: ordered.length, affiliationCounts }) };
     });
     return resolveAdvancement({ version: 1, definition, divisions });
   }
@@ -492,7 +515,7 @@
   }
 
   const api = Object.freeze({ version: 1, mode: 'standard', capabilities, createEngine,
-    normalizeCompetition, generateRoundRobin, generatePools, generateBracket,
+    normalizeCompetition, generateRoundRobin, generateAffiliationRoundRobin, generatePools, generateBracket,
     getStandings, estimateMatches, createCompetition, resolveAdvancement, recordResult, clearResult });
   return api;
 });

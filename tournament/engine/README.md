@@ -63,8 +63,10 @@ All IDs are caller-supplied, nonempty strings, unique within their entity type.
 The engine never derives identity from a name, array index, affiliation, or
 player list. An entry is an opaque competitor: a single player, pair, or team.
 Extra JSON entry metadata (such as player IDs) is retained but not interpreted.
-Affiliations are optional display/grouping metadata, **not opponents**. Entries
-from the same affiliation play each other in a full round robin. Every division
+Affiliations are optional display/grouping metadata. In a regular full round
+robin, entries from the same affiliation still play each other. Use the
+`affiliation-round-robin` format when entries must play every entry from other
+affiliations while never playing their own teammates. Every division
 explicitly lists its entries; entries may participate in several divisions.
 Cross-division player conflicts are a scheduling concern outside this engine.
 
@@ -81,6 +83,10 @@ new draw and should use a new competition ID if old results must be retained.
   without duplicate entry appearances in a round. Odd entry counts rest one
   entry per round; rest slots are not matches. Optional `qualifiers: { count: N }`
   advances the top N to a single-elimination playoff.
+- `affiliation-round-robin`: every pair from different affiliations plays once;
+  entries sharing an affiliation never meet. Optional `qualifiers: { count: N }`
+  advances the top N to a single-elimination playoff. For three affiliations
+  with three entries each, this produces 27 matches and six matches per entry.
 - `pools`: requires `poolCount` between 1 and the entry count. Entries are
   distributed in a deterministic snake, with pool sizes differing by at most
   one. Each pool plays a full round robin. Optional

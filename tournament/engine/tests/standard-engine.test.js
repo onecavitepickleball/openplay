@@ -57,7 +57,7 @@ test('mode capabilities are isolated copies; standard engine is a frozen facade'
   assert.ok(Object.isFrozen(engine));
   const caps = engine.capabilities();
   caps.formats.pop();
-  assert.equal(engine.capabilities().formats.length, 3);
+  assert.equal(engine.capabilities().formats.length, 4);
   assert.equal(engine.capabilities('dual-meet').externalAdapter, true);
   assert.equal(engine.capabilities('dual-meet').fullRoundRobin, false);
   assert.throws(() => engine.capabilities('mystery'), /Unknown competition mode/);
@@ -138,6 +138,47 @@ test('full round robin exhaustively covers each pair exactly once with no round 
     if (n >= 2) assert.equal(rounds.size, n % 2 ? n : n - 1);
     assert.deepEqual(matches, engine.generateRoundRobin(ids(n).reverse()));
   }
+});
+
+test('affiliation round robin excludes teammates and gives three teams of three exactly six matches per pair', () => {
+  const affiliations = ['team-a', 'team-b', 'team-c'];
+  const entries = affiliations.flatMap((affiliationId, teamIndex) => Array.from({ length: 3 }, (_, pairIndex) => ({
+    id: `${affiliationId}-pair-${pairIndex + 1}`,
+    name: `Team ${teamIndex + 1} Pair ${pairIndex + 1}`,
+    affiliationId
+  })));
+  const input = {
+    id: 'sportsfest', mode: 'standard',
+    affiliations: affiliations.map(id => ({ id, name: id })),
+    entries,
+    divisions: [{ id: 'novice', name: 'Novice', entryIds: entries.map(entry => entry.id), format: 'affiliation-round-robin' }]
+  };
+  const state = engine.createCompetition(input), matches = stage(state).matches;
+  assert.equal(matches.length, 27);
+  const appearances = new Map(entries.map(entry => [entry.id, 0]));
+  matches.forEach(match => {
+    const a = entries.find(entry => entry.id === match.participants.a);
+    const b = entries.find(entry => entry.id === match.participants.b);
+    assert.notEqual(a.affiliationId, b.affiliationId);
+    appearances.set(a.id, appearances.get(a.id) + 1);
+    appearances.set(b.id, appearances.get(b.id) + 1);
+  });
+  assert.deepEqual([...appearances.values()], Array(9).fill(6));
+  assert.equal(state.divisions[0].estimate.preliminary, 27);
+  assert.equal(stage(state).matchPolicy, 'cross-affiliation');
+});
+
+test('affiliation round robin can feed an elimination bracket through qualifiers', () => {
+  const affiliations = ['one', 'two', 'three'];
+  const entries = affiliations.flatMap(id => [1, 2].map(number => ({ id: `${id}-${number}`, affiliationId:id })))
+    .map((entry, index) => ({ ...entry, seed:index + 1 }));
+  let state = engine.createCompetition({
+    id:'sportsfest-playoff', mode:'standard', affiliations:affiliations.map(id => ({ id })), entries,
+    divisions:[{ id:'open', entryIds:entries.map(entry => entry.id), format:'affiliation-round-robin', qualifiers:{ count:4 }, standings:{ order:['wins','pointDifferential','pointsFor','seed'] } }]
+  });
+  assert.equal(stage(state).matches.length, 12);
+  state = finishPreliminary(state);
+  assert.equal(stage(state, 1).matches.filter(match => match.status === 'ready').length, 2);
 });
 
 test('generated IDs handle delimiters, Unicode, and object-prototype names', () => {
