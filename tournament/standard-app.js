@@ -153,12 +153,16 @@ function normalizedFormat(division, entryCount, warnings) {
     allowDraws: division.standings?.allowDraws === true,
     ...(division.standings?.points ? { points: division.standings.points } : {})
   };
+  const automaticNinePairMedalRound = entryCount === 9 && division.bronzeMatch !== false;
+  if (automaticNinePairMedalRound) warnings.push(`${division.name}: nine confirmed pairs advance the top four to semifinals, followed by Bronze and Gold/Silver medal matches.`);
   if (configured === 'single-elimination') return { format: configured, standings };
   if (configured === 'cross-affiliation-round-robin'
     || (configured === 'affiliation-round-robin' && !division.qualifiers)) {
+    if (automaticNinePairMedalRound) return { format:'affiliation-round-robin', standings, qualifiers:{ count:4 } };
     return { format: 'affiliation-round-robin', standings };
   }
   if (configured === 'full-round-robin' || (configured === 'round-robin' && !division.qualifiers)) {
+    if (automaticNinePairMedalRound) return { format:'round-robin', standings, qualifiers:{ count:4 } };
     return { format: 'round-robin', standings };
   }
   if (['pools-elimination', 'pools-to-elimination', 'pools'].includes(configured)) {
@@ -395,6 +399,7 @@ function scheduleProjection(engineState, previousMatches, config) {
       status: match.status,
       winnerId: match.winnerId,
       loserId: match.loserId,
+      medal: match.medal || '',
       result: clone(match.result),
       administrative,
       court,
@@ -453,8 +458,10 @@ function projectState(engineState, previous, config, warnings) {
     checkins: previous?.checkins || {},
     refereeAssignments: Object.fromEntries(Object.entries(previous?.refereeAssignments || {}).filter(([id]) => validIds.has(id))),
     liveScoring: Object.fromEntries(Object.entries(previous?.liveScoring || {}).filter(([id]) => validIds.has(id))),
+    matchSettings: Object.fromEntries(Object.entries(previous?.matchSettings || {}).filter(([id]) => validIds.has(id))),
     announcement: previous?.announcement || { enabled: false, text: '', updatedAt: null },
     activityLog: previous?.activityLog || [],
+    scheduleHistory: previous?.scheduleHistory || [],
     updatedAt: new Date().toISOString()
   };
 }
@@ -499,6 +506,7 @@ export function initializeStandardTournamentApp(services) {
   let activeDivision = '';
   let activeMatchId = '';
   let draggedScheduleMatchId = '';
+  let selectedScheduleMatchId = '';
   let applyingCloud = false;
   let controlReady = false;
   let registrationsReady = false;
@@ -739,7 +747,7 @@ export function initializeStandardTournamentApp(services) {
     document.title = `${config.event?.name || 'Tournament'} · ${config.appName || 'Matchday'}`;
 
     const navChanges = {
-      teams: ['06', 'Entries'], medals: ['07', 'Bracket']
+      teams: ['06', 'Entries'], medals: ['07', 'Medal Round']
     };
     Object.entries(navChanges).forEach(([view, label]) => {
       const button = $(`.nav-item[data-view="${view}"]`);
@@ -754,7 +762,9 @@ export function initializeStandardTournamentApp(services) {
     $('#dreamBreakerSummary')?.remove();
     if ($('#clubStandings')) $('#clubStandings').hidden = true;
     const medalHead = $('#view-medals .page-head');
-    if (medalHead) medalHead.innerHTML = '<div><span class="eyebrow dark">Knockout stages</span><h1>Dynamic Bracket</h1><p>Qualifiers populate automatically when preliminary standings are complete and unambiguous.</p></div>';
+    if (medalHead) medalHead.innerHTML = '<div><span class="eyebrow dark">Semifinals and podium matches</span><h1>Medal Round</h1><p>The top four qualifiers advance to the semifinals. Winners play for Gold/Silver and semifinal losers play for Bronze.</p></div>';
+    const medalBoard = $('#medalBoard');
+    if (medalBoard && !$('#medalDivisionTabs')) medalBoard.insertAdjacentHTML('beforebegin', '<div class="standard-division-nav" id="medalDivisionTabs" aria-label="Medal round division"></div>');
     const teamHead = $('#view-teams .page-head');
     if (teamHead) teamHead.innerHTML = '<div><span class="eyebrow dark">Stable registration roster</span><h1>Entries</h1><p>Confirmed entries retain their identity when names, seeds, or affiliations change.</p></div><a class="btn btn-primary" href="registration/">Open registration desk</a>';
     const standingsHead = $('#view-standings .page-head');
@@ -770,6 +780,11 @@ export function initializeStandardTournamentApp(services) {
     if (scheduleHeaders[6]) scheduleHeaders[6].textContent = 'Entry B';
     const publicPanel = $('.public-share-panel');
     if (publicPanel) publicPanel.hidden = false;
+    $$('[data-event-app]').forEach(link => {
+      link.href = window.MATCHDAY_EVENT_URL(link.dataset.eventApp);
+    });
+    const registrationLink = $('#view-teams .page-head a[href="registration/"]');
+    if (registrationLink) registrationLink.href = window.MATCHDAY_EVENT_URL('registration/');
   }
 
   function showView(view) {
@@ -837,50 +852,147 @@ export function initializeStandardTournamentApp(services) {
     bindScoreButtons();
   }
 
+  function standardRefereeName(email) {
+    const person = refereeDirectory.find(item => clean(item.email).toLowerCase() === clean(email).toLowerCase());
+    return person ? [person.firstName, person.lastName].filter(Boolean).join(' ') || person.name || person.email : email;
+  }
+
+  function standardCheckinWarning(match) {
+    const missing = [match.a, match.b].flatMap(entryId => {
+      const item = entry(entryId);
+      if (!item || isDefaultEntry(item)) return [];
+      const players = item.players?.length ? item.players : [{ fullName:item.name }];
+      return players.map((player, index) => {
+        const found = Object.values(state.checkins || {}).some(checkin =>
+          (checkin.registrationId === item.registrationId || checkin.registrationId === item.id)
+          && Number(checkin.playerIndex) === index);
+        return found ? '' : clean(player.fullName || player.name) || item.name;
+      }).filter(Boolean);
+    });
+    return missing.length ? `${missing.join(', ')} ${missing.length === 1 ? 'has' : 'have'} not checked in` : '';
+  }
+
+  function standardConflicts(match) {
+    const conflicts = [];
+    state.matches.filter(other => other.id !== match.id && !other.administrative && other.status !== 'bye').forEach(other => {
+      const shared = [match.a, match.b].filter(Boolean).some(id => id === other.a || id === other.b);
+      if (!shared) return;
+      const gap = Math.abs(Number(match.startMinutes) - Number(other.startMinutes));
+      if (gap === 0) conflicts.push(`Same pair is scheduled on Court ${other.court} at ${timeLabel(other.startMinutes)}`);
+      else if (gap <= (Number(config.event?.slotMinutes) || 15)) conflicts.push(`Back-to-back warning with Court ${other.court} at ${timeLabel(other.startMinutes)}`);
+    });
+    return [...new Set(conflicts)];
+  }
+
+  function standardCourtScheduleStatus(courtNumber, nowMinutes) {
+    const next = state.matches.filter(match => Number(match.court) === Number(courtNumber) && match.status === 'ready' && !isComplete(match.id) && !match.administrative)
+      .sort((a, b) => Number(a.startMinutes) - Number(b.startMinutes))[0];
+    if (!next) return { tone:'safe', text:'Schedule complete' };
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Manila', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date());
+    if (config.event?.date && config.event.date !== today) return { tone:'safe', text:'On schedule' };
+    const delta = Math.floor(nowMinutes - Number(next.startMinutes));
+    if (delta >= 15) return { tone:'danger', text:`${delta} min delayed` };
+    if (delta > 4) return { tone:'warn', text:`${delta} min delayed` };
+    if (delta < -4) return { tone:'safe', text:`${Math.abs(delta)} min ahead` };
+    return { tone:'safe', text:'On schedule' };
+  }
+
+  function standardTimerTone(seconds) {
+    const warning = Number(config.scoring?.warningSeconds) || 540;
+    const danger = Number(config.scoring?.dangerSeconds) || 840;
+    return seconds >= danger ? 'timer-danger' : seconds >= warning ? 'timer-warning' : '';
+  }
+
+  function standardCourtStatus(live, complete) {
+    if (complete) return 'FINAL';
+    if (live?.interruption?.active) return clean(live.interruption.label || live.interruption.type || 'Interruption').toUpperCase();
+    if (live?.running) return 'LIVE';
+    return elapsedSeconds(live) ? 'PAUSED' : 'READY';
+  }
+
+  function standardMatchRules(match) {
+    const elimination = match.stage === 'elimination';
+    return state.matchSettings?.[match.id] || {
+      scoring:'side-out', target:elimination ? 15 : Number(config.scoring?.target) || 11,
+      winBy:2, hardCap:elimination ? 19 : Number(config.scoring?.hardCap) || 11,
+      timer:!elimination
+    };
+  }
+
+  function standardPortraits(entryId) {
+    const item = entry(entryId) || {}, players = item.players?.length ? item.players : [{ fullName:item.name }];
+    return players.map((player, index) => {
+      const checkin = Object.values(state.checkins || {}).find(value =>
+        (value.registrationId === item.registrationId || value.registrationId === item.id) && Number(value.playerIndex) === index);
+      const photo = checkin?.photoURL || checkin?.photoThumb || '';
+      return `<span>${photo ? `<img src="${esc(photo)}" alt="${esc(player.fullName || player.name || '')}">` : '<i class="court-photo-placeholder"></i>'}</span>`;
+    }).join('');
+  }
+
+  function standardActiveCourtMarkup(courtNumber) {
+    const court = state.courts[courtNumber] || {}, match = state.matches.find(item => item.id === court.matchId);
+    const next = state.matches.filter(item => Number(item.court) === Number(courtNumber) && item.status === 'ready' && !isComplete(item.id) && !item.administrative)
+      .sort((a, b) => Number(a.startMinutes) - Number(b.startMinutes))[0];
+    if (!match) return `<section class="active-court empty ${next && standardCheckinWarning(next) ? 'needs-checkin' : ''}"><b>Court vacant</b><small>${next ? `${entryName(next.a)} vs ${entryName(next.b)} · ${timeLabel(next.startMinutes)}` : 'Schedule complete'}</small>${next && standardCheckinWarning(next) ? `<strong class="checkin-alert">⚠ ${esc(standardCheckinWarning(next))}</strong>` : ''}${next ? `<button class="btn btn-primary" data-promote-court="${courtNumber}">Promote next match</button>` : ''}</section>`;
+    const live = state.liveScoring?.[match.id] || court, score = scoreFor(match.id), seconds = elapsedSeconds(live), warning = standardCheckinWarning(match), official = state.refereeAssignments?.[match.id], interruption = live.interruption?.active ? live.interruption : null, rules = standardMatchRules(match);
+    const winner = score && Number(score.a) !== Number(score.b) ? Number(score.a) > Number(score.b) ? 'a' : 'b' : '';
+    return `<section class="active-court category-${slug(match.category)} ${standardTimerTone(seconds)} ${!live.running && seconds && !score ? 'match-paused' : ''} ${interruption ? (interruption.type === 'team' ? 'interruption-warning' : 'interruption-danger') : ''} ${warning ? 'needs-checkin' : ''}"><div class="active-court-top"><span>${esc(match.divisionName)} · Court ${courtNumber}</span><b data-court-status="${courtNumber}">${esc(standardCourtStatus(live, score))}</b></div>${warning ? `<div class="checkin-alert">⚠ ${esc(warning)}</div>` : ''}${interruption ? `<div class="court-interruption"><span>${esc(interruption.label)}</span><b data-standard-interruption-clock="${courtNumber}">${timerLabel(elapsedSeconds(interruption))}</b><button data-end-standard-interruption="${courtNumber}">End interruption</button></div>` : ''}<div class="active-score"><div class="active-team ${winner === 'a' ? 'winner' : ''}"><div>${standardPortraits(match.a)}</div><strong>${winner === 'a' ? '🏆 ' : ''}${esc(entryName(match.a))}</strong></div><b>${score?.a ?? live.a ?? 0}<small>–</small>${score?.b ?? live.b ?? 0}</b><div class="active-team ${winner === 'b' ? 'winner' : ''}"><div>${standardPortraits(match.b)}</div><strong>${winner === 'b' ? '🏆 ' : ''}${esc(entryName(match.b))}</strong></div></div><div class="court-official"><span>Referee</span><b>${official ? esc(standardRefereeName(official)) : 'Unassigned'}</b><button data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? 'Swap' : 'Assign'}</button></div><div class="court-rule-summary"><b>${match.medal === 'gold' ? 'Gold / Silver' : match.medal === 'bronze' ? 'Bronze Medal' : match.stage === 'elimination' ? 'Elimination' : 'Preliminary'}</b><span>${rules.scoring === 'rally' ? 'Rally scoring' : 'Side-out scoring'} · to ${rules.target} · ${rules.timer ? 'timed' : 'no timer'}</span></div><div class="active-actions">${rules.timer ? `<button class="court-timer-control ${live.running ? 'is-running' : seconds ? 'is-paused' : ''}" data-timer-toggle="${courtNumber}" ${score || interruption ? 'disabled' : ''}><span>${interruption ? 'Interrupted' : live.running ? 'Pause' : seconds ? 'Resume' : 'Start'}</span><b data-court-clock="${courtNumber}">${timerLabel(seconds)}</b></button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${esc(match.id)}">${score ? 'Review score' : 'Update score'}</button>${score ? '' : `<button class="end-match-action" data-end-match="${esc(match.id)}">End Match</button>`}<button data-standard-settings="${courtNumber}" ${score ? 'disabled' : ''}>Scoring settings</button><button data-standard-tools="${courtNumber}" ${score ? 'disabled' : ''}>Match tools</button><button class="vacate" data-vacate-court="${courtNumber}" ${score ? '' : 'disabled'}>Confirm court vacant</button></div></section>`;
+  }
+
+  function standardScheduleCell(courtNumber, minute) {
+    const matches = state.matches.filter(match => Number(match.court) === Number(courtNumber) && Number(match.startMinutes) === minute && match.status !== 'bye' && !match.administrative);
+    const match = matches[0];
+    if (!match) return `<div class="calendar-cell empty" data-drop-court="${courtNumber}" data-drop-minute="${minute}"></div>`;
+    const active = state.courts[courtNumber]?.matchId === match.id, complete = isComplete(match.id), conflicts = standardConflicts(match), warning = standardCheckinWarning(match), official = state.refereeAssignments?.[match.id];
+    return `<div class="calendar-cell occupied" data-drop-court="${courtNumber}" data-drop-minute="${minute}"><article class="timeline-match category-${slug(match.category)} ${conflicts.length || matches.length > 1 ? 'has-conflict' : ''} ${warning ? 'needs-checkin' : ''} ${active ? 'on-court' : ''} ${complete ? 'completed' : ''} ${selectedScheduleMatchId === match.id ? 'schedule-selected' : ''}" draggable="${!active && !complete && match.status === 'ready'}" data-drag-match="${esc(match.id)}" title="${esc([warning, ...conflicts].filter(Boolean).join(' · '))}"><div class="timeline-pairs"><small>${esc(match.divisionName)} · ${timeLabel(minute)}</small><b>${esc(entryName(match.a))}</b><span>vs</span><b>${esc(entryName(match.b))}</b>${warning ? `<em class="checkin-warning">⚠ ${esc(warning)}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : complete ? `<em>Final ${scoreFor(match.id).a}-${scoreFor(match.id).b}</em>` : active ? '<em>Currently on court</em>' : ''}</div>${complete ? '' : `<button class="calendar-referee ${official ? 'assigned' : ''}" data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? `Ref · ${esc(standardRefereeName(official))}` : 'Assign ref'}</button>`}${warning ? '<span class="checkin-mark">⚠</span>' : ''}${conflicts.length || matches.length > 1 ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
+  }
+
+  function positionStandardNeedle(minute, start) {
+    const timeline = $('#courtTimeline'), needle = $('.current-time-needle', timeline), rows = $$('.calendar-time', timeline);
+    if (!needle || !rows.length || !Number.isFinite(start)) return;
+    const exact = Math.max(0, Math.min(rows.length - 1, (minute - start) / 5)), lower = Math.floor(exact), upper = Math.min(rows.length - 1, lower + 1);
+    needle.style.top = `${rows[lower].offsetTop + (rows[upper].offsetTop - rows[lower].offsetTop) * (exact - lower)}px`;
+    needle.classList.add('is-live');
+  }
+
   function renderCourts() {
     const target = $('#courtTimeline');
     if (!target || !state) return;
-    const activeMarkup = `<section class="standard-active-section"><div class="standard-section-heading"><div><span>Live operations</span><h2>Active Courts</h2></div><small>Timers and score controls stay connected to the scheduled match below.</small></div><div class="standard-court-grid">${Object.entries(state.courts).map(([number, court]) => {
-      const match = state.matches.find(item => item.id === court.matchId);
-      const live = match ? state.liveScoring?.[match.id] || court : court;
-      const nextId = state.queue.find(id => {
-        const candidate = state.matches.find(item => item.id === id);
-        return Number(candidate?.court) === Number(number);
-      }) || state.queue[0];
-      const next = state.matches.find(item => item.id === nextId);
-      if (!match) return `<article class="standard-court-card vacant"><header><div><small>COURT</small><b>${number}</b></div><span>Available</span></header><div class="court-empty"><strong>${next ? `${entryName(next.a)} vs ${entryName(next.b)}` : 'Court is ready'}</strong><small>${next ? `${next.divisionName} · planned ${next.time.split('-')[0]}` : 'No eligible match is waiting.'}</small></div><button class="btn btn-primary" data-promote-court="${number}" ${next ? '' : 'disabled'}>${next ? 'Call scheduled match' : 'No match ready'}</button></article>`;
-      const score = scoreFor(match.id);
-      const elapsed = elapsedSeconds(live);
-      return `<article class="standard-court-card ${live.running ? 'running' : ''} ${score ? 'complete' : ''}"><header><div><small>COURT</small><b>${number}</b></div><span>${score ? 'Finished' : live.running ? 'Match live' : elapsed ? 'Paused' : 'Called'}</span></header>${matchCard(match, true)}<div class="court-clock" data-court-clock="${number}">${timerLabel(elapsed)}</div><div class="standard-court-actions"><button class="btn ${live.running ? 'btn-warning' : 'btn-quiet'}" data-toggle-court="${number}" ${score ? 'disabled' : ''}>${live.running ? 'Pause timer' : elapsed ? 'Resume timer' : 'Start match'}</button><button class="btn btn-primary" data-score-id="${esc(match.id)}">${score ? 'Review result' : 'Record result'}</button><button class="btn btn-quiet" data-vacate-court="${number}" ${score ? '' : 'disabled'}>Clear court</button></div></article>`;
-    }).join('')}</div></section>`;
-    const playable = state.matches.filter(match => match.status !== 'bye' && Number.isFinite(Number(match.startMinutes)));
-    const minutes = [...new Set(playable.map(match => Number(match.startMinutes)))].sort((a, b) => a - b);
-    const calendar = minutes.length ? `<section class="standard-calendar-section"><div class="standard-calendar-grid" style="--standard-courts:${Object.keys(state.courts).length}"><div class="standard-calendar-corner">Time</div>${Object.keys(state.courts).map(number => `<div class="standard-calendar-court">Court ${number}</div>`).join('')}${minutes.map(minute => `<div class="standard-calendar-time"><b>${timeLabel(minute)}</b><small>${timeLabel(minute + (Number(config.event?.slotMinutes) || 15))}</small></div>${Object.keys(state.courts).map(number => {
-      const slotMatches = playable.filter(match => Number(match.court) === Number(number) && Number(match.startMinutes) === minute);
-      return `<div class="standard-calendar-cell ${slotMatches.length ? 'occupied' : ''}" data-standard-drop-court="${number}" data-standard-drop-minute="${minute}">${slotMatches.map(match => {
-        const active = state.courts[number]?.matchId === match.id;
-        const complete = isComplete(match.id);
-        const canCall = !active && !complete && match.status === 'ready' && !state.courts[number]?.matchId;
-        const draggable = !active && !complete && match.status === 'ready';
-        return `<article class="standard-calendar-match status-${esc(complete ? 'complete' : active ? 'live' : match.status)}" draggable="${draggable}" data-standard-drag-match="${esc(match.id)}"><header><span>${esc(match.divisionName)}</span><b>${match.poolId ? esc(match.poolId.split('/').pop()) : `R${match.round}`}</b></header><div><strong>${esc(entryName(match.a))}</strong><small>${esc(affiliationName(match.a))}</small><em>vs</em><strong>${esc(entryName(match.b))}</strong><small>${esc(affiliationName(match.b))}</small></div><footer><span>${complete ? `Final ${scoreFor(match.id).a}-${scoreFor(match.id).b}` : active ? 'On court now' : match.status === 'pending' ? 'Awaiting qualifiers' : 'Pre-scheduled'}</span>${canCall ? `<button type="button" data-call-match="${esc(match.id)}" data-call-court="${number}">Call to court</button>` : ''}</footer></article>`;
-      }).join('')}</div>`;
-    }).join('')}`).join('')}</div></section>` : '<div class="standard-calendar-empty"><b>No matches scheduled yet</b><p>Confirmed registrations will automatically populate this calendar with court and time assignments.</p></div>';
-    target.innerHTML = `${activeMarkup}${calendar}`;
+    const playable = state.matches.filter(match => match.status !== 'bye' && !match.administrative && Number.isFinite(Number(match.startMinutes)));
+    const first = playable.length ? Math.max(0, Math.floor(Math.min(...playable.map(match => Number(match.startMinutes))) / 5) * 5) : 0;
+    const courtNumbers = Object.keys(state.courts).map(Number);
+    const now = new Date(), nowMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    const headers = `<div class="calendar-corner">Time</div>${courtNumbers.map(number => { const status = standardCourtScheduleStatus(number, nowMinutes); return `<header class="timeline-head ${status.tone}" data-standard-court-status="${number}"><div><b>Court ${number}</b><small>${state.courtSchedules[number]?.filter(id => !isComplete(id)).length || 0} scheduled</small></div><strong>${esc(status.text)}</strong></header>`; }).join('')}`;
+    const liveRow = `<div class="calendar-live-label">LIVE<br>COURT</div>${courtNumbers.map(standardActiveCourtMarkup).join('')}`;
+    const rows = playable.length ? Math.max(1, Math.ceil((1440 - first) / 5)) : 1;
+    const scheduleRows = playable.length ? Array.from({ length:rows }, (_, row) => { const minute = first + row * 5; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}" data-calendar-minute="${minute}">${minute % 15 === 0 ? timeLabel(minute) : ''}</div>${courtNumbers.map(number => standardScheduleCell(number, minute)).join('')}`; }).join('') : `<div class="calendar-time hour">—</div>${courtNumbers.map(number => '<div class="calendar-cell empty"></div>').join('')}`;
+    target.className = 'calendar-stage standard-rich-calendar';
+    target.style.setProperty('--court-count', courtNumbers.length);
+    target.dataset.calendarStart = String(first);
+    target.innerHTML = `${headers}${liveRow}${scheduleRows}${playable.length && nowMinutes >= first ? `<div class="current-time-needle"><span>${new Intl.DateTimeFormat('en-PH', { hour:'numeric', minute:'2-digit', second:'2-digit' }).format(now)}</span></div>` : ''}<div class="time-needle-key"><i></i><span>Live time needle</span></div>`;
+    positionStandardNeedle(nowMinutes, first);
     const note = $('.queue-help');
-    if (note) note.textContent = 'The calendar is prepared automatically from confirmed registrations. Drag ready matches to adjust the plan; dropping onto an occupied slot swaps the two matches.';
+    if (note) note.textContent = 'Five-minute calendar slots, live court timers, conflict warnings, check-in alerts, referee assignment, drag-to-swap, and court delay status remain available in every tournament format.';
     bindScoreButtons();
     $$('[data-promote-court]').forEach(button => button.onclick = () => promoteMatch(Number(button.dataset.promoteCourt)));
-    $$('[data-call-match]').forEach(button => button.onclick = () => promoteSpecificMatch(button.dataset.callMatch, Number(button.dataset.callCourt)));
-    $$('[data-toggle-court]').forEach(button => button.onclick = () => toggleCourt(Number(button.dataset.toggleCourt)));
+    $$('[data-timer-toggle]').forEach(button => button.onclick = () => toggleCourt(Number(button.dataset.timerToggle)));
     $$('[data-vacate-court]').forEach(button => button.onclick = () => vacateCourt(Number(button.dataset.vacateCourt)));
-    $$('[data-standard-drag-match]').forEach(card => {
-      card.ondragstart = () => { draggedScheduleMatchId = card.dataset.standardDragMatch; card.classList.add('dragging'); };
-      card.ondragend = () => { draggedScheduleMatchId = ''; card.classList.remove('dragging'); $$('.standard-calendar-cell.drag-over').forEach(cell => cell.classList.remove('drag-over')); };
+    $$('[data-end-match]').forEach(button => button.onclick = () => openScore(button.dataset.endMatch));
+    $$('[data-standard-settings]').forEach(button => button.onclick = () => showStandardScoringSettings(Number(button.dataset.standardSettings)));
+    $$('[data-standard-tools]').forEach(button => button.onclick = () => showStandardCourtTools(Number(button.dataset.standardTools)));
+    $$('[data-end-standard-interruption]').forEach(button => button.onclick = () => endStandardInterruption(Number(button.dataset.endStandardInterruption)));
+    $$('[data-assign-standard-referee]').forEach(button => button.onclick = event => { event.preventDefault(); event.stopPropagation(); showStandardRefereeAssignment(button.dataset.assignStandardReferee, Number(button.dataset.assignmentCourt)); });
+    $$('[data-drag-match]').forEach(card => {
+      card.ondragstart = event => { draggedScheduleMatchId = card.dataset.dragMatch; card.classList.add('dragging'); event.dataTransfer?.setData('text/plain', draggedScheduleMatchId); };
+      card.ondragend = () => { draggedScheduleMatchId = ''; card.classList.remove('dragging'); $$('.calendar-cell.drag-over').forEach(cell => cell.classList.remove('drag-over')); };
+      card.onclick = event => { if (event.target.closest('button') || card.getAttribute('draggable') !== 'true') return; selectedScheduleMatchId = selectedScheduleMatchId === card.dataset.dragMatch ? '' : card.dataset.dragMatch; renderCourts(); };
     });
-    $$('[data-standard-drop-court]').forEach(cell => {
+    $$('[data-drop-court]').forEach(cell => {
       cell.ondragover = event => { if (!draggedScheduleMatchId) return; event.preventDefault(); cell.classList.add('drag-over'); };
       cell.ondragleave = () => cell.classList.remove('drag-over');
-      cell.ondrop = event => { event.preventDefault(); cell.classList.remove('drag-over'); moveScheduledMatch(draggedScheduleMatchId, Number(cell.dataset.standardDropCourt), Number(cell.dataset.standardDropMinute)); draggedScheduleMatchId = ''; };
+      cell.ondrop = event => { event.preventDefault(); cell.classList.remove('drag-over'); const id = event.dataTransfer?.getData('text/plain') || draggedScheduleMatchId; moveScheduledMatch(id, Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); draggedScheduleMatchId = ''; };
+      cell.onclick = event => { if (event.target.closest('button') || !selectedScheduleMatchId) return; const id = selectedScheduleMatchId; selectedScheduleMatchId = ''; moveScheduledMatch(id, Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); };
+      cell.oncontextmenu = event => { event.preventDefault(); showStandardScheduleMenu(event.clientX, event.clientY, Number(cell.dataset.dropCourt), Number(cell.dataset.dropMinute)); };
     });
     const rebuildButton = $('#standardRebuildSchedule');
     if (rebuildButton) {
@@ -888,6 +1000,86 @@ export function initializeStandardTournamentApp(services) {
       rebuildButton.onclick = rebuildPreSchedule;
     }
     renderOfficials();
+  }
+
+  function showStandardRefereeAssignment(matchId, courtNumber) {
+    const match = state.matches.find(item => item.id === matchId);
+    if (!match) return;
+    const current = state.refereeAssignments?.[matchId] || '';
+    if (elapsedSeconds(state.liveScoring?.[matchId]) > 0 && !current) return toast('A match that started unofficiated cannot add a referee mid-match.');
+    $('#standardCourtModal')?.remove();
+    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section class="referee-assignment-modal"><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber || match.court} · ${esc(match.divisionName)}</span><h2>${current ? 'Change referee' : 'Assign referee'}</h2><div class="assignment-matchup"><div><small>${esc(affiliationName(match.a))}</small><b>${esc(entryName(match.a))}</b></div><span>VS</span><div><small>${esc(affiliationName(match.b))}</small><b>${esc(entryName(match.b))}</b></div></div><label class="official-picker">Available referee<select id="standardRefereeChoice"><option value="">Select a referee</option>${refereeDirectory.map(person => `<option value="${esc(person.email)}" ${clean(person.email).toLowerCase() === clean(current).toLowerCase() ? 'selected' : ''}>${esc([person.firstName, person.lastName].filter(Boolean).join(' ') || person.name || person.email)}</option>`).join('')}</select></label><div class="stack-actions"><button class="btn btn-primary" id="saveStandardReferee">${current ? 'Save referee change' : 'Assign referee'}</button>${current && !elapsedSeconds(state.liveScoring?.[matchId]) ? '<button class="btn btn-danger" id="removeStandardReferee">Remove assignment</button>' : ''}</div></section></div>`);
+    const modal = $('#standardCourtModal'), close = () => modal.remove();
+    modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-standard-modal]')) close(); };
+    $('#saveStandardReferee').onclick = () => { const email = clean($('#standardRefereeChoice').value).toLowerCase(); if (!email) return toast('Choose an available referee.'); state.refereeAssignments[matchId] = email; recordActivity(`${standardRefereeName(email)} assigned to ${match.divisionName}`, matchId); publishState(); close(); renderCourts(); };
+    if ($('#removeStandardReferee')) $('#removeStandardReferee').onclick = () => { delete state.refereeAssignments[matchId]; recordActivity(`Referee removed from ${match.divisionName}`, matchId); publishState(); close(); renderCourts(); };
+  }
+
+  function showStandardCourtTools(courtNumber) {
+    const matchId = state.courts[courtNumber]?.matchId, match = state.matches.find(item => item.id === matchId);
+    if (!match) return;
+    const live = state.liveScoring[matchId] ||= { elapsed:0, running:false, startedAt:null, a:0, b:0 };
+    $('#standardCourtModal')?.remove();
+    const active = live.interruption?.active ? `<div class="tools-current"><span>Active interruption</span><b>${esc(live.interruption.label)}</b><strong>${timerLabel(elapsedSeconds(live.interruption))}</strong><button class="btn btn-primary" id="endStandardTool">End interruption and resume</button></div>` : '';
+    const teamTimeoutAllowed = match.stage === 'elimination';
+    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber} · ${esc(match.divisionName)}</span><h2>Match tools</h2><p>Starting an interruption automatically pauses the match timer. Ending it resumes play.</p>${active}<div class="guarded-tools"><button data-standard-tool="team" ${teamTimeoutAllowed ? '' : 'disabled'}>Team timeout <b>${teamTimeoutAllowed ? '60 seconds' : 'Not allowed in preliminary play'}</b></button><button data-standard-tool="medical">Medical timeout <b>5 minutes max</b></button><button data-standard-tool="technical">Technical timeout</button><button data-standard-tool="referee">Referee timeout</button><button data-standard-tool="equipment">Equipment timeout</button></div><div id="standardToolConfirmation"></div></section></div>`);
+    const modal = $('#standardCourtModal'), close = () => modal.remove();
+    modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-standard-modal]')) close(); };
+    $$('[data-standard-tool]').forEach(button => button.onclick = () => {
+      const type = button.dataset.standardTool, labels = { team:'TEAM TIMEOUT', medical:'MEDICAL TIMEOUT', technical:'TECHNICAL TIMEOUT', referee:'REFEREE TIMEOUT', equipment:'EQUIPMENT TIMEOUT' };
+      const panel = $('#standardToolConfirmation');
+      panel.innerHTML = `<div class="tool-confirm"><span>Confirm interruption</span><b>${labels[type]}</b><p>The match timer will pause immediately.</p><div><button class="btn btn-primary" id="confirmStandardTool">Confirm and start</button><button class="btn btn-quiet" id="cancelStandardTool">Cancel</button></div></div>`;
+      $('#cancelStandardTool').onclick = () => panel.innerHTML = '';
+      $('#confirmStandardTool').onclick = () => {
+      if (live.running) { live.elapsed = elapsedSeconds(live); live.running = false; live.startedAt = null; }
+      live.interruption = { active:true, type, label:labels[type], elapsed:0, running:true, startedAt:Date.now() };
+      recordActivity(`${labels[type]} started on Court ${courtNumber}`, matchId); publishState(); close(); renderCourts();
+      };
+    });
+    if ($('#endStandardTool')) $('#endStandardTool').onclick = () => { endStandardInterruption(courtNumber); close(); };
+  }
+
+  function showStandardScoringSettings(courtNumber) {
+    const matchId = state.courts[courtNumber]?.matchId, match = state.matches.find(item => item.id === matchId);
+    if (!match) return;
+    const rules = standardMatchRules(match);
+    $('#standardCourtModal')?.remove();
+    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber} · ${esc(match.divisionName)}</span><h2>Scoring settings</h2><div class="stack-form"><label>Scoring<select id="standardScoringType"><option value="side-out" ${rules.scoring === 'side-out' ? 'selected' : ''}>Side-out scoring</option><option value="rally" ${rules.scoring === 'rally' ? 'selected' : ''}>Rally scoring</option></select></label><label>Winning score<input id="standardTargetScore" type="number" min="1" value="${rules.target}"></label><label>Win by<input id="standardWinBy" type="number" min="1" value="${rules.winBy}"></label><label>Hard cap<input id="standardHardCap" type="number" min="1" value="${rules.hardCap}"></label><label class="setting-check"><input id="standardTimerEnabled" type="checkbox" ${rules.timer ? 'checked' : ''}> Use match timer</label><button class="btn btn-primary" id="saveStandardRules">Save match settings</button></div></section></div>`);
+    const modal = $('#standardCourtModal'), close = () => modal.remove();
+    modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-standard-modal]')) close(); };
+    $('#saveStandardRules').onclick = () => { state.matchSettings ||= {}; state.matchSettings[matchId] = { scoring:$('#standardScoringType').value, target:Math.max(1, Number($('#standardTargetScore').value) || 11), winBy:Math.max(1, Number($('#standardWinBy').value) || 2), hardCap:Math.max(1, Number($('#standardHardCap').value) || 11), timer:$('#standardTimerEnabled').checked }; recordActivity(`Scoring settings updated on Court ${courtNumber}`, matchId); publishState(); close(); renderCourts(); };
+  }
+
+  function endStandardInterruption(courtNumber) {
+    const matchId = state.courts[courtNumber]?.matchId, live = state.liveScoring?.[matchId];
+    if (!live?.interruption?.active) return;
+    const label = live.interruption.label;
+    live.interruption = { ...live.interruption, active:false, running:false, elapsed:elapsedSeconds(live.interruption), startedAt:null };
+    live.running = true; live.startedAt = Date.now();
+    Object.assign(state.courts[courtNumber], { running:true, startedAt:live.startedAt, elapsed:live.elapsed || 0 });
+    recordActivity(`${label} ended on Court ${courtNumber}`, matchId); publishState(); renderCourts();
+  }
+
+  function showStandardScheduleMenu(x, y, courtNumber, fromMinute) {
+    $('#standardScheduleMenu')?.remove();
+    document.body.insertAdjacentHTML('beforeend', `<div class="schedule-context" id="standardScheduleMenu" style="left:${Math.min(x, innerWidth - 300)}px;top:${Math.min(y, innerHeight - 280)}px"><b>Court ${courtNumber} · ${timeLabel(fromMinute)}</b><small>Move remaining matches in five-minute steps.</small><label>Minutes<input id="standardBumpMinutes" type="number" step="5" value="5"></label><div><button class="btn btn-primary" id="applyStandardBump">Bump matches</button><button class="btn btn-quiet" id="undoStandardSchedule" ${state.scheduleHistory?.length ? '' : 'disabled'}>Undo last move</button></div></div>`);
+    const menu = $('#standardScheduleMenu');
+    $('#applyStandardBump').onclick = () => { const amount = Math.round((Number($('#standardBumpMinutes').value) || 0) / 5) * 5; if (!amount) return toast('Enter a non-zero number of minutes.'); pushStandardScheduleHistory(`Bump Court ${courtNumber} by ${amount} minutes`); state.matches.filter(match => Number(match.court) === courtNumber && Number(match.startMinutes) >= fromMinute && !isComplete(match.id)).forEach(match => { match.startMinutes = Math.max(0, Math.min(1435, Number(match.startMinutes) + amount)); match.time = `${timeLabel(match.startMinutes)}-${timeLabel(match.startMinutes + (Number(config.event?.slotMinutes) || 15))}`; }); refreshScheduleCollections(); publishState(); menu.remove(); renderAll(); };
+    $('#undoStandardSchedule').onclick = () => undoStandardSchedule();
+    setTimeout(() => document.addEventListener('pointerdown', function close(event) { if (!menu.contains(event.target)) { menu.remove(); document.removeEventListener('pointerdown', close); } }), 0);
+  }
+
+  function pushStandardScheduleHistory(label) {
+    state.scheduleHistory ||= [];
+    state.scheduleHistory.push({ label, matches:state.matches.map(match => ({ id:match.id, court:match.court, startMinutes:match.startMinutes })) });
+    if (state.scheduleHistory.length > 20) state.scheduleHistory.shift();
+  }
+
+  function undoStandardSchedule() {
+    const snapshot = state.scheduleHistory?.pop();
+    if (!snapshot) return toast('No schedule change to undo.');
+    snapshot.matches.forEach(saved => { const match = state.matches.find(item => item.id === saved.id); if (match) { match.court = saved.court; match.startMinutes = saved.startMinutes; match.time = `${timeLabel(saved.startMinutes)}-${timeLabel(saved.startMinutes + (Number(config.event?.slotMinutes) || 15))}`; } });
+    refreshScheduleCollections(); publishState(); $('#standardScheduleMenu')?.remove(); renderAll(); toast(`Undid: ${snapshot.label}`);
   }
 
   function refreshScheduleCollections() {
@@ -903,18 +1095,22 @@ export function initializeStandardTournamentApp(services) {
   function moveScheduledMatch(matchId, courtNumber, startMinutes) {
     const source = state.matches.find(match => match.id === matchId);
     if (!source || isComplete(matchId) || Object.values(state.courts).some(court => court.matchId === matchId)) return toast('A live or completed match cannot be moved.');
-    const target = state.matches.find(match => match.id !== matchId && Number(match.court) === courtNumber && Number(match.startMinutes) === startMinutes);
+    const snappedMinutes = Math.max(0, Math.min(1435, Math.round(Number(startMinutes) / 5) * 5));
+    const slotMinutes = Number(config.event?.slotMinutes) || 15;
+    const target = state.matches.find(match => match.id !== matchId && Number(match.court) === courtNumber
+      && snappedMinutes < Number(match.startMinutes) + slotMinutes && snappedMinutes + slotMinutes > Number(match.startMinutes));
     if (target && (isComplete(target.id) || Object.values(state.courts).some(court => court.matchId === target.id))) return toast('That slot contains a live or completed match.');
     const original = { court: source.court, startMinutes: source.startMinutes, wave: source.wave };
-    const slotMinutes = Number(config.event?.slotMinutes) || 15;
+    const targetOriginal = target ? { startMinutes:target.startMinutes, wave:target.wave } : null;
+    pushStandardScheduleHistory(target ? `Swap ${source.divisionName} matches` : `Move ${source.divisionName} match`);
     if (target) {
       target.court = original.court; target.startMinutes = original.startMinutes; target.wave = original.wave;
       target.time = `${timeLabel(target.startMinutes)}-${timeLabel(target.startMinutes + slotMinutes)}`;
     }
     source.court = courtNumber;
-    source.startMinutes = startMinutes;
-    source.wave = Math.max(1, Math.floor((startMinutes - (Number(config.event?.roundRobinStartMinutes) || parseClock(config.event?.startTime, 480))) / slotMinutes) + 1);
-    source.time = `${timeLabel(startMinutes)}-${timeLabel(startMinutes + slotMinutes)}`;
+    source.startMinutes = target ? Number(targetOriginal.startMinutes) : snappedMinutes;
+    source.wave = target ? targetOriginal.wave : Math.max(1, Math.floor((source.startMinutes - (Number(config.event?.roundRobinStartMinutes) || parseClock(config.event?.startTime, 480))) / slotMinutes) + 1);
+    source.time = `${timeLabel(source.startMinutes)}-${timeLabel(source.startMinutes + slotMinutes)}`;
     refreshScheduleCollections();
     recordActivity(`${target ? 'Swapped' : 'Moved'} ${source.divisionName} match to Court ${courtNumber} at ${timeLabel(startMinutes)}`, source.id);
     publishState();
@@ -945,6 +1141,9 @@ export function initializeStandardTournamentApp(services) {
     const match = state.matches.find(item => item.id === nextId);
     if (!court || court.matchId) return toast(`Court ${courtNumber} is not vacant.`);
     if (!match || match.status !== 'ready' || isComplete(nextId)) return toast('That match is not ready to be called.');
+    const activeConflict = Object.entries(state.courts).map(([number, item]) => ({ number, match:state.matches.find(candidate => candidate.id === item.matchId) }))
+      .find(item => item.match && [match.a, match.b].some(id => id === item.match.a || id === item.match.b));
+    if (activeConflict) return toast(`Player conflict: this pair is still active on Court ${activeConflict.number}.`);
     state.courts[courtNumber] = { matchId: nextId, running: false, startedAt: null, elapsed: 0, calledAt: new Date().toISOString() };
     state.liveScoring[nextId] = { ...(state.liveScoring[nextId] || {}), running: false, startedAt: null, elapsed: 0, calledAt: new Date().toISOString() };
     recordActivity(`Called ${nextId} to Court ${courtNumber}`, nextId);
@@ -1007,7 +1206,18 @@ export function initializeStandardTournamentApp(services) {
   }
 
   function standingsTable(rows) {
-    return `<div class="table-wrap"><table class="standard-standings-table"><thead><tr><th>#</th><th>Entry</th><th>P</th><th>W</th><th>L</th><th>D</th><th>PF</th><th>PA</th><th>+/-</th><th>Pts</th></tr></thead><tbody>${rows.map(row => `<tr class="${row.tied ? 'is-tied' : ''}"><td>${row.rank}${row.tied ? '=' : ''}</td><td><b>${esc(entryName(row.entryId))}</b><small class="table-sub">${esc(affiliationName(row.entryId))}${row.seed ? ` · Seed ${row.seed}` : ''}</small></td><td>${row.played}</td><td>${row.wins}</td><td>${row.losses}</td><td>${row.draws}</td><td>${row.pointsFor}</td><td>${row.pointsAgainst}</td><td>${row.pointDifferential > 0 ? '+' : ''}${row.pointDifferential}</td><td>${row.standingPoints}</td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="table-wrap"><table class="standard-standings-table"><thead><tr><th>Rank</th><th>Entry</th><th>P</th><th>W</th><th>L</th><th>D</th><th>PF</th><th>PA</th><th>+/-</th><th>Pts</th></tr></thead><tbody>${rows.map(row => {
+      const rank = row.played === 0 ? '<span class="rank-pending" title="Ranking begins after the first completed match">—</span>'
+        : row.tied ? `<span class="rank-tied" title="Tied for rank ${row.rank}">T${row.rank}</span>` : row.rank;
+      return `<tr class="${row.tied && row.played ? 'is-tied' : ''}"><td>${rank}</td><td><b>${esc(entryName(row.entryId))}</b><small class="table-sub">${esc(affiliationName(row.entryId))}${row.seed ? ` · Seed ${row.seed}` : ''}</small></td><td>${row.played}</td><td>${row.wins}</td><td>${row.losses}</td><td>${row.draws}</td><td>${row.pointsFor}</td><td>${row.pointsAgainst}</td><td>${row.pointDifferential > 0 ? '+' : ''}${row.pointDifferential}</td><td>${row.standingPoints}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+  }
+
+  function divisionNavButton(division, definition, active, attribute) {
+    const preliminary = division.stages.find(stage => stage.type !== 'single-elimination');
+    const complete = preliminary?.matches?.filter(match => match.status === 'complete').length || 0;
+    const total = preliminary?.matches?.filter(match => match.status !== 'bye').length || 0;
+    return `<button type="button" class="standard-division-tab ${division.id === active ? 'active' : ''}" ${attribute}="${esc(division.id)}" aria-pressed="${division.id === active}"><span>${esc(definition?.name || division.id)}</span><small>${division.entryIds.length} pairs · ${total ? `${complete}/${total} complete` : 'Awaiting draw'}</small></button>`;
   }
 
   function renderStandings() {
@@ -1016,7 +1226,9 @@ export function initializeStandardTournamentApp(services) {
     if (!tabs || !grid || !state) return;
     const definitions = divisionLookup(state.standardState);
     activeDivision = definitions.has(activeDivision) ? activeDivision : state.standardState.divisions[0]?.id || '';
-    tabs.innerHTML = state.standardState.divisions.map(division => `<button class="${division.id === activeDivision ? 'active' : ''}" data-standing-division="${esc(division.id)}">${esc(definitions.get(division.id)?.name || division.id)}</button>`).join('');
+    tabs.className = 'standard-division-nav';
+    tabs.setAttribute('aria-label', 'Standings division');
+    tabs.innerHTML = state.standardState.divisions.map(division => divisionNavButton(division, definitions.get(division.id), activeDivision, 'data-standing-division')).join('');
     const division = state.standardState.divisions.find(item => item.id === activeDivision);
     if (!division) { grid.innerHTML = '<p class="empty">No divisions are configured.</p>'; return; }
     const preliminary = division.stages.find(stage => stage.type !== 'single-elimination');
@@ -1034,7 +1246,9 @@ export function initializeStandardTournamentApp(services) {
     if (!tabs || !grid || !state) return;
     const definitions = divisionLookup(state.standardState);
     activeDivision = definitions.has(activeDivision) ? activeDivision : state.standardState.divisions[0]?.id || '';
-    tabs.innerHTML = state.standardState.divisions.map(division => `<button class="${division.id === activeDivision ? 'active' : ''}" data-entry-division="${esc(division.id)}">${esc(definitions.get(division.id)?.name || division.id)}</button>`).join('');
+    tabs.className = 'standard-division-nav';
+    tabs.setAttribute('aria-label', 'Entries division');
+    tabs.innerHTML = state.standardState.divisions.map(division => divisionNavButton(division, definitions.get(division.id), activeDivision, 'data-entry-division')).join('');
     const division = definitions.get(activeDivision);
     const entries = (division?.entryIds || []).map(entry);
     grid.innerHTML = entries.length ? entries.map(item => {
@@ -1049,6 +1263,7 @@ export function initializeStandardTournamentApp(services) {
     if (!slot) return 'TBD';
     if (slot.type === 'bye') return 'Bye';
     if (slot.type === 'winner') return `Winner of ${publicMatchId(slot.matchId).replace(/^STD-/, '').slice(-12)}`;
+    if (slot.type === 'loser') return `Loser of ${publicMatchId(slot.matchId).replace(/^STD-/, '').slice(-12)}`;
     if (slot.type === 'qualifier') return `${slot.poolId ? `${slot.poolId.split('/').pop()} ` : ''}Rank ${slot.rank}`;
     if (slot.type === 'wildcard') return `Wildcard ${slot.rank}`;
     return 'TBD';
@@ -1059,13 +1274,22 @@ export function initializeStandardTournamentApp(services) {
     if (!board || !state) return;
     const definitions = divisionLookup(state.standardState);
     const brackets = state.standardState.divisions.flatMap(division => division.stages.filter(stage => stage.type === 'single-elimination').map(stage => ({ division, stage })));
-    board.innerHTML = brackets.length ? brackets.map(({ division, stage }) => {
+    activeDivision = definitions.has(activeDivision) ? activeDivision : state.standardState.divisions[0]?.id || '';
+    const tabs = $('#medalDivisionTabs');
+    if (tabs) {
+      tabs.innerHTML = state.standardState.divisions.map(division => divisionNavButton(division, definitions.get(division.id), activeDivision, 'data-medal-division')).join('');
+      $$('[data-medal-division]').forEach(button => button.onclick = () => { activeDivision = button.dataset.medalDivision; renderBracket(); });
+    }
+    const visible = brackets.filter(item => item.division.id === activeDivision);
+    board.innerHTML = visible.length ? visible.map(({ division, stage }) => {
       const rounds = [...new Set(stage.matches.map(match => match.round))];
-      return `<section class="panel standard-bracket"><header><div><span class="section-label">${stage.complete ? 'Complete' : 'Live bracket'}</span><h2>${esc(definitions.get(division.id)?.name || division.id)}</h2></div><strong>${stage.championId ? `Champion: ${esc(entryName(stage.championId))}` : `${stage.entryCount} entrants`}</strong></header><div class="standard-bracket-scroll">${rounds.map(round => `<div class="standard-bracket-round"><h3>${round === rounds.length ? 'Final' : `Round ${round}`}</h3>${stage.matches.filter(match => match.round === round).map(match => {
+      const finalRound = Math.max(...rounds);
+      return `<section class="panel standard-bracket"><header><div><span class="section-label">${stage.complete ? 'Medal round complete' : 'Live medal bracket'}</span><h2>${esc(definitions.get(division.id)?.name || division.id)}</h2></div><strong>${stage.championId ? `Gold: ${esc(entryName(stage.championId))}` : `Top ${stage.entryCount} qualifiers`}</strong></header><div class="standard-bracket-scroll">${rounds.map(round => `<div class="standard-bracket-round"><h3>${round === finalRound ? 'Medal matches' : round === finalRound - 1 ? 'Semifinals' : `Elimination round ${round}`}</h3>${stage.matches.filter(match => match.round === round).map((match, index) => {
         const id = publicMatchId(match.id), score = scoreFor(id);
-        return `<article class="standard-bracket-match ${match.status}"><span><b>${esc(slotLabel(match.a, match.participants.a))}</b><strong>${score ? score.a : ''}</strong></span><span><b>${esc(slotLabel(match.b, match.participants.b))}</b><strong>${score ? score.b : ''}</strong></span><button data-score-id="${esc(id)}" ${['pending', 'bye'].includes(match.status) ? 'disabled' : ''}>${match.status === 'bye' ? 'Bye' : match.status === 'pending' ? 'Pending' : score ? 'Edit' : 'Score'}</button></article>`;
+        const label = match.medal === 'gold' ? 'Gold / Silver' : match.medal === 'bronze' ? 'Bronze Medal' : `Semifinal ${index + 1}`;
+        return `<article class="standard-bracket-match ${match.status} ${match.medal ? `medal-${match.medal}` : ''}"><header><span>${esc(label)}</span><small>${match.status === 'pending' ? 'Awaiting qualifiers' : match.status}</small></header><span><b>${esc(slotLabel(match.a, match.participants.a))}</b><strong>${score ? score.a : ''}</strong></span><span><b>${esc(slotLabel(match.b, match.participants.b))}</b><strong>${score ? score.b : ''}</strong></span><button data-score-id="${esc(id)}" ${['pending', 'bye'].includes(match.status) ? 'disabled' : ''}>${match.status === 'bye' ? 'Bye' : match.status === 'pending' ? 'Pending' : score ? 'Edit result' : 'Record result'}</button></article>`;
       }).join('')}</div>`).join('')}</div></section>`;
-    }).join('') : '<article class="panel standard-summary"><h2>No elimination bracket configured</h2><p>Full round-robin divisions finish in their standings table.</p></article>';
+    }).join('') : '<article class="panel standard-summary"><h2>Medal round not configured</h2><p>This division currently ends in its standings table. A nine-pair division automatically advances its top four pairs to semifinals and medal matches.</p></article>';
     bindScoreButtons();
   }
 
@@ -1471,9 +1695,28 @@ export function initializeStandardTournamentApp(services) {
   divisionConfigs(config).forEach(division => $('#scheduleCategory')?.insertAdjacentHTML('beforeend', `<option value="${esc(division.id)}">${esc(division.name)}</option>`));
   const timer = setInterval(() => {
     if (activeView !== 'courts' || !state) return;
+    const now = new Date(), minute = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    positionStandardNeedle(minute, Number($('#courtTimeline')?.dataset.calendarStart));
+    const needleLabel = $('.current-time-needle span');
+    if (needleLabel) needleLabel.textContent = new Intl.DateTimeFormat('en-PH', { hour:'numeric', minute:'2-digit', second:'2-digit' }).format(now);
     Object.entries(state.courts).forEach(([number, court]) => {
       const target = $(`[data-court-clock="${number}"]`);
-      if (target) target.textContent = timerLabel(elapsedSeconds(state.liveScoring?.[court.matchId] || court));
+      const live = state.liveScoring?.[court.matchId] || court, seconds = elapsedSeconds(live);
+      if (target) target.textContent = timerLabel(seconds);
+      const card = target?.closest('.active-court');
+      if (card) { card.classList.remove('timer-warning', 'timer-danger'); const tone = standardTimerTone(seconds); if (tone) card.classList.add(tone); }
+      const interruption = $(`[data-standard-interruption-clock="${number}"]`);
+      if (interruption && live?.interruption) {
+        const interruptionSeconds = elapsedSeconds(live.interruption);
+        interruption.textContent = timerLabel(interruptionSeconds);
+        if (live.interruption.type === 'medical' && interruptionSeconds >= 300) {
+          interruption.closest('.active-court')?.classList.add('interruption-expired');
+          const label = interruption.parentElement?.querySelector('span'); if (label) label.textContent = 'MEDICAL TIME LIMIT REACHED';
+          const button = interruption.parentElement?.querySelector('button'); if (button) button.textContent = 'Resume Match';
+        }
+      }
+      const header = $(`[data-standard-court-status="${number}"]`), status = standardCourtScheduleStatus(Number(number), minute);
+      if (header) { header.classList.remove('safe', 'warn', 'danger'); header.classList.add(status.tone); const label = $('strong', header); if (label) label.textContent = status.text; }
     });
   }, 1000);
   cleanups.push(() => clearInterval(timer));

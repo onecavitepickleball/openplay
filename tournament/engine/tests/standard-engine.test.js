@@ -181,6 +181,33 @@ test('affiliation round robin can feed an elimination bracket through qualifiers
   assert.equal(stage(state, 1).matches.filter(match => match.status === 'ready').length, 2);
 });
 
+test('four qualifiers produce semifinals plus Gold/Silver and Bronze medal matches', () => {
+  let state = engine.createCompetition(definition(9, {
+    qualifiers:{ count:4 }, bronzeMatch:true,
+    standings:{ order:['wins','pointDifferential','pointsFor','seed'] }
+  }));
+  assert.equal(state.divisions[0].estimate.preliminary, 36);
+  assert.equal(state.divisions[0].estimate.elimination, 4);
+  state = finishPreliminary(state);
+  const playoff = stage(state, 1);
+  const semifinals = playoff.matches.filter(match => match.round === 1);
+  const gold = playoff.matches.find(match => match.medal === 'gold');
+  const bronze = playoff.matches.find(match => match.medal === 'bronze');
+  assert.equal(semifinals.length, 2);
+  assert.equal(gold.status, 'pending');
+  assert.equal(bronze.status, 'pending');
+  state = engine.recordResult(state, semifinals[0].id, { a:11, b:5 });
+  state = engine.recordResult(state, semifinals[1].id, { a:7, b:11 });
+  assert.deepEqual(stage(state, 1).matches.find(match => match.medal === 'gold').participants,
+    { a:semifinals[0].participants.a, b:semifinals[1].participants.b });
+  assert.deepEqual(stage(state, 1).matches.find(match => match.medal === 'bronze').participants,
+    { a:semifinals[0].participants.b, b:semifinals[1].participants.a });
+  state = engine.recordResult(state, gold.id, { a:15, b:12 });
+  assert.equal(stage(state, 1).complete, false);
+  state = engine.recordResult(state, bronze.id, { a:15, b:9 });
+  assert.equal(stage(state, 1).complete, true);
+});
+
 test('entries marked ineligible never advance even when their results rank first', () => {
   const entries = [
     { id:'pair-a', seed:1 },

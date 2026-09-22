@@ -188,7 +188,7 @@
   function validateSlot(slot) {
     check(slot && typeof slot === 'object', 'Invalid bracket slot');
     if (slot.type === 'entry') id(slot.entryId, 'Entry ID');
-    else if (slot.type === 'winner') id(slot.matchId, 'Match ID');
+    else if (slot.type === 'winner' || slot.type === 'loser') id(slot.matchId, 'Match ID');
     else if (slot.type === 'qualifier' || slot.type === 'wildcard') {
       id(slot.stageId, 'Stage ID');
       integer(slot.rank, 1, 'Qualifier rank');
@@ -202,7 +202,7 @@
     const slots = entrants.map(value => validateSlot(typeof value === 'string' ? entrySlot(value) : value));
     check(slots.every(slot => slot.type !== 'bye'), 'Supply entrants only; bracket byes are automatic');
     const keys = slots.map(slot => slot.type === 'entry' ? `entry:${slot.entryId}` :
-      slot.type === 'winner' ? `winner:${slot.matchId}` : JSON.stringify([slot.type, slot.stageId, slot.poolId || null, slot.rank]));
+      ['winner', 'loser'].includes(slot.type) ? `${slot.type}:${slot.matchId}` : JSON.stringify([slot.type, slot.stageId, slot.poolId || null, slot.rank]));
     check(new Set(keys).size === keys.length, 'Bracket entrants must be unique');
     const stageId = id(options.id || 'bracket', 'Stage ID');
     const size = bracketSize(slots.length);
@@ -219,8 +219,22 @@
       }
       current = next;
     }
+    const finalMatch = matches[matches.length - 1];
+    if (finalMatch) finalMatch.medal = 'gold';
+    let bronzeMatchId = null;
+    if (options.bronzeMatch === true && slots.length >= 4) {
+      const finalRound = finalMatch.round;
+      const semifinals = matches.filter(match => match.round === finalRound - 1);
+      if (semifinals.length === 2) {
+        bronzeMatchId = `${stageId}/bronze`;
+        const bronze = matchRecord(bronzeMatchId, stageId, options.divisionId || null, finalRound,
+          { type: 'loser', matchId: semifinals[0].id }, { type: 'loser', matchId: semifinals[1].id });
+        bronze.medal = 'bronze';
+        matches.push(bronze);
+      }
+    }
     const stage = { id: stageId, type: 'single-elimination', entryCount: slots.length,
-      size, byes: size - slots.length, matches, champion: current[0] || null };
+      size, byes: size - slots.length, matches, champion: current[0] || null, bronzeMatchId };
     resolveBracketInPlace(stage, () => ({ known: false, entryId: null }));
     return stage;
   }
@@ -338,7 +352,8 @@
       preliminary -= counts.reduce((sum, value) => sum + value * (value - 1) / 2, 0);
     }
     const bracketEntries = format === 'single-elimination' ? count : qualifierCount;
-    const elimination = Math.max(0, bracketEntries - 1);
+    const bronze = options.bronzeMatch === true && bracketEntries >= 4 ? 1 : 0;
+    const elimination = Math.max(0, bracketEntries - 1) + bronze;
     const size = bracketSize(bracketEntries);
     const total = preliminary + elimination;
     check(Number.isSafeInteger(total), 'Match count exceeds safe integer range');
@@ -371,7 +386,7 @@
       const prefix = `${part(definition.id)}/division/${part(division.id)}`;
       const stages = [];
       if (division.format === 'single-elimination') {
-        stages.push(generateBracket(ordered, { id: `${prefix}/bracket`, divisionId: division.id }));
+        stages.push(generateBracket(ordered, { id: `${prefix}/bracket`, divisionId: division.id, bronzeMatch:division.bronzeMatch === true }));
       } else {
         const stageId = `${prefix}/${division.format}`;
         const pools = division.format === 'pools' ? generatePools(ordered,
@@ -385,7 +400,7 @@
               : generateRoundRobin(ordered, { id: stageId, divisionId: division.id }) };
         stages.push(stage);
         const slots = qualifierSlots(stage);
-        if (slots.length) stages.push(generateBracket(slots, { id: `${prefix}/playoff`, divisionId: division.id }));
+        if (slots.length) stages.push(generateBracket(slots, { id: `${prefix}/playoff`, divisionId: division.id, bronzeMatch:division.bronzeMatch === true }));
       }
       const affiliationCounts = [...new Set(ordered.map(entryId => entries.get(entryId).affiliationId).filter(Boolean))]
         .map(affiliationId => ordered.filter(entryId => entries.get(entryId).affiliationId === affiliationId).length);
@@ -417,6 +432,10 @@
         const source = byId.get(slot.matchId);
         return { known: !!source && ['complete', 'bye'].includes(source.status), entryId: source ? source.winnerId : null };
       }
+      if (slot.type === 'loser') {
+        const source = byId.get(slot.matchId);
+        return { known: !!source && source.status === 'complete', entryId: source ? source.loserId : null };
+      }
       return resolveQualifier(slot);
     }
     stage.matches.forEach(match => {
@@ -437,7 +456,8 @@
     });
     const champion = stage.champion ? resolve(stage.champion) : { known: true, entryId: null };
     stage.championId = champion.known ? champion.entryId : null;
-    stage.complete = champion.known;
+    const bronze = stage.bronzeMatchId ? byId.get(stage.bronzeMatchId) : null;
+    stage.complete = champion.known && (!bronze || ['complete', 'bye'].includes(bronze.status));
   }
 
   function resolveAdvancement(input) {
