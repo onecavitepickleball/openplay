@@ -360,6 +360,30 @@
   box-shadow: 0 4px 14px rgba(8, 55, 76, .15);
 }
 .standard-tournament-control .standard-rich-calendar .time-needle-key i { width: 16px; height: 2px; background: #e5362c; }
+.standard-tournament-control .standard-rich-calendar .calendar-time,
+.standard-tournament-control .standard-rich-calendar .calendar-cell { min-height: 108px; }
+.standard-tournament-control .standard-rich-calendar .timeline-match { min-height: 94px; }
+.standard-tournament-control .sequence-label { display:grid;place-items:center;background:#0a4561;color:#b6ff3c;font:800 9px "Space Mono",monospace;letter-spacing:.08em; }
+.standard-tournament-control .next-available-sequence { padding:15px;background:#f7fbfd; }
+.standard-tournament-control .next-available-sequence>header { display:flex;align-items:end;justify-content:space-between;gap:14px;margin-bottom:11px; }
+.standard-tournament-control .next-available-sequence>header b { color:#09283a;font:18px "Archivo Black",sans-serif;text-transform:uppercase; }
+.standard-tournament-control .next-available-sequence>header span { color:#607986;font-size:10px; }
+.standard-tournament-control .next-available-sequence>div { display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:9px; }
+.standard-tournament-control .next-available-sequence article { display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:10px;min-height:82px;padding:10px 12px;border:1px solid #cfe0e7;border-left:5px solid var(--brand);border-radius:11px;background:#fff; }
+.standard-tournament-control .next-available-sequence article:first-child { border-color:#24a968;box-shadow:0 0 0 2px #24a96822; }
+.standard-tournament-control .next-available-sequence article em { display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#09283a;color:#b6ff3c;font:800 10px "Space Mono",monospace;font-style:normal; }
+.standard-tournament-control .next-available-sequence article small,.standard-tournament-control .next-available-sequence article b { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.standard-tournament-control .next-available-sequence article small { color:#607986;font:800 8px "Space Mono",monospace;text-transform:uppercase; }
+.standard-tournament-control .next-available-sequence article b { margin-top:5px;color:#09283a;font-size:11px; }
+.standard-tournament-control .next-available-sequence article i { color:#81939c;font:800 8px "Space Mono",monospace;font-style:normal;text-transform:uppercase; }
+.standard-tournament-control .next-available-sequence.empty { min-height:82px;color:#607986; }
+.standard-tournament-control .completed-match-history { padding:12px 14px;background:#eaf1f4; }
+.standard-tournament-control .completed-match-history summary { cursor:pointer;color:#385a6a;font:800 9px "Space Mono",monospace;text-transform:uppercase; }
+.standard-tournament-control .completed-match-history>div { display:flex;gap:8px;overflow-x:auto;padding-top:11px; }
+.standard-tournament-control .completed-match-history article { flex:0 0 280px;padding:10px;border-radius:9px;background:#fff;color:#58717d; }
+.standard-tournament-control .completed-match-history article span,.standard-tournament-control .completed-match-history article b { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.standard-tournament-control .completed-match-history article span { font:700 8px "Space Mono",monospace;text-transform:uppercase; }
+.standard-tournament-control .completed-match-history article b { margin-top:4px;color:#183f53;font-size:10px; }
 
 .standard-tournament-control .table-sub {
   display: block;

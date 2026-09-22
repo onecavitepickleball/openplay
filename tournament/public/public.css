@@ -8,3 +8,4 @@
 @media(max-width:410px){.event-meta{gap:8px;flex-direction:column}.club-versus{gap:7px;padding:10px}.hero-club{gap:6px}.hero-club .club-logo{width:38px;height:38px;flex-basis:38px}.hero-club b{font-size:9px}.standing-row{grid-template-columns:20px minmax(85px,1fr) repeat(5,29px);font-size:9px}.standing-row.heading{font-size:6px}}
  [hidden]{display:none!important}
 .pair-name.profile-link{cursor:pointer}.pair-name.profile-link:hover b,.pair-name.profile-link:focus-visible b{color:var(--primary);text-decoration:underline}.pair-name.profile-link:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.standard-standing-card{grid-column:1/-1}.standing-row.bronze-rank{background:#fff3eb}.standing-row.bronze-rank .standing-rank{color:#a05a2c}.medal-matches.standard-final-only{grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr)}.bronze-award{border-color:#d99a6a;background:#fff8f2}

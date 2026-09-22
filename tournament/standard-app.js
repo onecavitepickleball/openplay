@@ -53,10 +53,12 @@ function standardScheduling(config, prior = {}) {
   const saved = prior?.standardScheduling || config.standardScheduling || {};
   const start = Number(saved.startMinutes);
   const slot = Number(saved.slotMinutes);
+  const matchMinutes = Number(saved.matchMinutes);
   return {
     dispatchMode: DISPATCH_MODES.has(saved.dispatchMode) ? saved.dispatchMode : 'fixed-sequence',
     startMinutes: Number.isFinite(start) ? start : 540,
-    slotMinutes: Number.isFinite(slot) && slot >= 5 ? slot : 18
+    slotMinutes: Number.isFinite(slot) && slot >= 5 ? slot : 18,
+    matchMinutes: Number.isFinite(matchMinutes) && matchMinutes >= 1 ? matchMinutes : 18
   };
 }
 
@@ -89,8 +91,8 @@ function playerNames(registration) {
 }
 
 function isDefaultNoPlayer(value) {
-  const parts = clean(value).split('/').map(part => part.trim().replace(/^\[|\]$/g, '').trim().toUpperCase()).filter(Boolean);
-  return parts.length > 0 && parts.every(part => part === 'DEFAULT NO PLAYER');
+  const parts = clean(value).split('/').map(part => part.trim()).filter(Boolean);
+  return parts.length > 0 && parts.every(part => /^\[?\s*DEFAULT NO PLAYER(?:\]|\b)/i.test(part));
 }
 
 function isDefaultEntry(entry) {
@@ -363,7 +365,7 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
   const entries = entryLookup(engineState);
   const administrativeType = match => {
     const defaults = [match.participants.a, match.participants.b].filter(entryId => isDefaultEntry(entries.get(entryId))).length;
-    return defaults === 2 ? 'no-contest' : defaults === 1 ? 'walkover' : '';
+    return defaults === 2 ? 'null' : defaults === 1 ? 'walkover' : '';
   };
   const automaticSlots = new Map();
   let nextWave = 0;
@@ -436,7 +438,7 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
       wave,
       startMinutes,
       time: administrative === 'walkover' ? 'Automatic walkover'
-        : administrative === 'no-contest' ? 'No contest'
+        : administrative === 'null' ? 'Null · 0-0'
           : startMinutes == null ? 'TBD' : `${timeLabel(startMinutes)}-${timeLabel(startMinutes + slotMinutes)}`
     };
   });
@@ -461,7 +463,7 @@ function projectState(engineState, previous, config, warnings) {
       ...old,
       a:noContest ? 0 : match.result.a,
       b:noContest ? 0 : match.result.b,
-      ...(noContest ? { resultType:'no-contest', reason:match.result.reason || 'Both entries defaulted' } : {})
+      ...(noContest ? { resultType:'null', reason:match.result.reason || 'Both entries defaulted' } : {})
     };
   });
   const courtCount = Math.max(1, Number(config.event?.courts) || 1);
@@ -593,11 +595,23 @@ export function initializeStandardTournamentApp(services) {
   function standardPublicProjection() {
     const divisions = divisionLookup(state.standardState);
     const pairStandings = {};
+    const publicCode = entryId => entry(entryId)?.pairCode || entryId;
+    const publicPairs = {};
+    state.standardState.definition.entries.forEach(item => {
+      const division = [...divisions.values()].find(value => value.entryIds?.includes(item.id));
+      const category = division?.category || division?.name || division?.id || '';
+      const names = (item.players || []).map(player => clean(player.fullName || player.name)).filter(Boolean);
+      const value = { ...clone(item), name:item.name || names.join(' / '), names:item.name || names.join(' / '), player1:names[0] || '', player2:names[1] || '', category, pairCode:publicCode(item.id) };
+      publicPairs[publicCode(item.id)] = value;
+      publicPairs[`${category}|${publicCode(item.id)}`] = value;
+    });
+    const medals = {};
     state.standardState.divisions.forEach(division => {
       const definition = divisions.get(division.id) || {};
+      const category = definition.category || definition.name || division.id;
       const preliminary = division.stages.find(stage => stage.type !== 'single-elimination');
       const rows = preliminary?.tables?.flatMap(table => table.rows || []) || [];
-      pairStandings[definition.category || definition.name || division.id] = rows.map(row => {
+      pairStandings[category] = rows.map(row => {
         const item = entry(row.entryId) || {};
         return {
           ...row,
@@ -608,6 +622,13 @@ export function initializeStandardTournamentApp(services) {
           affiliationId: item.affiliationId || null
         };
       });
+      const final = division.stages.find(stage => stage.type === 'single-elimination')?.matches?.find(match => match.medal === 'gold');
+      const finalScore = final?.result || {};
+      const bronze = rows.find(row => Number(row.rank) === 3);
+      medals[category] = {
+        final: final ? { a:publicCode(final.participants.a), b:publicCode(final.participants.b), scoreA:finalScore.a ?? '', scoreB:finalScore.b ?? '', court:state.matches.find(match => match.engineMatchId === final.id)?.court || null } : {},
+        bronzeAward: bronze ? { code:publicCode(bronze.entryId), names:entryName(bronze.entryId), rank:3 } : null
+      };
     });
     const publicCheckins = Object.fromEntries(Object.entries(state.checkins || {}).map(([id, item]) => [id, {
       category: item.category, pair: item.pair, club: item.club, playerIndex: item.playerIndex,
@@ -622,12 +643,13 @@ export function initializeStandardTournamentApp(services) {
       clubs: (config.affiliations || config.clubs || []).map(item => ({ id: item.id, name: item.name, short: item.short, logo: item.logo || '', color: item.color || config.brand.primary })),
       categories: config.categories || [],
       announcement: clone(state.announcement || {}),
-      pairs: clone(state.pairs || {}),
+      pairs: publicPairs,
       pairStandings,
       clubStandings: [],
+      medals,
       checkins: publicCheckins,
       playerPortal: {
-        matches: state.matches.map(match => ({ id: match.id, category: match.category, a: match.a, b: match.b, court: match.court || null, startMinutes: match.startMinutes ?? null, time: match.time || '', wave: match.wave || null })),
+        matches: state.matches.filter(match => !match.administrative && match.status !== 'bye').map(match => ({ id: match.id, category: match.category, a:publicCode(match.a), b:publicCode(match.b), aAffiliationId:entry(match.a)?.affiliationId || null, bAffiliationId:entry(match.b)?.affiliationId || null, court: match.court || null, startMinutes: match.startMinutes ?? null, time: match.time || '', wave: match.wave || null })),
         courtSchedules: clone(state.courtSchedules || {}), courts: clone(state.courts || {}), scores: clone(state.scores || {})
       }
     };
@@ -859,7 +881,7 @@ export function initializeStandardTournamentApp(services) {
 
   function matchCard(match, compact = false) {
     const score = scoreFor(match.id);
-    const status = match.administrative === 'no-contest' ? `No contest · ${score?.a ?? 0}-${score?.b ?? 0}`
+    const status = match.administrative === 'null' ? `Null · ${score?.a ?? 0}-${score?.b ?? 0}`
       : match.administrative === 'walkover' ? `Walkover · ${score?.a ?? 0}-${score?.b ?? 0}`
         : score ? `${score.a}-${score.b}` : match.status === 'pending' ? 'Waiting for qualifiers' : match.status === 'bye' ? 'Bye' : 'Add score';
     return `<article class="standard-match-card ${compact ? 'compact' : ''} status-${esc(match.status)}">
@@ -947,9 +969,10 @@ export function initializeStandardTournamentApp(services) {
     return { tone:'safe', text:'On schedule' };
   }
 
-  function standardTimerTone(seconds) {
-    const warning = Number(config.scoring?.warningSeconds) || 540;
-    const danger = Number(config.scoring?.dangerSeconds) || 840;
+  function standardTimerTone(seconds, match) {
+    const duration = Number(match ? standardMatchRules(match).timerSeconds : 0) || (state.standardScheduling?.matchMinutes || 18) * 60;
+    const warning = Math.max(0, duration - 120);
+    const danger = Math.max(warning, duration - 60);
     return seconds >= danger ? 'timer-danger' : seconds >= warning ? 'timer-warning' : '';
   }
 
@@ -965,7 +988,7 @@ export function initializeStandardTournamentApp(services) {
     return state.matchSettings?.[match.id] || {
       scoring:'side-out', target:elimination ? 15 : Number(config.scoring?.target) || 11,
       winBy:2, hardCap:elimination ? 19 : Number(config.scoring?.hardCap) || 11,
-      timer:!elimination
+      timer:!elimination, timerSeconds:(state.standardScheduling?.matchMinutes || 18) * 60
     };
   }
 
@@ -981,9 +1004,11 @@ export function initializeStandardTournamentApp(services) {
 
   function standardActiveCourtMarkup(courtNumber) {
     const court = state.courts[courtNumber] || {}, match = state.matches.find(item => item.id === court.matchId);
-    const next = state.matches.filter(item => Number(item.court) === Number(courtNumber) && item.status === 'ready' && !isComplete(item.id) && !item.administrative)
-      .sort((a, b) => Number(a.startMinutes) - Number(b.startMinutes))[0];
-    if (!match) return `<section class="active-court empty ${next && standardCheckinWarning(next) ? 'needs-checkin' : ''}"><b>Court vacant</b><small>${next ? `${entryName(next.a)} vs ${entryName(next.b)} · ${timeLabel(next.startMinutes)}` : 'Schedule complete'}</small>${next && standardCheckinWarning(next) ? `<strong class="checkin-alert">⚠ ${esc(standardCheckinWarning(next))}</strong>` : ''}${next ? `<button class="btn btn-primary" data-promote-court="${courtNumber}">Promote next match</button>` : ''}</section>`;
+    const next = state.standardScheduling?.dispatchMode === 'fixed-sequence'
+      ? state.matches.find(item => item.id === state.queue?.[0])
+      : state.matches.filter(item => Number(item.court) === Number(courtNumber) && item.status === 'ready' && !isComplete(item.id) && !item.administrative)
+        .sort((a, b) => Number(a.startMinutes) - Number(b.startMinutes))[0];
+    if (!match) return `<section class="active-court empty ${next && standardCheckinWarning(next) ? 'needs-checkin' : ''}"><b>Court vacant</b><small>${next ? `${entryName(next.a)} vs ${entryName(next.b)} · ${state.standardScheduling?.dispatchMode === 'fixed-sequence' ? 'Next in sequence' : timeLabel(next.startMinutes)}` : 'Schedule complete'}</small>${next && standardCheckinWarning(next) ? `<strong class="checkin-alert">⚠ ${esc(standardCheckinWarning(next))}</strong>` : ''}${next ? `<button class="btn btn-primary" data-promote-court="${courtNumber}">Promote next match</button>` : ''}</section>`;
     const live = state.liveScoring?.[match.id] || court, score = scoreFor(match.id), seconds = elapsedSeconds(live), warning = standardCheckinWarning(match), official = state.refereeAssignments?.[match.id], interruption = live.interruption?.active ? live.interruption : null, rules = standardMatchRules(match);
     const winner = score && Number(score.a) !== Number(score.b) ? Number(score.a) > Number(score.b) ? 'a' : 'b' : '';
     return `<section class="active-court category-${slug(match.category)} ${standardTimerTone(seconds)} ${!live.running && seconds && !score ? 'match-paused' : ''} ${interruption ? (interruption.type === 'team' ? 'interruption-warning' : 'interruption-danger') : ''} ${warning ? 'needs-checkin' : ''}"><div class="active-court-top"><span>${esc(match.divisionName)} · Court ${courtNumber}</span><b data-court-status="${courtNumber}">${esc(standardCourtStatus(live, score))}</b></div>${warning ? `<div class="checkin-alert">⚠ ${esc(warning)}</div>` : ''}${interruption ? `<div class="court-interruption"><span>${esc(interruption.label)}</span><b data-standard-interruption-clock="${courtNumber}">${timerLabel(elapsedSeconds(interruption))}</b><button data-end-standard-interruption="${courtNumber}">End interruption</button></div>` : ''}<div class="active-score"><div class="active-team ${winner === 'a' ? 'winner' : ''}"><div>${standardPortraits(match.a)}</div><strong>${winner === 'a' ? '🏆 ' : ''}${esc(entryName(match.a))}</strong></div><b>${score?.a ?? live.a ?? 0}<small>–</small>${score?.b ?? live.b ?? 0}</b><div class="active-team ${winner === 'b' ? 'winner' : ''}"><div>${standardPortraits(match.b)}</div><strong>${winner === 'b' ? '🏆 ' : ''}${esc(entryName(match.b))}</strong></div></div><div class="court-official"><span>Referee</span><b>${official ? esc(standardRefereeName(official)) : 'Unassigned'}</b><button data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? 'Swap' : 'Assign'}</button></div><div class="court-rule-summary"><b>${match.medal === 'gold' ? 'Gold / Silver' : match.stage === 'elimination' ? 'Elimination' : 'Preliminary'}</b><span>${rules.scoring === 'rally' ? 'Rally scoring' : 'Side-out scoring'} · to ${rules.target} · ${rules.timer ? 'timed' : 'no timer'}</span></div><div class="active-actions">${rules.timer ? `<button class="court-timer-control ${live.running ? 'is-running' : seconds ? 'is-paused' : ''}" data-timer-toggle="${courtNumber}" ${score || interruption ? 'disabled' : ''}><span>${interruption ? 'Interrupted' : live.running ? 'Pause' : seconds ? 'Resume' : 'Start'}</span><b data-court-clock="${courtNumber}">${timerLabel(seconds)}</b></button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${esc(match.id)}">${score ? 'Review score' : 'Update score'}</button>${score ? '' : `<button class="end-match-action" data-end-match="${esc(match.id)}">End Match</button>`}<button data-standard-settings="${courtNumber}" ${score ? 'disabled' : ''}>Scoring settings</button><button data-standard-tools="${courtNumber}" ${score ? 'disabled' : ''}>Match tools</button><button class="vacate" data-vacate-court="${courtNumber}" ${score ? '' : 'disabled'}>Confirm court vacant</button></div></section>`;
@@ -1009,24 +1034,29 @@ export function initializeStandardTournamentApp(services) {
   function renderCourts() {
     const target = $('#courtTimeline');
     if (!target || !state) return;
-    const playable = state.matches.filter(match => match.status !== 'bye' && !match.administrative && Number.isFinite(Number(match.startMinutes)));
+    const playable = state.matches.filter(match => match.status !== 'bye' && !match.administrative && !isComplete(match.id) && Number.isFinite(Number(match.startMinutes)));
+    const completed = state.matches.filter(match => match.status !== 'bye' && !match.administrative && isComplete(match.id));
     const slotMinutes = state.standardScheduling?.slotMinutes || 18;
-    const calendarStep = slotMinutes % 5 === 0 ? 5 : slotMinutes % 3 === 0 ? 3 : 1;
+    const calendarStep = slotMinutes;
     const first = playable.length ? Math.max(0, Math.floor(Math.min(...playable.map(match => Number(match.startMinutes))) / calendarStep) * calendarStep) : 0;
     const courtNumbers = Object.keys(state.courts).map(Number);
     const now = new Date(), nowMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
     const headers = `<div class="calendar-corner">Time</div>${courtNumbers.map(number => { const status = standardCourtScheduleStatus(number, nowMinutes); return `<header class="timeline-head ${status.tone}" data-standard-court-status="${number}"><div><b>Court ${number}</b><small>${state.courtSchedules[number]?.filter(id => !isComplete(id)).length || 0} scheduled</small></div><strong>${esc(status.text)}</strong></header>`; }).join('')}`;
     const liveRow = `<div class="calendar-live-label">LIVE<br>COURT</div>${courtNumbers.map(standardActiveCourtMarkup).join('')}`;
     const rows = playable.length ? Math.max(1, Math.ceil((1440 - first) / calendarStep)) : 1;
-    const scheduleRows = playable.length ? Array.from({ length:rows }, (_, row) => { const minute = first + row * calendarStep; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}" data-calendar-minute="${minute}">${minute === first || (minute - first) % slotMinutes === 0 ? timeLabel(minute) : ''}</div>${courtNumbers.map(number => standardScheduleCell(number, minute)).join('')}`; }).join('') : `<div class="calendar-time hour">—</div>${courtNumbers.map(number => '<div class="calendar-cell empty"></div>').join('')}`;
+    const scheduledRows = playable.length ? Array.from({ length:rows }, (_, row) => { const minute = first + row * calendarStep; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}" data-calendar-minute="${minute}">${timeLabel(minute)}</div>${courtNumbers.map(number => standardScheduleCell(number, minute)).join('')}`; }).join('') : `<div class="calendar-time hour">—</div>${courtNumbers.map(number => '<div class="calendar-cell empty"></div>').join('')}`;
+    const sequence = (state.queue || []).map(id => state.matches.find(match => match.id === id)).filter(Boolean);
+    const sequenceRows = sequence.length ? `<div class="sequence-label">NEXT</div><div class="next-available-sequence" style="grid-column:2/-1"><header><b>Next available court sequence</b><span>The first match goes to whichever court opens next.</span></header><div>${sequence.slice(0,12).map((match,index)=>`<article><em>${index+1}</em><span><small>${esc(match.divisionName)} · ${displayMatchId(match)}</small><b>${esc(entryName(match.a))} <i>vs</i> ${esc(entryName(match.b))}</b></span></article>`).join('')}</div></div>` : '<div class="sequence-label">NEXT</div><div class="next-available-sequence empty" style="grid-column:2/-1">No ready matches remain.</div>';
+    const completedRows = completed.length ? `<details class="completed-match-history" style="grid-column:1/-1"><summary>Show ${completed.length} completed match${completed.length===1?'':'es'}</summary><div>${completed.map(match=>`<article><span>${displayMatchId(match)} · ${esc(match.divisionName)}</span><b>${esc(entryName(match.a))} ${scoreFor(match.id).a}-${scoreFor(match.id).b} ${esc(entryName(match.b))}</b></article>`).join('')}</div></details>` : '';
+    const scheduleRows = state.standardScheduling?.dispatchMode === 'fixed-sequence' ? sequenceRows : scheduledRows;
     target.className = 'calendar-stage standard-rich-calendar';
     target.style.setProperty('--court-count', courtNumbers.length);
     target.dataset.calendarStart = String(first);
     target.dataset.calendarStep = String(calendarStep);
-    target.innerHTML = `${headers}${liveRow}${scheduleRows}${playable.length && nowMinutes >= first ? `<div class="current-time-needle"><span>${new Intl.DateTimeFormat('en-PH', { hour:'numeric', minute:'2-digit', second:'2-digit' }).format(now)}</span></div>` : ''}<div class="time-needle-key"><i></i><span>Live time needle</span></div>`;
+    target.innerHTML = `${headers}${liveRow}${scheduleRows}${completedRows}${state.standardScheduling?.dispatchMode === 'pre-scheduled' && playable.length && nowMinutes >= first ? `<div class="current-time-needle"><span>${new Intl.DateTimeFormat('en-PH', { hour:'numeric', minute:'2-digit', second:'2-digit' }).format(now)}</span></div>` : ''}${state.standardScheduling?.dispatchMode === 'pre-scheduled' ? '<div class="time-needle-key"><i></i><span>Live time needle</span></div>' : ''}`;
     positionStandardNeedle(nowMinutes, first);
     const note = $('.queue-help');
-    if (note) note.textContent = 'Five-minute calendar slots, live court timers, conflict warnings, check-in alerts, referee assignment, drag-to-swap, and court delay status remain available in every tournament format.';
+    if (note) note.textContent = state.standardScheduling?.dispatchMode === 'fixed-sequence' ? 'Matches follow one sequence and move to the next available court. Completed matches stay collapsed below.' : `${slotMinutes}-minute court slots, live timers, conflict warnings, check-in alerts, referee assignment, and drag-to-swap remain available.`;
     bindScoreButtons();
     $$('[data-promote-court]').forEach(button => button.onclick = () => promoteMatch(Number(button.dataset.promoteCourt)));
     $$('[data-timer-toggle]').forEach(button => button.onclick = () => toggleCourt(Number(button.dataset.timerToggle)));
@@ -1100,10 +1130,10 @@ export function initializeStandardTournamentApp(services) {
     if (!match) return;
     const rules = standardMatchRules(match);
     $('#standardCourtModal')?.remove();
-    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber} · ${esc(match.divisionName)}</span><h2>Scoring settings</h2><div class="stack-form"><label>Scoring<select id="standardScoringType"><option value="side-out" ${rules.scoring === 'side-out' ? 'selected' : ''}>Side-out scoring</option><option value="rally" ${rules.scoring === 'rally' ? 'selected' : ''}>Rally scoring</option></select></label><label>Winning score<input id="standardTargetScore" type="number" min="1" value="${rules.target}"></label><label>Win by<input id="standardWinBy" type="number" min="1" value="${rules.winBy}"></label><label>Hard cap<input id="standardHardCap" type="number" min="1" value="${rules.hardCap}"></label><label class="setting-check"><input id="standardTimerEnabled" type="checkbox" ${rules.timer ? 'checked' : ''}> Use match timer</label><button class="btn btn-primary" id="saveStandardRules">Save match settings</button></div></section></div>`);
+    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber} · ${esc(match.divisionName)}</span><h2>Scoring settings</h2><div class="stack-form"><label>Scoring<select id="standardScoringType"><option value="side-out" ${rules.scoring === 'side-out' ? 'selected' : ''}>Side-out scoring</option><option value="rally" ${rules.scoring === 'rally' ? 'selected' : ''}>Rally scoring</option></select></label><label>Winning score<input id="standardTargetScore" type="number" min="1" value="${rules.target}"></label><label>Win by<input id="standardWinBy" type="number" min="1" value="${rules.winBy}"></label><label>Hard cap<input id="standardHardCap" type="number" min="1" value="${rules.hardCap}"></label><label>Match timer (minutes)<input id="standardMatchMinutes" type="number" min="1" max="180" value="${Math.round((rules.timerSeconds || 1080) / 60)}"></label><label class="setting-check"><input id="standardTimerEnabled" type="checkbox" ${rules.timer ? 'checked' : ''}> Use match timer</label><button class="btn btn-primary" id="saveStandardRules">Save match settings</button></div></section></div>`);
     const modal = $('#standardCourtModal'), close = () => modal.remove();
     modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-standard-modal]')) close(); };
-    $('#saveStandardRules').onclick = () => { state.matchSettings ||= {}; state.matchSettings[matchId] = { scoring:$('#standardScoringType').value, target:Math.max(1, Number($('#standardTargetScore').value) || 11), winBy:Math.max(1, Number($('#standardWinBy').value) || 2), hardCap:Math.max(1, Number($('#standardHardCap').value) || 11), timer:$('#standardTimerEnabled').checked }; recordActivity(`Scoring settings updated on Court ${courtNumber}`, matchId); publishState(); close(); renderCourts(); };
+    $('#saveStandardRules').onclick = () => { state.matchSettings ||= {}; state.matchSettings[matchId] = { scoring:$('#standardScoringType').value, target:Math.max(1, Number($('#standardTargetScore').value) || 11), winBy:Math.max(1, Number($('#standardWinBy').value) || 2), hardCap:Math.max(1, Number($('#standardHardCap').value) || 11), timer:$('#standardTimerEnabled').checked, timerSeconds:Math.max(60, Number($('#standardMatchMinutes').value || 18) * 60) }; recordActivity(`Scoring settings updated on Court ${courtNumber}`, matchId); publishState(); close(); renderCourts(); };
   }
 
   function endStandardInterruption(courtNumber) {
@@ -1261,10 +1291,10 @@ export function initializeStandardTournamentApp(services) {
     if ($('#scheduleMatchCount')) $('#scheduleMatchCount').textContent = `${matches.length} matches shown`;
     if ($('#scheduleBody')) $('#scheduleBody').innerHTML = matches.length ? matches.map(match => {
       const score = scoreFor(match.id);
-      const outcome = match.administrative === 'no-contest' ? `No contest · ${score?.a ?? 0}-${score?.b ?? 0}`
+      const outcome = match.administrative === 'null' ? `Null · ${score?.a ?? 0}-${score?.b ?? 0}`
         : match.administrative === 'walkover' ? `W/O ${score?.a ?? 0}-${score?.b ?? 0}`
           : score ? `${score.a}-${score.b}` : match.status === 'bye' ? 'BYE' : match.status === 'pending' ? 'TBD' : 'Score';
-      const statusLabel = match.administrative === 'no-contest' ? 'No contest'
+      const statusLabel = match.administrative === 'null' ? 'Null'
         : match.administrative === 'walkover' ? 'Walkover' : score ? 'Complete' : match.status;
       return `<tr class="${match.administrative ? 'administrative-match' : ''}"><td><code>${esc(match.administrative ? 'Admin' : displayMatchId(match))}</code></td><td>${esc(match.time)}</td><td>${match.court || '—'}</td><td>${esc(match.divisionName)}${match.poolId ? `<small class="table-sub">${esc(match.poolId.split('/').pop())} · R${match.round}</small>` : `<small class="table-sub">${esc(match.stage)} · R${match.round}</small>`}</td><td><b>${esc(entryName(match.a))}</b><small class="table-sub">${esc(affiliationName(match.a))}</small></td><td><button class="score-chip ${score ? 'done' : ''}" data-score-id="${esc(match.id)}" ${match.administrative || ['pending', 'bye'].includes(match.status) ? 'disabled' : ''}>${esc(outcome)}</button></td><td><b>${esc(entryName(match.b))}</b><small class="table-sub">${esc(affiliationName(match.b))}</small></td><td><span class="standard-status status-${esc(match.status)}">${esc(statusLabel)}</span></td></tr>`;
     }).join('') : '<tr><td colspan="8" class="empty">No matches match these filters.</td></tr>';
@@ -1319,7 +1349,7 @@ export function initializeStandardTournamentApp(services) {
     const entries = (division?.entryIds || []).map(entry);
     grid.innerHTML = entries.length ? entries.map(item => {
       const names = (item.players || []).map(player => clean(player.fullName || player.name)).filter(Boolean);
-      return `<article class="standard-entry-card"><header><span>${item.seed ? `Seed ${item.seed}` : 'Unseeded'}</span><b>${esc(item.pairCode || item.id)}</b></header><h2>${esc(item.name)}</h2><p>${esc(names.join(' · ') || 'Player details not supplied')}</p><footer><span>${esc(affiliationName(item.id))}</span><code>${esc(item.id)}</code></footer></article>`;
+      return `<article class="standard-entry-card"><header><span>${item.seed ? `Seed ${item.seed}` : 'Registered pair'}</span><b>${esc(item.pairCode || 'Pair')}</b></header><h2>${esc(item.name)}</h2><p>${esc(names.join(' · ') || 'Player details not supplied')}</p><footer><span>${esc(affiliationName(item.id))}</span><code>${esc(item.pairCode || 'Pair')}</code></footer></article>`;
     }).join('') : '<p class="empty">No confirmed entries are registered in this division.</p>';
     $$('[data-entry-division]').forEach(button => button.onclick = () => { activeDivision = button.dataset.entryDivision; renderEntries(); });
   }
@@ -1421,6 +1451,7 @@ export function initializeStandardTournamentApp(services) {
         return `<fieldset class="standard-ranking-order" data-standard-division-settings="${esc(division.id)}"><legend>${esc(definition?.name || division.id)}</legend><label class="standard-format-field">Format<select data-standard-format="${esc(division.id)}"><option value="cross-affiliation-round-robin" ${configured === 'cross-affiliation-round-robin' ? 'selected' : ''}>Cross-team round robin</option><option value="cross-affiliation-round-robin-elimination" ${configured === 'cross-affiliation-round-robin-elimination' ? 'selected' : ''}>Cross-team round robin → elimination</option><option value="full-round-robin" ${configured === 'full-round-robin' ? 'selected' : ''}>Full round robin</option><option value="round-robin-elimination" ${configured === 'round-robin-elimination' ? 'selected' : ''}>Round robin → elimination</option><option value="pools-elimination" ${configured === 'pools-elimination' ? 'selected' : ''}>Pools → elimination</option><option value="single-elimination" ${configured === 'single-elimination' ? 'selected' : ''}>Single elimination</option></select></label><label class="standard-format-field">Pairs advancing<input data-standard-qualifiers="${esc(division.id)}" type="number" min="0" max="32" value="${qualifierCount}"></label>${DEFAULT_RANKING_ORDER.map((criterion, index) => `<label>${index + 1}<select data-standard-ranking="${esc(division.id)}"><option value="wins" ${order[index] === 'wins' ? 'selected' : ''}>Wins</option><option value="pointDifferential" ${order[index] === 'pointDifferential' ? 'selected' : ''}>Point Differential</option><option value="pointsFor" ${order[index] === 'pointsFor' ? 'selected' : ''}>Points For</option><option value="pointsAgainst" ${order[index] === 'pointsAgainst' ? 'selected' : ''}>Points Against</option><option value="headToHead" ${order[index] === 'headToHead' ? 'selected' : ''}>Head-to-head</option></select></label>`).join('')}</fieldset>`;
       }).join('');
       settingsGrid.insertAdjacentHTML('afterbegin', `<article class="panel standard-summary standard-dispatch-settings"><span class="section-label">Schedule and rankings</span><h2>Matchday sequence</h2><p>All standard schedules begin at 9:00 AM in 18-minute blocks. The fixed sequence follows the generated, data-driven draw order shown in the schedule reference.</p><label class="setting-check"><input type="radio" name="standardDispatchMode" value="fixed-sequence" ${scheduling.dispatchMode === 'fixed-sequence' ? 'checked' : ''}> Fixed sequence · send the next ready match to any open court</label><label class="setting-check"><input type="radio" name="standardDispatchMode" value="pre-scheduled" ${scheduling.dispatchMode === 'pre-scheduled' ? 'checked' : ''}> Pre-scheduled · dispatch only to the assigned court</label>${rankingControls}<button class="btn btn-primary" id="saveStandardScheduling">Save dispatch and ranking order</button></article>`);
+      $('.standard-dispatch-settings .setting-check')?.insertAdjacentHTML('beforebegin', `<label class="standard-format-field">Default match timer (minutes)<input id="standardDefaultMatchMinutes" type="number" min="1" max="180" value="${scheduling.matchMinutes || 18}"></label>`);
       $('#saveStandardScheduling').onclick = () => {
         const orders = {}, formats = {};
         $$('.standard-ranking-order').forEach(fieldset => {
@@ -1435,14 +1466,14 @@ export function initializeStandardTournamentApp(services) {
         if (Object.keys(orders).length !== state.standardState.divisions.length) return toast('Each ranking criterion must appear exactly once in every division.');
         state.standardRankingOrders = orders;
         state.standardFormatOverrides = formats;
-        state.standardScheduling = { ...scheduling, dispatchMode: $('input[name="standardDispatchMode"]:checked')?.value || 'fixed-sequence' };
+        state.standardScheduling = { ...scheduling, dispatchMode: $('input[name="standardDispatchMode"]:checked')?.value || 'fixed-sequence', matchMinutes:Math.max(1, Number($('#standardDefaultMatchMinutes')?.value) || 18) };
         rebuild(state); publishState(); renderAll(); toast('Dispatch mode and ranking order saved.');
       };
     }
     const eventPanel = $('[data-settings-panel="event"] .settings-grid');
     if (eventPanel) eventPanel.querySelector('.white-label-panel')?.setAttribute('hidden', '');
     const scheduleSummary = $('#scheduleOptimizerSummary');
-    if (scheduleSummary) scheduleSummary.innerHTML = `<div class="optimizer-summary"><span><b>${state.matches.filter(match => match.status !== 'bye' && !match.administrative).length}</b> scheduled court matches</span><span><b>${state.matches.filter(match => match.administrative === 'walkover').length}</b> automatic walkovers</span><span><b>${state.matches.filter(match => match.administrative === 'no-contest').length}</b> no contests</span><span><b>${state.standardScheduling?.slotMinutes || 18} min</b> slots from ${timeLabel(state.standardScheduling?.startMinutes || 540)}</span><span><b>${Object.keys(state.courts).length}</b> live courts</span></div>`;
+    if (scheduleSummary) scheduleSummary.innerHTML = `<div class="optimizer-summary"><span><b>${state.matches.filter(match => match.status !== 'bye' && !match.administrative).length}</b> scheduled court matches</span><span><b>${state.matches.filter(match => match.administrative === 'walkover').length}</b> automatic walkovers</span><span><b>${state.matches.filter(match => match.administrative === 'null').length}</b> null matches</span><span><b>${state.standardScheduling?.slotMinutes || 18} min</b> slots from ${timeLabel(state.standardScheduling?.startMinutes || 540)}</span><span><b>${Object.keys(state.courts).length}</b> live courts</span></div>`;
     const optimize = $('#optimizeScheduleBtn');
     if (optimize) optimize.disabled = true;
     $('#pairCountSettings')?.closest('article')?.setAttribute('hidden', '');

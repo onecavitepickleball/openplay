@@ -222,7 +222,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
   function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2200); }
   function recordActivity(text, matchId = '', type = 'operation') { state.activityLog ||= []; state.activityLog.unshift({ at: new Date().toISOString(), text, matchId, type }); if (state.activityLog.length > 60) state.activityLog.length = 60; }
   function pairData(category, code) { return state.pairs[`${category}|${code}`] || { player1: '', player2: '' }; }
-  function isDefaultNoPlayer(value) { return /^\[?DEFAULT NO PLAYER\]?$/i.test(String(value || '').trim()); }
+  function isDefaultNoPlayer(value) { return /^\[?\s*DEFAULT NO PLAYER(?:\]|\b)/i.test(String(value || '').trim()); }
   function defaultSide(target, match, side) {
     const code = side === 'a' ? match.a : match.b, pair = target.pairs?.[`${match.category}|${code}`] || {};
     // Accept the placeholder whether it came from the registered pair record
@@ -232,7 +232,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
   function defaultOutcome(target, match) {
     const aDefault = defaultSide(target, match, 'a'), bDefault = defaultSide(target, match, 'b');
     if (!aDefault && !bDefault) return null;
-    if (aDefault && bDefault) return { administrative: 'no-contest', score: { a: 0, b: 0, defaulted: true, resultType: 'no-contest', reason: 'Both sides defaulted' } };
+    if (aDefault && bDefault) return { administrative: 'null', score: { a: 0, b: 0, defaulted: true, resultType: 'null', reason: 'Both sides defaulted' } };
     return aDefault
       ? { administrative: 'walkover', score: { a: 0, b: Number(config.scoring?.target) || 11, defaulted: true, resultType: 'walkover', reason: 'Side A defaulted' } }
       : { administrative: 'walkover', score: { a: Number(config.scoring?.target) || 11, b: 0, defaulted: true, resultType: 'walkover', reason: 'Side B defaulted' } };
@@ -610,7 +610,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
     $('#scheduleBody').innerHTML = rows.map(match => {
       const score = scoreFor(match.id), done = isComplete(match.id);
       const queueIndex = state.queue.indexOf(match.id);
-      const administrativeLabel = match.administrative === 'no-contest' ? 'No-contest' : match.administrative === 'walkover' ? 'Walkover' : '';
+      const administrativeLabel = ['null','no-contest'].includes(match.administrative) ? 'Null' : match.administrative === 'walkover' ? 'Walkover' : '';
       return `<tr class="${administrativeLabel ? 'administrative-match' : ''}"><td>${match.id}</td><td><b>${match.time}</b><small class="table-priority">${administrativeLabel || (queueIndex >= 0 ? `Queue priority ${queueIndex + 1}` : done ? 'Completed' : 'On court')}</small></td><td>${match.court}</td><td>${esc(match.category)}</td><td class="table-pair"><b>${displayPair(match.category, match.a)}</b><small>${esc(pairNames(match.category, match.a))}</small></td><td><button class="score-link ${done ? 'done' : ''}" data-score-id="${match.id}" ${administrativeLabel ? 'disabled' : ''}>${done ? `${score.a}-${score.b}` : '— : —'}</button></td><td class="table-pair"><b>${displayPair(match.category, match.b)}</b><small>${esc(pairNames(match.category, match.b))}</small></td><td><span class="status ${done ? 'complete' : ''}">${administrativeLabel || (done ? 'Complete' : 'Pending')}</span>${administrativeLabel ? `<small class="table-priority">${esc(score.reason || 'Administrative result')}</small>` : ''}</td></tr>`;
     }).join('') || `<tr><td colspan="8">No matches found.</td></tr>`;
     bindScoreButtons();
