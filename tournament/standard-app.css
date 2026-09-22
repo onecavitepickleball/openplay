@@ -66,6 +66,15 @@
   color: #714800;
 }
 
+.standard-tournament-control .standard-dispatch-settings { display:grid; gap:12px; }
+.standard-tournament-control .standard-dispatch-settings > p { margin:0; color:#607986; line-height:1.55; }
+.standard-tournament-control .standard-ranking-order { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; margin:4px 0; padding:12px; border:1px solid #d8e4e9; border-radius:12px; }
+.standard-tournament-control .standard-ranking-order legend { padding:0 5px; color:#31586b; font:800 10px "Space Mono", monospace; letter-spacing:.06em; text-transform:uppercase; }
+.standard-tournament-control .standard-ranking-order label { display:grid; gap:4px; color:#6b828d; font:800 10px "Space Mono", monospace; }
+.standard-tournament-control .standard-ranking-order select { width:100%; min-width:0; padding:8px; border:1px solid #c8d9e1; border-radius:8px; background:#fff; color:#153b4e; font:700 12px Inter,sans-serif; }
+.standard-tournament-control .standard-third-place { margin:16px 0 0; padding:11px 13px; border-radius:10px; background:#fff5e3; color:#714800; }
+@media(max-width:900px){.standard-tournament-control .standard-ranking-order{grid-template-columns:1fr}.standard-tournament-control .standard-ranking-order label{grid-template-columns:24px minmax(0,1fr);align-items:center}}
+
 .standard-tournament-control .score-chip {
   min-height: 38px;
   border-radius: 10px;

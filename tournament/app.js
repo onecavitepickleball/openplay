@@ -143,7 +143,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
     if (incoming?.schedulerVersion !== 7) { normalized.opponentDraw = createOpponentDraw(normalized.pairCounts); const matches = generateSchedule(normalized.pairCounts, normalized.opponentDraw, normalized.formatSettings, normalized.scheduleSettings); normalized.matches = matches; normalized.queue = matches.map(match => match.id); normalized.courtSchedules = initialCourtSchedules(matches); normalized.courts = emptyCourts(); normalized.scores = {}; normalized.matchSettings = {}; normalized.scoreAudit = []; normalized.refereeAssignments = {}; normalized.medals = blankMedals(); normalized.dreamBreaker = blankDreamBreaker(); normalized.drawCeremonyDraft = null; normalized.schedulerVersion = 7; normalized.scheduleBaselineStartMinutes = config.event.roundRobinStartMinutes; }
     else { const storedBaseline = Number(incoming?.scheduleBaselineStartMinutes), inferredBaseline = Math.min(...(incoming?.matches || []).map(match => Number(match.startMinutes)).filter(Number.isFinite)), baseline = Number.isFinite(storedBaseline) ? storedBaseline : inferredBaseline; if (Number.isFinite(baseline) && baseline !== config.event.roundRobinStartMinutes) { const shift = config.event.roundRobinStartMinutes - baseline; normalized.matches.forEach(match => { match.startMinutes = Math.max(0, Math.min(1435, Number(match.startMinutes) + shift)); }); } normalized.scheduleBaselineStartMinutes = config.event.roundRobinStartMinutes; }
     normalized.courts = { ...emptyCourts(), ...(normalized.courts || {}) }; normalized.matchSettings ||= {}; normalized.scores ||= {}; normalized.scoreAudit ||= []; normalized.scheduleHistory ||= []; normalized.activityLog ||= []; normalized.announcement = { enabled:false, text:'', updatedAt:null, ...(normalized.announcement || {}) }; normalized.refereeHandoffs ||= []; normalized.refereeAssignments ||= {}; normalized.checkins ||= {}; normalized.pairs = { ...emptyPairs(normalized.pairCounts), ...(normalized.pairs || {}) }; normalized.medals = { ...blankMedals(), ...(normalized.medals || {}) }; normalized.dreamBreaker = { ...blankDreamBreaker(), ...(normalized.dreamBreaker || {}), scores: { ...blankDreamBreaker().scores, ...(normalized.dreamBreaker?.scores || {}) }, history: normalized.dreamBreaker?.history || [] };
-    syncAdministrativeMatches(normalized);
+    if (syncAdministrativeMatches(normalized)) normalized._administrativeSyncPending = true;
     sanitizeMedalMatchups(normalized.medals);
     if (!normalized.drawAuditReset20260909) { normalized.opponentDrawHistory = []; normalized.drawCeremonyDraft = null; normalized.drawAuditReset20260909 = true; }
     if (!normalized.drawRecordReset20260910) { normalized.opponentDrawHistory = []; normalized.drawCeremonyDraft = null; normalized.opponentDrawRecorded = false; normalized.drawRecordReset20260910 = true; }
@@ -225,17 +225,20 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
   function isDefaultNoPlayer(value) { return /^\[?DEFAULT NO PLAYER\]?$/i.test(String(value || '').trim()); }
   function defaultSide(target, match, side) {
     const code = side === 'a' ? match.a : match.b, pair = target.pairs?.[`${match.category}|${code}`] || {};
-    return [pair.player1, pair.player2].some(isDefaultNoPlayer);
+    // Accept the placeholder whether it came from the registered pair record
+    // or was written directly into a generated match during setup/import.
+    return isDefaultNoPlayer(code) || String(code || '').split('/').some(isDefaultNoPlayer) || [pair.player1, pair.player2].some(isDefaultNoPlayer);
   }
   function defaultOutcome(target, match) {
     const aDefault = defaultSide(target, match, 'a'), bDefault = defaultSide(target, match, 'b');
     if (!aDefault && !bDefault) return null;
-    if (aDefault && bDefault) return { administrative: 'no-contest', score: { a: 0, b: 0, defaulted: true, reason: 'Both sides defaulted' } };
+    if (aDefault && bDefault) return { administrative: 'no-contest', score: { a: 0, b: 0, defaulted: true, resultType: 'no-contest', reason: 'Both sides defaulted' } };
     return aDefault
-      ? { administrative: 'walkover', score: { a: 0, b: Number(config.scoring?.target) || 11, defaulted: true, reason: 'Side A defaulted' } }
-      : { administrative: 'walkover', score: { a: Number(config.scoring?.target) || 11, b: 0, defaulted: true, reason: 'Side B defaulted' } };
+      ? { administrative: 'walkover', score: { a: 0, b: Number(config.scoring?.target) || 11, defaulted: true, resultType: 'walkover', reason: 'Side A defaulted' } }
+      : { administrative: 'walkover', score: { a: Number(config.scoring?.target) || 11, b: 0, defaulted: true, resultType: 'walkover', reason: 'Side B defaulted' } };
   }
   function syncAdministrativeMatches(target) {
+    const before = JSON.stringify({ matches: (target.matches || []).map(match => [match.id, match.administrative || '']), scores: target.scores || {}, queue: target.queue || [], courtSchedules: target.courtSchedules || {} });
     target.scoreAudit ||= [];
     const defaultIds = new Set();
     target.matches.forEach(match => {
@@ -258,6 +261,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
     }));
     const assigned = new Set(Object.values(target.courts || {}).map(item => item.matchId).filter(Boolean));
     target.queue = target.matches.filter(match => !defaultIds.has(match.id) && !assigned.has(match.id) && !(target.scores?.[match.id]?.a !== '' && target.scores?.[match.id]?.a !== undefined && target.scores?.[match.id]?.b !== '' && target.scores?.[match.id]?.b !== undefined)).map(match => match.id);
+    return before !== JSON.stringify({ matches: (target.matches || []).map(match => [match.id, match.administrative || '']), scores: target.scores || {}, queue: target.queue || [], courtSchedules: target.courtSchedules || {} });
   }
   function pairNames(category, code) { if (!code) return 'TBA'; const p = pairData(category, code); return [p.player1, p.player2].filter(Boolean).join(' / ') || 'Players not assigned'; }
   function clubLabel(id, short = false) { const club = config.clubs.find(item => item.id === id); return club ? (short ? club.short : club.name) : id; }
@@ -606,7 +610,8 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
     $('#scheduleBody').innerHTML = rows.map(match => {
       const score = scoreFor(match.id), done = isComplete(match.id);
       const queueIndex = state.queue.indexOf(match.id);
-      return `<tr><td>${match.id}</td><td><b>${match.time}</b><small class="table-priority">${queueIndex >= 0 ? `Queue priority ${queueIndex + 1}` : done ? 'Completed' : 'On court'}</small></td><td>${match.court}</td><td>${esc(match.category)}</td><td class="table-pair"><b>${displayPair(match.category, match.a)}</b><small>${esc(pairNames(match.category, match.a))}</small></td><td><button class="score-link ${done ? 'done' : ''}" data-score-id="${match.id}">${done ? `${score.a}-${score.b}` : '— : —'}</button></td><td class="table-pair"><b>${displayPair(match.category, match.b)}</b><small>${esc(pairNames(match.category, match.b))}</small></td><td><span class="status ${done ? 'complete' : ''}">${done ? 'Complete' : 'Pending'}</span></td></tr>`;
+      const administrativeLabel = match.administrative === 'no-contest' ? 'No-contest' : match.administrative === 'walkover' ? 'Walkover' : '';
+      return `<tr class="${administrativeLabel ? 'administrative-match' : ''}"><td>${match.id}</td><td><b>${match.time}</b><small class="table-priority">${administrativeLabel || (queueIndex >= 0 ? `Queue priority ${queueIndex + 1}` : done ? 'Completed' : 'On court')}</small></td><td>${match.court}</td><td>${esc(match.category)}</td><td class="table-pair"><b>${displayPair(match.category, match.a)}</b><small>${esc(pairNames(match.category, match.a))}</small></td><td><button class="score-link ${done ? 'done' : ''}" data-score-id="${match.id}" ${administrativeLabel ? 'disabled' : ''}>${done ? `${score.a}-${score.b}` : '— : —'}</button></td><td class="table-pair"><b>${displayPair(match.category, match.b)}</b><small>${esc(pairNames(match.category, match.b))}</small></td><td><span class="status ${done ? 'complete' : ''}">${administrativeLabel || (done ? 'Complete' : 'Pending')}</span>${administrativeLabel ? `<small class="table-priority">${esc(score.reason || 'Administrative result')}</small>` : ''}</td></tr>`;
     }).join('') || `<tr><td colspan="8">No matches found.</td></tr>`;
     bindScoreButtons();
   }
@@ -1159,6 +1164,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
           if (Object.prototype.hasOwnProperty.call(item, 'live')) { if (item.live) matchLive[matchId] = item.live; }
           if (Object.prototype.hasOwnProperty.call(item, 'score')) { if (item.score) matchScores[matchId] = item.score; else delete matchScores[matchId]; }
         });
+        const administrativeSyncPending = Boolean(normalized._administrativeSyncPending); delete normalized._administrativeSyncPending;
         state = { ...normalized, checkins: demoMode ? normalized.checkins : { ...normalized.checkins, ...localCheckins }, scores: formatChanged ? normalized.scores : matchScores, liveScoring: formatChanged ? {} : latestMatchDocsReady ? matchLive : state.liveScoring || {} };
         if (drawTestMode) { state.drawCeremonyDraft = testDraft; state.opponentDrawHistory = []; }
         if (demoMode) { state.demo = true; demoSnapshotReady = true; }
@@ -1167,7 +1173,7 @@ import(`./firebase-sync.js?v=${encodeURIComponent(revision)}`).then(({ watchAuth
         cloudApplying = false; processRefereePromotionRequests();
         if (!demoMode && !drawTestMode && formatChanged) clearMatches().then(() => publishControl(state)).then(() => toast('95-match format and normalized standings applied. Previous test match data cleared.')).catch(() => toast('Format updated locally; cloud cleanup needs another try.'));
         else if (!demoMode && !drawTestMode && scheduleChanged) publishControl(state).then(() => toast('Tournament start moved to 10:30 AM.')).catch(() => toast('Schedule updated locally; cloud sync needs another try.'));
-        else if (!demoMode && !drawTestMode && !refereeBoardPublished) { refereeBoardPublished = true; publishControl(state).catch(() => { refereeBoardPublished = false; }); }
+        else if (!demoMode && !drawTestMode && (administrativeSyncPending || !refereeBoardPublished)) { refereeBoardPublished = true; publishControl(state).catch(() => { refereeBoardPublished = false; }); }
       }, () => showCloudGate('Your account does not have Match Control access.'));
       watchRegistrations(items => { if (demoMode && demoRegistrationsReady) return; registrations = items; if (demoMode) demoRegistrationsReady = true; if (hydrateRegisteredTeams()) { localStorage.setItem(storageKey, JSON.stringify(state)); renderAll(); } }, () => toast('Player registrations could not be loaded.'));
       watchCheckins(items => { if (demoMode && demoCheckinsReady) return; state.checkins = Object.fromEntries(items.map(item => [item.id, item])); if (demoMode) demoCheckinsReady = true; localStorage.setItem(storageKey, JSON.stringify(state)); renderCourts(); }, () => toast('Player photos could not be loaded.'));
