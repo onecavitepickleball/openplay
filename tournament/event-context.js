@@ -27,6 +27,8 @@ export function currentEventId() {
 export function eventUrl(path, extra = {}) {
   const url = new URL(path, location.href);
   url.searchParams.set('event', currentEventId());
+  const build = new URLSearchParams(location.search).get('_build');
+  if (build) url.searchParams.set('_build', build);
   Object.entries(extra).forEach(([key, value]) => value === null ? url.searchParams.delete(key) : url.searchParams.set(key, value));
   return url.href;
 }

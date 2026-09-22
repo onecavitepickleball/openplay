@@ -249,6 +249,7 @@ function buildDefinition(config, registrations) {
       category: division.category,
       entryIds,
       configuredFormat: division.format || 'full-round-robin',
+      bronzeMatch: division.bronzeMatch !== false,
       ...normalizedFormat(division, entryIds.length, warnings)
     };
   });
@@ -762,7 +763,7 @@ export function initializeStandardTournamentApp(services) {
     $('#dreamBreakerSummary')?.remove();
     if ($('#clubStandings')) $('#clubStandings').hidden = true;
     const medalHead = $('#view-medals .page-head');
-    if (medalHead) medalHead.innerHTML = '<div><span class="eyebrow dark">Semifinals and podium matches</span><h1>Medal Round</h1><p>The top four qualifiers advance to the semifinals. Winners play for Gold/Silver and semifinal losers play for Bronze.</p></div>';
+    if (medalHead) medalHead.innerHTML = '<div><span class="eyebrow dark">Semifinals and podium matches</span><h1>Medal Round</h1><p>The top four qualifiers advance to the semifinals. Winners play for Gold/Silver and semifinal losers play for Bronze.</p></div><div class="medal-actions"><button class="btn btn-primary is-pending" id="seedMedalsBtn" type="button">Seed from rankings</button></div>';
     const medalBoard = $('#medalBoard');
     if (medalBoard && !$('#medalDivisionTabs')) medalBoard.insertAdjacentHTML('beforebegin', '<div class="standard-division-nav" id="medalDivisionTabs" aria-label="Medal round division"></div>');
     const teamHead = $('#view-teams .page-head');
@@ -1281,6 +1282,25 @@ export function initializeStandardTournamentApp(services) {
       $$('[data-medal-division]').forEach(button => button.onclick = () => { activeDivision = button.dataset.medalDivision; renderBracket(); });
     }
     const visible = brackets.filter(item => item.division.id === activeDivision);
+    const active = state.standardState.divisions.find(division => division.id === activeDivision);
+    const preliminaryMatches = (active?.stages || []).filter(stage => stage.type !== 'single-elimination').flatMap(stage => stage.matches).filter(match => match.status !== 'bye');
+    const completedPreliminary = preliminaryMatches.filter(match => match.status === 'complete').length;
+    const rankingsReady = preliminaryMatches.length > 0 && completedPreliminary === preliminaryMatches.length;
+    const seedButton = $('#seedMedalsBtn');
+    if (seedButton) {
+      const divisionName = definitions.get(activeDivision)?.name || 'division';
+      const bracket = visible[0]?.stage;
+      const firstRound = bracket ? Math.min(...bracket.matches.map(match => match.round)) : 0;
+      const seeded = Boolean(bracket?.matches.some(match => match.round === firstRound && match.participants.a && match.participants.b));
+      seedButton.hidden = !bracket;
+      seedButton.disabled = !rankingsReady;
+      seedButton.classList.toggle('is-ready', rankingsReady);
+      seedButton.classList.toggle('is-pending', !rankingsReady);
+      seedButton.textContent = rankingsReady ? `${seeded ? 'Re-seed' : 'Seed'} ${divisionName} from rankings` : `Seed from rankings · ${completedPreliminary}/${preliminaryMatches.length}`;
+      seedButton.title = rankingsReady
+        ? `All preliminary matches are complete. ${seeded ? 'Rebuild' : 'Create'} the medal bracket from the final rankings.`
+        : 'Complete every preliminary match in this division before seeding the medal round.';
+    }
     board.innerHTML = visible.length ? visible.map(({ division, stage }) => {
       const rounds = [...new Set(stage.matches.map(match => match.round))];
       const finalRound = Math.max(...rounds);
@@ -1291,6 +1311,19 @@ export function initializeStandardTournamentApp(services) {
       }).join('')}</div>`).join('')}</div></section>`;
     }).join('') : '<article class="panel standard-summary"><h2>Medal round not configured</h2><p>This division currently ends in its standings table. A nine-pair division automatically advances its top four pairs to semifinals and medal matches.</p></article>';
     bindScoreButtons();
+  }
+
+  function seedMedalsFromRankings() {
+    const division = state?.standardState?.divisions?.find(item => item.id === activeDivision);
+    const definition = divisionLookup(state.standardState).get(activeDivision);
+    const preliminary = (division?.stages || []).filter(stage => stage.type !== 'single-elimination').flatMap(stage => stage.matches).filter(match => match.status !== 'bye');
+    if (!division || !division.stages.some(stage => stage.type === 'single-elimination')) return toast('This division does not have a medal round configured.');
+    if (!preliminary.length || preliminary.some(match => match.status !== 'complete')) return toast('Complete all preliminary matches before seeding the medal round.');
+    rebuild(state);
+    recordActivity(`${definition?.name || activeDivision} medal round seeded from final rankings`);
+    publishState();
+    renderAll();
+    toast(`${definition?.name || 'Division'} medal round seeded from rankings.`);
   }
 
   function renderSettings() {
@@ -1538,6 +1571,7 @@ export function initializeStandardTournamentApp(services) {
     $$('[data-settings-section]').forEach(button => button.onclick = () => setSettingsSection(button.dataset.settingsSection));
     if ($('#modalClose')) $('#modalClose').onclick = closeScore;
     if ($('#scoreModal')) $('#scoreModal').onclick = event => { if (event.target === $('#scoreModal')) closeScore(); };
+    if ($('#seedMedalsBtn')) $('#seedMedalsBtn').onclick = seedMedalsFromRankings;
     if ($('#saveScoreBtn')) $('#saveScoreBtn').onclick = saveScore;
     if ($('#clearScoreBtn')) $('#clearScoreBtn').onclick = clearScore;
     if ($('#cloudSessionBtn')) $('#cloudSessionBtn').onclick = () => services.logout();
