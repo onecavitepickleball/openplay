@@ -227,6 +227,7 @@
 
   function validateResult(result, allowDraws) {
     check(result && typeof result === 'object', 'Result is required');
+    if (result.void === true) return { a: 0, b: 0, void: true, reason: String(result.reason || 'No contest') };
     integer(result.a, 0, 'Score a');
     integer(result.b, 0, 'Score b');
     check(allowDraws || result.a !== result.b, 'A decisive result is required');
@@ -313,6 +314,7 @@
       const b = match.participants ? match.participants.b : match.b.entryId;
       check(a !== b && rows.has(a) && rows.has(b), `Invalid standings participants in ${match.id}`);
       const result = validateResult(match.result, options.allowDraws);
+      if (result.void) return;
       addResult(rows.get(a), rows.get(b), result, options.points);
       completed.push({ a, b, result });
     });
@@ -398,6 +400,7 @@
     if (!match.result) { match.status = 'ready'; return; }
     match.result = validateResult(match.result, allowDraws);
     match.status = 'complete';
+    if (match.result.void) return;
     if (match.result.a !== match.result.b) {
       const aWon = match.result.a > match.result.b;
       match.winnerId = match.participants[aWon ? 'a' : 'b'];
@@ -440,6 +443,10 @@
   function resolveAdvancement(input) {
     const state = copy(input);
     const entries = new Map(state.definition.entries.map(entry => [entry.id, entry]));
+    const eligibleRows = rows => rows.filter(row => entries.get(row.entryId)?.eligibleForAdvancement !== false).map(row => {
+      const tiedEntryIds = row.tiedEntryIds.filter(entryId => entries.get(entryId)?.eligibleForAdvancement !== false);
+      return { ...row, tied:tiedEntryIds.length > 0, tiedEntryIds };
+    });
     state.divisions.forEach(division => {
       const sources = new Map();
       division.stages.forEach(stage => {
@@ -460,12 +467,13 @@
             let rows;
             if (slot.type === 'qualifier') {
               const table = source.tables.find(table => table.poolId === slot.poolId);
-              rows = table ? table.rows : [];
+              rows = table ? eligibleRows(table.rows) : [];
             } else {
               // Do not pick wildcards until all automatic qualification boundaries are unambiguous.
               const cutoff = source.qualifiers.perPool;
-              if (source.tables.some(table => table.rows.some(row => row.rank <= cutoff && row.rank + row.tiedEntryIds.length - 1 > cutoff))) return pending;
-              rows = source.tables.flatMap(table => table.rows.slice(cutoff));
+              const eligibleTables = source.tables.map(table => eligibleRows(table.rows));
+              if (eligibleTables.some(rows => rows.some(row => row.rank <= cutoff && row.rank + row.tiedEntryIds.length - 1 > cutoff))) return pending;
+              rows = eligibleTables.flatMap(rows => rows.slice(cutoff));
               rows = rankRows(rows, [], division.standings);
             }
             const row = rows[slot.rank - 1];

@@ -71,6 +71,19 @@ function playerNames(registration) {
   return players.map(player => clean(player?.fullName || player?.name)).filter(Boolean);
 }
 
+function isDefaultNoPlayer(value) {
+  const parts = clean(value).split('/').map(part => part.trim().replace(/^\[|\]$/g, '').trim().toUpperCase()).filter(Boolean);
+  return parts.length > 0 && parts.every(part => part === 'DEFAULT NO PLAYER');
+}
+
+function isDefaultEntry(entry) {
+  if (!entry) return false;
+  const players = Array.isArray(entry.players) ? entry.players
+    .map(player => clean(player?.fullName || player?.name)).filter(Boolean) : [];
+  return isDefaultNoPlayer(entry.name) || isDefaultNoPlayer(entry.pairCode)
+    || (players.length > 0 && players.every(isDefaultNoPlayer));
+}
+
 function configuredAffiliations(config, registrations) {
   const source = Array.isArray(config.affiliations) && config.affiliations.length
     ? config.affiliations : (Array.isArray(config.clubs) ? config.clubs : []);
@@ -206,12 +219,16 @@ function buildDefinition(config, registrations) {
       return;
     }
     const names = playerNames(registration);
+    const displayName = clean(registration.entryName || registration.teamName) || names.join(' / ') || clean(registration.pairCode) || id;
     const affiliationId = clean(registration.affiliationId || registration.club) || null;
     const seed = Number(registration.seed);
     entries.push({
       id,
-      name: clean(registration.entryName || registration.teamName) || names.join(' / ') || clean(registration.pairCode) || id,
+      name: displayName,
       affiliationId: affiliationId && affiliationIds.has(affiliationId) ? affiliationId : null,
+      eligibleForAdvancement: !isDefaultNoPlayer(displayName)
+        && !isDefaultNoPlayer(registration.pairCode)
+        && !(names.length && names.every(isDefaultNoPlayer)),
       seed: Number.isSafeInteger(seed) && seed > 0 ? seed : null,
       registrationId: clean(registration.id) || id,
       pairCode: clean(registration.pairCode) || id,
@@ -309,15 +326,57 @@ function scheduleProjection(engineState, previousMatches, config) {
   const courts = Math.max(1, Number(config.event?.courts) || 1);
   const slotMinutes = Math.max(5, Number(config.event?.slotMinutes) || 15);
   const start = Number(config.event?.roundRobinStartMinutes) || parseClock(config.event?.startTime, 480);
-  let scheduleIndex = 0;
-  return allEngineMatches(engineState).map(({ division, stage, match }) => {
+  const source = allEngineMatches(engineState);
+  const entries = entryLookup(engineState);
+  const administrativeType = match => {
+    const defaults = [match.participants.a, match.participants.b].filter(entryId => isDefaultEntry(entries.get(entryId))).length;
+    return defaults === 2 ? 'no-contest' : defaults === 1 ? 'walkover' : '';
+  };
+  const automaticSlots = new Map();
+  let nextWave = 0;
+  let previousPlayers = new Set();
+  const groups = [...new Set(source.filter(item => item.match.status !== 'bye' && !administrativeType(item.match)).map(item =>
+    `${item.stage.type === 'single-elimination' ? 1 : 0}|${item.match.round}`))].sort((a, b) => {
+      const [aStage, aRound] = a.split('|').map(Number), [bStage, bRound] = b.split('|').map(Number);
+      return aStage - bStage || aRound - bRound;
+    });
+  groups.forEach(group => {
+    const [stageFlag, round] = group.split('|').map(Number);
+    const remaining = source.filter(item => item.match.status !== 'bye' && !administrativeType(item.match)
+      && (item.stage.type === 'single-elimination' ? 1 : 0) === stageFlag && item.match.round === round).slice();
+    while (remaining.length) {
+      const waveMatches = [], usedPlayers = new Set();
+      while (waveMatches.length < courts && remaining.length) {
+        const safe = remaining.filter(item => [item.match.participants.a, item.match.participants.b]
+          .filter(Boolean).every(entryId => !usedPlayers.has(entryId)));
+        if (!safe.length) break;
+        const rested = safe.filter(item => [item.match.participants.a, item.match.participants.b]
+          .filter(Boolean).every(entryId => !previousPlayers.has(entryId)));
+        const selected = (rested.length ? rested : safe)[0];
+        waveMatches.push(selected);
+        [selected.match.participants.a, selected.match.participants.b].filter(Boolean)
+          .forEach(entryId => usedPlayers.add(entryId));
+        remaining.splice(remaining.indexOf(selected), 1);
+      }
+      if (!waveMatches.length) break;
+      waveMatches.forEach((item, courtIndex) => automaticSlots.set(item.match.id, {
+        court: courtIndex + 1,
+        wave: nextWave + 1,
+        startMinutes: start + nextWave * slotMinutes
+      }));
+      previousPlayers = usedPlayers;
+      nextWave += 1;
+    }
+  });
+  return source.map(({ division, stage, match }) => {
     const old = previous.get(match.id);
-    const schedulable = match.status !== 'bye';
-    const index = schedulable ? scheduleIndex++ : -1;
-    const court = old?.court || (schedulable ? index % courts + 1 : null);
-    const wave = old?.wave || (schedulable ? Math.floor(index / courts) + 1 : null);
-    const startMinutes = Number.isFinite(Number(old?.startMinutes))
-      ? Number(old.startMinutes) : (schedulable ? start + (wave - 1) * slotMinutes : null);
+    const administrative = administrativeType(match);
+    const schedulable = match.status !== 'bye' && !administrative;
+    const automatic = automaticSlots.get(match.id);
+    const court = schedulable ? old?.court || automatic?.court || null : null;
+    const wave = schedulable ? old?.wave || automatic?.wave || null : null;
+    const startMinutes = schedulable && Number.isFinite(Number(old?.startMinutes))
+      ? Number(old.startMinutes) : (schedulable ? automatic?.startMinutes ?? null : null);
     const definition = divisions.get(division.id) || {};
     return {
       id: publicMatchId(match.id),
@@ -337,10 +396,13 @@ function scheduleProjection(engineState, previousMatches, config) {
       winnerId: match.winnerId,
       loserId: match.loserId,
       result: clone(match.result),
+      administrative,
       court,
       wave,
       startMinutes,
-      time: startMinutes == null ? 'TBD' : `${timeLabel(startMinutes)}-${timeLabel(startMinutes + slotMinutes)}`
+      time: administrative === 'walkover' ? 'Automatic walkover'
+        : administrative === 'no-contest' ? 'No contest'
+          : startMinutes == null ? 'TBD' : `${timeLabel(startMinutes)}-${timeLabel(startMinutes + slotMinutes)}`
     };
   });
 }
@@ -367,7 +429,9 @@ function projectState(engineState, previous, config, warnings) {
     }];
   }));
   const active = new Set(Object.values(courts).map(court => court.matchId).filter(Boolean));
-  const queue = matches.filter(match => match.status === 'ready' && !scores[match.id] && !active.has(match.id)).map(match => match.id);
+  const queue = matches.filter(match => match.status === 'ready' && !scores[match.id] && !active.has(match.id))
+    .sort((a, b) => Number(a.startMinutes) - Number(b.startMinutes) || Number(a.court) - Number(b.court))
+    .map(match => match.id);
   const courtSchedules = Object.fromEntries(Array.from({ length: courtCount }, (_, index) => {
     const number = index + 1;
     return [number, matches.filter(match => Number(match.court) === number && match.status !== 'bye')
@@ -434,6 +498,7 @@ export function initializeStandardTournamentApp(services) {
   let activeView = 'overview';
   let activeDivision = '';
   let activeMatchId = '';
+  let draggedScheduleMatchId = '';
   let applyingCloud = false;
   let controlReady = false;
   let registrationsReady = false;
@@ -531,6 +596,30 @@ export function initializeStandardTournamentApp(services) {
     return pendingControlWrite.catch(() => toast('Cloud sync failed. Check the connection and try again.'));
   }
 
+  function applyAdministrativeDefaults(engineState) {
+    let next = engineState, changed = true;
+    while (changed) {
+      changed = false;
+      const entries = entryLookup(next);
+      for (const { division, match } of allEngineMatches(next)) {
+        if (match.status !== 'ready' || match.result) continue;
+        const aDefault = isDefaultEntry(entries.get(match.participants.a));
+        const bDefault = isDefaultEntry(entries.get(match.participants.b));
+        if (!aDefault && !bDefault) continue;
+        if (aDefault && bDefault) {
+          next = engine.recordResult(next, match.id, { void:true, reason:'Both entries defaulted' });
+        } else {
+          const definition = next.definition.divisions.find(item => item.id === division.id);
+          const target = Math.max(1, Number(definition?.scoring?.target || config.scoring?.target) || 11);
+          next = engine.recordResult(next, match.id, aDefault ? { a:0, b:target } : { a:target, b:0 });
+        }
+        changed = true;
+        break;
+      }
+    }
+    return next;
+  }
+
   function rebuild(prior = state) {
     const built = buildDefinition(config, registrations);
     let priorEngine = prior?.standardState;
@@ -540,7 +629,7 @@ export function initializeStandardTournamentApp(services) {
         priorEngine = local?.standardState;
       } catch (_) { /* Ignore a malformed local fallback. */ }
     }
-    const engineState = retainResults(engine, built.definition, priorEngine);
+    const engineState = applyAdministrativeDefaults(retainResults(engine, built.definition, priorEngine));
     state = projectState(engineState, prior, config, built.warnings);
     activeDivision ||= state.standardState.divisions[0]?.id || '';
     applyMatchDocuments(latestMatchDocuments, false);
@@ -574,6 +663,7 @@ export function initializeStandardTournamentApp(services) {
     state.standardState = result === null
       ? engine.clearResult(state.standardState, projected.engineMatchId)
       : engine.recordResult(state.standardState, projected.engineMatchId, result);
+    state.standardState = applyAdministrativeDefaults(state.standardState);
     syncProjection();
     if (result) recordActivity(`${projected.divisionName}: ${entryName(projected.a)} ${result.a}-${result.b} ${entryName(projected.b)}`, matchId);
     else recordActivity(`Result cleared for ${projected.divisionName}`, matchId);
@@ -617,6 +707,7 @@ export function initializeStandardTournamentApp(services) {
       } catch (_) { /* Ignore stale scores for unresolved descendants. */ }
     }
     if (changed) {
+      state.standardState = applyAdministrativeDefaults(state.standardState);
       syncProjection();
       if (rerender) {
         publishState();
@@ -668,6 +759,12 @@ export function initializeStandardTournamentApp(services) {
     if (teamHead) teamHead.innerHTML = '<div><span class="eyebrow dark">Stable registration roster</span><h1>Entries</h1><p>Confirmed entries retain their identity when names, seeds, or affiliations change.</p></div><a class="btn btn-primary" href="registration/">Open registration desk</a>';
     const standingsHead = $('#view-standings .page-head');
     if (standingsHead) standingsHead.innerHTML = '<div><span class="eyebrow dark">Live calculations</span><h1>Division & Pool Standings</h1><p>Standings and advancement are calculated by the Standard Tournament Engine.</p></div>';
+    const courtsHead = $('#view-courts .page-head');
+    if (courtsHead) courtsHead.innerHTML = '<div><span class="eyebrow dark">Matchday operations</span><h1>Live Courts & Pre-Schedule</h1><p>Run active courts while keeping every upcoming match visible in its planned court and time slot.</p></div><button class="btn btn-quiet" id="standardRebuildSchedule" type="button">Rebuild pre-schedule</button>';
+    const calendarHead = $('#view-courts .court-timeline-panel .panel-head');
+    if (calendarHead) calendarHead.innerHTML = '<div><span class="section-label">Court plan</span><h2>Pre-Scheduled Match Calendar</h2><p>Drag an upcoming match onto another slot to move it or swap it with the match already there.</p></div><div class="standard-calendar-key"><span><i class="ready"></i>Ready</span><span><i class="pending"></i>Awaiting bracket</span><span><i class="complete"></i>Complete</span></div>';
+    const scheduleHead = $('#view-schedule .page-head');
+    if (scheduleHead) scheduleHead.innerHTML = '<div><span class="eyebrow dark" id="scheduleMatchCount">Tournament draw</span><h1>Schedule & Results</h1><p>Review every court assignment, find an entry, and record or correct match results.</p></div>';
     const scheduleHeaders = $$('#view-schedule thead th');
     if (scheduleHeaders[4]) scheduleHeaders[4].textContent = 'Entry A';
     if (scheduleHeaders[6]) scheduleHeaders[6].textContent = 'Entry B';
@@ -697,7 +794,9 @@ export function initializeStandardTournamentApp(services) {
 
   function matchCard(match, compact = false) {
     const score = scoreFor(match.id);
-    const status = score ? `${score.a}-${score.b}` : match.status === 'pending' ? 'Waiting for qualifiers' : match.status === 'bye' ? 'Bye' : 'Add score';
+    const status = match.administrative === 'no-contest' ? 'No contest'
+      : match.administrative === 'walkover' ? `Walkover · ${score?.a ?? 0}-${score?.b ?? 0}`
+        : score ? `${score.a}-${score.b}` : match.status === 'pending' ? 'Waiting for qualifiers' : match.status === 'bye' ? 'Bye' : 'Add score';
     return `<article class="standard-match-card ${compact ? 'compact' : ''} status-${esc(match.status)}">
       <header><span>${esc(match.divisionName)}${match.poolId ? ` · ${esc(match.poolId.split('/').pop())}` : ''}</span><b>R${match.round}</b></header>
       <div><span><b>${esc(entryName(match.a))}</b><small>${esc(affiliationName(match.a))}</small></span><em>vs</em><span><b>${esc(entryName(match.b))}</b><small>${esc(affiliationName(match.b))}</small></span></div>
@@ -741,7 +840,7 @@ export function initializeStandardTournamentApp(services) {
   function renderCourts() {
     const target = $('#courtTimeline');
     if (!target || !state) return;
-    target.innerHTML = `<div class="standard-court-grid">${Object.entries(state.courts).map(([number, court]) => {
+    const activeMarkup = `<section class="standard-active-section"><div class="standard-section-heading"><div><span>Live operations</span><h2>Active Courts</h2></div><small>Timers and score controls stay connected to the scheduled match below.</small></div><div class="standard-court-grid">${Object.entries(state.courts).map(([number, court]) => {
       const match = state.matches.find(item => item.id === court.matchId);
       const live = match ? state.liveScoring?.[match.id] || court : court;
       const nextId = state.queue.find(id => {
@@ -749,18 +848,88 @@ export function initializeStandardTournamentApp(services) {
         return Number(candidate?.court) === Number(number);
       }) || state.queue[0];
       const next = state.matches.find(item => item.id === nextId);
-      if (!match) return `<article class="standard-court-card vacant"><header><b>Court ${number}</b><span>Available</span></header><div class="court-empty"><strong>${next ? `${entryName(next.a)} vs ${entryName(next.b)}` : 'No match waiting'}</strong><small>${next ? `${next.divisionName} · ${next.time}` : 'The ready queue is clear.'}</small></div><button class="btn btn-primary" data-promote-court="${number}" ${next ? '' : 'disabled'}>Call next match</button></article>`;
+      if (!match) return `<article class="standard-court-card vacant"><header><div><small>COURT</small><b>${number}</b></div><span>Available</span></header><div class="court-empty"><strong>${next ? `${entryName(next.a)} vs ${entryName(next.b)}` : 'Court is ready'}</strong><small>${next ? `${next.divisionName} · planned ${next.time.split('-')[0]}` : 'No eligible match is waiting.'}</small></div><button class="btn btn-primary" data-promote-court="${number}" ${next ? '' : 'disabled'}>${next ? 'Call scheduled match' : 'No match ready'}</button></article>`;
       const score = scoreFor(match.id);
       const elapsed = elapsedSeconds(live);
-      return `<article class="standard-court-card ${live.running ? 'running' : ''} ${score ? 'complete' : ''}"><header><b>Court ${number}</b><span>${score ? 'Final' : live.running ? 'Live' : elapsed ? 'Paused' : 'Called'}</span></header>${matchCard(match, true)}<div class="court-clock" data-court-clock="${number}">${timerLabel(elapsed)}</div><div class="standard-court-actions"><button class="btn btn-quiet" data-toggle-court="${number}" ${score ? 'disabled' : ''}>${live.running ? 'Pause' : elapsed ? 'Resume' : 'Start'}</button><button class="btn btn-primary" data-score-id="${esc(match.id)}">${score ? 'Review score' : 'Enter score'}</button><button class="btn btn-quiet" data-vacate-court="${number}" ${score ? '' : 'disabled'}>Vacate</button></div></article>`;
-    }).join('')}</div>`;
+      return `<article class="standard-court-card ${live.running ? 'running' : ''} ${score ? 'complete' : ''}"><header><div><small>COURT</small><b>${number}</b></div><span>${score ? 'Finished' : live.running ? 'Match live' : elapsed ? 'Paused' : 'Called'}</span></header>${matchCard(match, true)}<div class="court-clock" data-court-clock="${number}">${timerLabel(elapsed)}</div><div class="standard-court-actions"><button class="btn ${live.running ? 'btn-warning' : 'btn-quiet'}" data-toggle-court="${number}" ${score ? 'disabled' : ''}>${live.running ? 'Pause timer' : elapsed ? 'Resume timer' : 'Start match'}</button><button class="btn btn-primary" data-score-id="${esc(match.id)}">${score ? 'Review result' : 'Record result'}</button><button class="btn btn-quiet" data-vacate-court="${number}" ${score ? '' : 'disabled'}>Clear court</button></div></article>`;
+    }).join('')}</div></section>`;
+    const playable = state.matches.filter(match => match.status !== 'bye' && Number.isFinite(Number(match.startMinutes)));
+    const minutes = [...new Set(playable.map(match => Number(match.startMinutes)))].sort((a, b) => a - b);
+    const calendar = minutes.length ? `<section class="standard-calendar-section"><div class="standard-calendar-grid" style="--standard-courts:${Object.keys(state.courts).length}"><div class="standard-calendar-corner">Time</div>${Object.keys(state.courts).map(number => `<div class="standard-calendar-court">Court ${number}</div>`).join('')}${minutes.map(minute => `<div class="standard-calendar-time"><b>${timeLabel(minute)}</b><small>${timeLabel(minute + (Number(config.event?.slotMinutes) || 15))}</small></div>${Object.keys(state.courts).map(number => {
+      const slotMatches = playable.filter(match => Number(match.court) === Number(number) && Number(match.startMinutes) === minute);
+      return `<div class="standard-calendar-cell ${slotMatches.length ? 'occupied' : ''}" data-standard-drop-court="${number}" data-standard-drop-minute="${minute}">${slotMatches.map(match => {
+        const active = state.courts[number]?.matchId === match.id;
+        const complete = isComplete(match.id);
+        const canCall = !active && !complete && match.status === 'ready' && !state.courts[number]?.matchId;
+        const draggable = !active && !complete && match.status === 'ready';
+        return `<article class="standard-calendar-match status-${esc(complete ? 'complete' : active ? 'live' : match.status)}" draggable="${draggable}" data-standard-drag-match="${esc(match.id)}"><header><span>${esc(match.divisionName)}</span><b>${match.poolId ? esc(match.poolId.split('/').pop()) : `R${match.round}`}</b></header><div><strong>${esc(entryName(match.a))}</strong><small>${esc(affiliationName(match.a))}</small><em>vs</em><strong>${esc(entryName(match.b))}</strong><small>${esc(affiliationName(match.b))}</small></div><footer><span>${complete ? `Final ${scoreFor(match.id).a}-${scoreFor(match.id).b}` : active ? 'On court now' : match.status === 'pending' ? 'Awaiting qualifiers' : 'Pre-scheduled'}</span>${canCall ? `<button type="button" data-call-match="${esc(match.id)}" data-call-court="${number}">Call to court</button>` : ''}</footer></article>`;
+      }).join('')}</div>`;
+    }).join('')}`).join('')}</div></section>` : '<div class="standard-calendar-empty"><b>No matches scheduled yet</b><p>Confirmed registrations will automatically populate this calendar with court and time assignments.</p></div>';
+    target.innerHTML = `${activeMarkup}${calendar}`;
     const note = $('.queue-help');
-    if (note) note.textContent = 'Ready matches are dispatched to an available court. Pending bracket matches unlock automatically when their source result is known.';
+    if (note) note.textContent = 'The calendar is prepared automatically from confirmed registrations. Drag ready matches to adjust the plan; dropping onto an occupied slot swaps the two matches.';
     bindScoreButtons();
     $$('[data-promote-court]').forEach(button => button.onclick = () => promoteMatch(Number(button.dataset.promoteCourt)));
+    $$('[data-call-match]').forEach(button => button.onclick = () => promoteSpecificMatch(button.dataset.callMatch, Number(button.dataset.callCourt)));
     $$('[data-toggle-court]').forEach(button => button.onclick = () => toggleCourt(Number(button.dataset.toggleCourt)));
     $$('[data-vacate-court]').forEach(button => button.onclick = () => vacateCourt(Number(button.dataset.vacateCourt)));
+    $$('[data-standard-drag-match]').forEach(card => {
+      card.ondragstart = () => { draggedScheduleMatchId = card.dataset.standardDragMatch; card.classList.add('dragging'); };
+      card.ondragend = () => { draggedScheduleMatchId = ''; card.classList.remove('dragging'); $$('.standard-calendar-cell.drag-over').forEach(cell => cell.classList.remove('drag-over')); };
+    });
+    $$('[data-standard-drop-court]').forEach(cell => {
+      cell.ondragover = event => { if (!draggedScheduleMatchId) return; event.preventDefault(); cell.classList.add('drag-over'); };
+      cell.ondragleave = () => cell.classList.remove('drag-over');
+      cell.ondrop = event => { event.preventDefault(); cell.classList.remove('drag-over'); moveScheduledMatch(draggedScheduleMatchId, Number(cell.dataset.standardDropCourt), Number(cell.dataset.standardDropMinute)); draggedScheduleMatchId = ''; };
+    });
+    const rebuildButton = $('#standardRebuildSchedule');
+    if (rebuildButton) {
+      rebuildButton.disabled = Object.values(state.courts).some(court => court.matchId);
+      rebuildButton.onclick = rebuildPreSchedule;
+    }
     renderOfficials();
+  }
+
+  function refreshScheduleCollections() {
+    const active = new Set(Object.values(state.courts).map(court => court.matchId).filter(Boolean));
+    state.courtSchedules = Object.fromEntries(Object.keys(state.courts).map(number => [number, state.matches
+      .filter(match => Number(match.court) === Number(number) && match.status !== 'bye')
+      .sort((a, b) => Number(a.startMinutes) - Number(b.startMinutes)).map(match => match.id)]));
+    state.queue = state.matches.filter(match => match.status === 'ready' && !isComplete(match.id) && !active.has(match.id))
+      .sort((a, b) => Number(a.startMinutes) - Number(b.startMinutes) || Number(a.court) - Number(b.court))
+      .map(match => match.id);
+  }
+
+  function moveScheduledMatch(matchId, courtNumber, startMinutes) {
+    const source = state.matches.find(match => match.id === matchId);
+    if (!source || isComplete(matchId) || Object.values(state.courts).some(court => court.matchId === matchId)) return toast('A live or completed match cannot be moved.');
+    const target = state.matches.find(match => match.id !== matchId && Number(match.court) === courtNumber && Number(match.startMinutes) === startMinutes);
+    if (target && (isComplete(target.id) || Object.values(state.courts).some(court => court.matchId === target.id))) return toast('That slot contains a live or completed match.');
+    const original = { court: source.court, startMinutes: source.startMinutes, wave: source.wave };
+    const slotMinutes = Number(config.event?.slotMinutes) || 15;
+    if (target) {
+      target.court = original.court; target.startMinutes = original.startMinutes; target.wave = original.wave;
+      target.time = `${timeLabel(target.startMinutes)}-${timeLabel(target.startMinutes + slotMinutes)}`;
+    }
+    source.court = courtNumber;
+    source.startMinutes = startMinutes;
+    source.wave = Math.max(1, Math.floor((startMinutes - (Number(config.event?.roundRobinStartMinutes) || parseClock(config.event?.startTime, 480))) / slotMinutes) + 1);
+    source.time = `${timeLabel(startMinutes)}-${timeLabel(startMinutes + slotMinutes)}`;
+    refreshScheduleCollections();
+    recordActivity(`${target ? 'Swapped' : 'Moved'} ${source.divisionName} match to Court ${courtNumber} at ${timeLabel(startMinutes)}`, source.id);
+    publishState();
+    renderAll();
+    toast(target ? 'Scheduled matches swapped.' : 'Match moved to the new court slot.');
+  }
+
+  function rebuildPreSchedule() {
+    if (Object.values(state.courts).some(court => court.matchId)) return toast('Clear active courts before rebuilding the schedule.');
+    const prior = { ...state, matches: [] };
+    state = projectState(state.standardState, prior, config, state.standardWarnings || []);
+    recordActivity('Pre-scheduled court calendar rebuilt');
+    publishState();
+    renderAll();
+    toast('Pre-scheduled court calendar rebuilt.');
   }
 
   function promoteMatch(courtNumber) {
@@ -768,6 +937,14 @@ export function initializeStandardTournamentApp(services) {
     if (!court || court.matchId) return;
     const nextId = state.queue.find(id => Number(state.matches.find(match => match.id === id)?.court) === courtNumber) || state.queue[0];
     if (!nextId) return toast('No match is ready for this court.');
+    promoteSpecificMatch(nextId, courtNumber);
+  }
+
+  function promoteSpecificMatch(nextId, courtNumber) {
+    const court = state.courts[courtNumber];
+    const match = state.matches.find(item => item.id === nextId);
+    if (!court || court.matchId) return toast(`Court ${courtNumber} is not vacant.`);
+    if (!match || match.status !== 'ready' || isComplete(nextId)) return toast('That match is not ready to be called.');
     state.courts[courtNumber] = { matchId: nextId, running: false, startedAt: null, elapsed: 0, calledAt: new Date().toISOString() };
     state.liveScoring[nextId] = { ...(state.liveScoring[nextId] || {}), running: false, startedAt: null, elapsed: 0, calledAt: new Date().toISOString() };
     recordActivity(`Called ${nextId} to Court ${courtNumber}`, nextId);
@@ -819,7 +996,12 @@ export function initializeStandardTournamentApp(services) {
     if ($('#scheduleMatchCount')) $('#scheduleMatchCount').textContent = `${matches.length} matches shown`;
     if ($('#scheduleBody')) $('#scheduleBody').innerHTML = matches.length ? matches.map(match => {
       const score = scoreFor(match.id);
-      return `<tr><td><code>${esc(match.id.replace(/^STD-/, '').slice(-18))}</code></td><td>${esc(match.time)}</td><td>${match.court || '—'}</td><td>${esc(match.divisionName)}${match.poolId ? `<small class="table-sub">${esc(match.poolId.split('/').pop())} · R${match.round}</small>` : `<small class="table-sub">${esc(match.stage)} · R${match.round}</small>`}</td><td><b>${esc(entryName(match.a))}</b><small class="table-sub">${esc(affiliationName(match.a))}</small></td><td><button class="score-chip ${score ? 'done' : ''}" data-score-id="${esc(match.id)}" ${['pending', 'bye'].includes(match.status) ? 'disabled' : ''}>${score ? `${score.a}-${score.b}` : match.status === 'bye' ? 'BYE' : match.status === 'pending' ? 'TBD' : 'Score'}</button></td><td><b>${esc(entryName(match.b))}</b><small class="table-sub">${esc(affiliationName(match.b))}</small></td><td><span class="standard-status status-${esc(match.status)}">${score ? 'Complete' : match.status}</span></td></tr>`;
+      const outcome = match.administrative === 'no-contest' ? 'No contest'
+        : match.administrative === 'walkover' ? `W/O ${score?.a ?? 0}-${score?.b ?? 0}`
+          : score ? `${score.a}-${score.b}` : match.status === 'bye' ? 'BYE' : match.status === 'pending' ? 'TBD' : 'Score';
+      const statusLabel = match.administrative === 'no-contest' ? 'No contest'
+        : match.administrative === 'walkover' ? 'Walkover' : score ? 'Complete' : match.status;
+      return `<tr class="${match.administrative ? 'administrative-match' : ''}"><td><code>${esc(match.id.replace(/^STD-/, '').slice(-18))}</code></td><td>${esc(match.time)}</td><td>${match.court || '—'}</td><td>${esc(match.divisionName)}${match.poolId ? `<small class="table-sub">${esc(match.poolId.split('/').pop())} · R${match.round}</small>` : `<small class="table-sub">${esc(match.stage)} · R${match.round}</small>`}</td><td><b>${esc(entryName(match.a))}</b><small class="table-sub">${esc(affiliationName(match.a))}</small></td><td><button class="score-chip ${score ? 'done' : ''}" data-score-id="${esc(match.id)}" ${match.administrative || ['pending', 'bye'].includes(match.status) ? 'disabled' : ''}>${esc(outcome)}</button></td><td><b>${esc(entryName(match.b))}</b><small class="table-sub">${esc(affiliationName(match.b))}</small></td><td><span class="standard-status status-${esc(match.status)}">${esc(statusLabel)}</span></td></tr>`;
     }).join('') : '<tr><td colspan="8" class="empty">No matches match these filters.</td></tr>';
     bindScoreButtons();
   }
@@ -906,7 +1088,7 @@ export function initializeStandardTournamentApp(services) {
     const eventPanel = $('[data-settings-panel="event"] .settings-grid');
     if (eventPanel) eventPanel.querySelector('.white-label-panel')?.setAttribute('hidden', '');
     const scheduleSummary = $('#scheduleOptimizerSummary');
-    if (scheduleSummary) scheduleSummary.innerHTML = `<div class="optimizer-summary"><span><b>${state.matches.filter(match => match.status !== 'bye').length}</b> scheduled match slots</span><span><b>${config.event?.slotMinutes || 15} min</b> default slot length</span><span><b>${Object.keys(state.courts).length}</b> live courts</span></div>`;
+    if (scheduleSummary) scheduleSummary.innerHTML = `<div class="optimizer-summary"><span><b>${state.matches.filter(match => match.status !== 'bye' && !match.administrative).length}</b> scheduled court matches</span><span><b>${state.matches.filter(match => match.administrative === 'walkover').length}</b> automatic walkovers</span><span><b>${state.matches.filter(match => match.administrative === 'no-contest').length}</b> no contests</span><span><b>${config.event?.slotMinutes || 15} min</b> default slot length</span><span><b>${Object.keys(state.courts).length}</b> live courts</span></div>`;
     const optimize = $('#optimizeScheduleBtn');
     if (optimize) optimize.disabled = true;
     $('#pairCountSettings')?.closest('article')?.setAttribute('hidden', '');

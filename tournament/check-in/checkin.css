@@ -44,3 +44,4 @@
 .checkin-row img{border-radius:12px}
 @media(max-width:900px){.checkin-main #checkinWorkspace{grid-template-columns:1fr}.staff-panel{order:2}.checkin-flow{max-width:none}}
 @media(max-width:600px){.checkin-intro{grid-template-columns:1fr;gap:16px;padding-top:18px}.arrival-count{justify-self:stretch;min-width:0}.checkin-flow{padding:18px}.flow-stepper{gap:5px;padding:9px 7px}.flow-stepper span{font-size:8px}.flow-stepper span b{display:none}.eligible-players{max-height:220px}}
+.access-return{display:inline-flex;margin-top:18px;text-decoration:none}

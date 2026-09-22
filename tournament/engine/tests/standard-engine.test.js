@@ -181,6 +181,26 @@ test('affiliation round robin can feed an elimination bracket through qualifiers
   assert.equal(stage(state, 1).matches.filter(match => match.status === 'ready').length, 2);
 });
 
+test('entries marked ineligible never advance even when their results rank first', () => {
+  const entries = [
+    { id:'pair-a', seed:1 },
+    { id:'pair-b', seed:2 },
+    { id:'default-entry', seed:3, eligibleForAdvancement:false }
+  ];
+  let state = engine.createCompetition({
+    id:'walkover-qualification', mode:'standard', entries,
+    divisions:[{ id:'open', entryIds:entries.map(entry => entry.id), format:'round-robin', qualifiers:{ count:2 }, standings:{ order:['wins','pointDifferential','seed'] } }]
+  });
+  for (const match of stage(state).matches) {
+    const defaultOnA = match.participants.a === 'default-entry';
+    const defaultOnB = match.participants.b === 'default-entry';
+    state = engine.recordResult(state, match.id, defaultOnA ? { a:11, b:0 } : defaultOnB ? { a:0, b:11 } : { a:0, b:11 });
+  }
+  const playoff = stage(state, 1);
+  assert.equal(playoff.matches.some(match => Object.values(match.participants).includes('default-entry')), false);
+  assert.deepEqual(new Set(playoff.matches.flatMap(match => Object.values(match.participants).filter(Boolean))), new Set(['pair-a','pair-b']));
+});
+
 test('generated IDs handle delimiters, Unicode, and object-prototype names', () => {
   const values = ['a/b', 'a', 'b/c', 'c', '__proto__', 'constructor', 'ñ~'];
   const matches = engine.generateRoundRobin(values);
@@ -314,6 +334,23 @@ test('standings count only completed results, preserve zero scores, and ignore p
   assert.equal(a.played, 2); assert.equal(a.wins, 1); assert.equal(a.losses, 1);
   assert.equal(a.pointsFor, 13); assert.equal(a.pointsAgainst, 11); assert.equal(a.pointDifferential, 2);
   assert.equal(a.standingPoints, 3);
+});
+
+test('a no-contest result resolves a match without awarding standings statistics', () => {
+  let state = engine.createCompetition({
+    id:'defaults', mode:'standard', entries:ids(2).map(id => ({ id })),
+    divisions:[{ id:'open', entryIds:ids(2), format:'round-robin' }]
+  });
+  const match = stage(state).matches[0];
+  state = engine.recordResult(state, match.id, { void:true, reason:'Both entries defaulted' });
+  const resolved = stage(state);
+  assert.equal(resolved.complete, true);
+  assert.equal(resolved.matches[0].status, 'complete');
+  assert.equal(resolved.matches[0].winnerId, null);
+  assert.deepEqual(resolved.tables[0].rows.map(row => ({ played:row.played, wins:row.wins, losses:row.losses, pointsFor:row.pointsFor })), [
+    { played:0, wins:0, losses:0, pointsFor:0 },
+    { played:0, wins:0, losses:0, pointsFor:0 }
+  ]);
 });
 
 test('draws and standing points are opt-in, configurable, and forbidden in elimination', () => {
