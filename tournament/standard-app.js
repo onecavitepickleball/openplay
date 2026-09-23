@@ -78,7 +78,11 @@ const clone = value => value == null ? value : JSON.parse(JSON.stringify(value))
 const clean = value => String(value ?? '').trim();
 const slug = value => clean(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'division';
 const nameKey = value => clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
-const pairNameKey = value => clean(value).split(/\s+(?:&|\/)\s+/).map(nameKey).filter(Boolean).sort().join('::');
+// Spreadsheet schedules frequently use "Surname, Given Middle" while the
+// registration desk stores "Given Middle Surname". A person's identity key
+// is therefore based on their normalized token set, not the written order.
+const personNameKey = value => nameKey(value).split(' ').filter(Boolean).sort().join(' ');
+const pairNameKey = value => clean(value).split(/\s+(?:&|\/)\s+/).map(personNameKey).filter(Boolean).sort().join('::');
 const entryNameKey = entry => {
   const players = (entry?.players || []).map(player => player?.fullName || player?.name).filter(Boolean);
   return pairNameKey(players.length ? players.join(' & ') : entry?.name || entry?.pairCode || entry?.id);
@@ -520,8 +524,10 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
       || Number(a.startMinutes ?? Infinity) - Number(b.startMinutes ?? Infinity)
       || Number(a.court ?? Infinity) - Number(b.court ?? Infinity)
       || String(a.engineMatchId).localeCompare(String(b.engineMatchId)));
-  let fallbackNumber = Math.max(0, ...reference.sequence.values()) + 1;
-  const numbers = new Map(sequence.map(match => [match.engineMatchId, match.referenceSequence || fallbackNumber++]));
+  // Match numbers describe the final playable queue, so they are always
+  // contiguous from M1 even when an extra match is not present in a supplied
+  // reference sheet. Matched rows retain the spreadsheet's relative order.
+  const numbers = new Map(sequence.map((match, index) => [match.engineMatchId, index + 1]));
   return projected.map(match => ({ ...match, scheduleNumber:numbers.get(match.engineMatchId) || null }));
 }
 
@@ -1121,7 +1127,7 @@ export function initializeStandardTournamentApp(services) {
     const rows = playable.length ? Math.max(1, Math.ceil((1440 - first) / calendarStep)) : 1;
     const scheduledRows = playable.length ? Array.from({ length:rows }, (_, row) => { const minute = first + row * calendarStep; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}" data-calendar-minute="${minute}">${timeLabel(minute)}</div>${courtNumbers.map(number => standardScheduleCell(number, minute)).join('')}`; }).join('') : `<div class="calendar-time hour">—</div>${courtNumbers.map(number => '<div class="calendar-cell empty"></div>').join('')}`;
     const sequence = (state.queue || []).map(id => state.matches.find(match => match.id === id)).filter(Boolean);
-    const sequenceRows = sequence.length ? `<div class="sequence-label">NEXT</div><div class="next-available-sequence" style="grid-column:2/-1"><header><b>Next available court sequence</b><span>Exact RR Schedule order. The first match goes to whichever court opens next.</span></header><div>${sequence.map(match=>`<article><em>${displayMatchId(match)}</em><span><small>${esc(match.divisionName)}</small><b><span>${esc(entryName(match.a))}</span><i>vs</i><span>${esc(entryName(match.b))}</span></b></span></article>`).join('')}</div></div>` : '<div class="sequence-label">NEXT</div><div class="next-available-sequence empty" style="grid-column:2/-1">No ready matches remain.</div>';
+    const sequenceRows = sequence.length ? `<div class="sequence-label">NEXT</div><div class="next-available-sequence" style="grid-column:2/-1"><header><b>Next available court sequence</b><span>Exact RR Schedule order. The first match goes to whichever court opens next.</span></header><div>${sequence.map((match,index)=>`<article><em aria-label="Next in line ${index+1}">#${index+1}</em><span><small>${displayMatchId(match)} · ${esc(match.divisionName)}</small><b><span>${esc(entryName(match.a))}</span><i>vs</i><span>${esc(entryName(match.b))}</span></b></span></article>`).join('')}</div></div>` : '<div class="sequence-label">NEXT</div><div class="next-available-sequence empty" style="grid-column:2/-1">No ready matches remain.</div>';
     const completedRows = completed.length ? `<details class="completed-match-history" style="grid-column:1/-1"><summary>Show ${completed.length} completed match${completed.length===1?'':'es'}</summary><div>${completed.map(match=>`<article><span>${displayMatchId(match)} · ${esc(match.divisionName)}</span><b>${esc(entryName(match.a))} ${scoreFor(match.id).a}-${scoreFor(match.id).b} ${esc(entryName(match.b))}</b></article>`).join('')}</div></details>` : '';
     const scheduleRows = state.standardScheduling?.dispatchMode === 'fixed-sequence' ? sequenceRows : scheduledRows;
     target.className = 'calendar-stage standard-rich-calendar';
@@ -1246,11 +1252,6 @@ export function initializeStandardTournamentApp(services) {
 
   function refreshScheduleCollections() {
     const active = new Set(Object.values(state.courts).map(court => court.matchId).filter(Boolean));
-    state.matches.filter(match => match.status !== 'bye' && !match.administrative)
-      .sort((a, b) => Number(a.startMinutes ?? Infinity) - Number(b.startMinutes ?? Infinity)
-        || Number(a.court ?? Infinity) - Number(b.court ?? Infinity)
-        || String(a.engineMatchId).localeCompare(String(b.engineMatchId)))
-      .forEach((match, index) => { match.scheduleNumber = index + 1; });
     state.courtSchedules = Object.fromEntries(Object.keys(state.courts).map(number => [number, state.matches
       .filter(match => Number(match.court) === Number(number) && match.status !== 'bye' && !match.administrative)
       .sort((a, b) => Number(a.startMinutes) - Number(b.startMinutes)).map(match => match.id)]));
