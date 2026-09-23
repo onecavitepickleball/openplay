@@ -176,6 +176,7 @@ function isOpaquePairCode(value, internalIds = []) {
   const code = clean(value);
   if (!code) return true;
   if (internalIds.map(clean).filter(Boolean).includes(code)) return true;
+  if (/^[A-Z]\d+$/i.test(code)) return true;
   return /^[A-Za-z0-9]{20}$/.test(code);
 }
 
@@ -212,10 +213,11 @@ function generatedPairCodes(registrations, divisions, affiliations) {
     const prefix = pairCodeSegment(affiliation?.short || affiliation?.name || affiliationId, 'PAIR', 4);
     const category = pairCodeSegment(division.category || division.name, 'DIV', 3);
     const counterKey = `${division.id}|${affiliationId || prefix}`;
-    let number = (counters.get(counterKey) || 0) + 1;
+    const legacyNumber = supplied.match(/^[A-Z](\d+)$/i);
+    let number = legacyNumber ? Number(legacyNumber[1]) : (counters.get(counterKey) || 0) + 1;
     let generated = `${prefix}-${category}-${number}`;
     while (used.has(generated)) generated = `${prefix}-${category}-${++number}`;
-    counters.set(counterKey, number);
+    counters.set(counterKey, Math.max(counters.get(counterKey) || 0, number));
     used.add(generated);
     result.set(registration, generated);
   });

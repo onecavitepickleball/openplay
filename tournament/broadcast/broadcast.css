@@ -89,6 +89,11 @@
 .pair-standing-card section>div>span small,.pair-standing-card section>div>strong small{margin-top:2px;color:#7092a1;font:700 6px var(--mono)}
 .pair-standing-card section>div>strong{font:14px var(--display);text-align:right}
 .pair-standing-card section>p{margin:8px;color:#7092a1;font-size:8px}
+.pair-standing-card>div{display:grid;grid-template-columns:25px minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid #ffffff12}
+.pair-standing-card>div>em{display:grid;width:23px;height:23px;place-items:center;border-radius:50%;background:#ffffff12;color:var(--standing-color);font:800 8px var(--mono);font-style:normal}
+.pair-standing-card>div>span{min-width:0}.pair-standing-card>div>span b,.pair-standing-card>div>span small,.pair-standing-card>div>strong small{display:block}
+.pair-standing-card>div>span b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}.pair-standing-card>div>span small,.pair-standing-card>div>strong small{margin-top:2px;color:#7f9fad;font:700 6px var(--mono)}
+.pair-standing-card>div>strong{font:15px var(--display);text-align:right}
 body[data-view="focus"] .modern-court{min-height:760px}
 body[data-view="focus"] .broadcast-versus{grid-template-columns:minmax(0,1fr) minmax(260px,.55fr) minmax(0,1fr);align-items:stretch}
 body[data-view="focus"] .broadcast-score{order:initial}
