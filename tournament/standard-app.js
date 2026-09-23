@@ -172,6 +172,56 @@ function isDefaultEntry(entry) {
     || (players.length > 0 && players.every(isDefaultNoPlayer));
 }
 
+function isOpaquePairCode(value, internalIds = []) {
+  const code = clean(value);
+  if (!code) return true;
+  if (internalIds.map(clean).filter(Boolean).includes(code)) return true;
+  return /^[A-Za-z0-9]{20}$/.test(code);
+}
+
+function pairCodeSegment(value, fallback = 'PAIR', maximum = 4) {
+  const words = clean(value).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return fallback;
+  const initials = words.length > 1 ? words.map(word => word[0]).join('') : words[0];
+  return initials.slice(0, maximum) || fallback;
+}
+
+function generatedPairCodes(registrations, divisions, affiliations) {
+  const affiliationLookup = new Map(affiliations.map(item => [item.id, item]));
+  const divisionOrder = new Map(divisions.map((item, index) => [item.id, index]));
+  const affiliationOrder = new Map(affiliations.map((item, index) => [item.id, index]));
+  const eligible = registrations.map(registration => ({
+    registration,
+    division: registrationDivision(registration, divisions),
+    affiliationId: clean(registration.affiliationId || registration.club)
+  })).filter(item => item.division).sort((left, right) =>
+    (divisionOrder.get(left.division.id) ?? 999) - (divisionOrder.get(right.division.id) ?? 999)
+    || (affiliationOrder.get(left.affiliationId) ?? 999) - (affiliationOrder.get(right.affiliationId) ?? 999)
+    || playerNames(left.registration).join(' / ').localeCompare(playerNames(right.registration).join(' / '), undefined, { sensitivity:'base' })
+    || clean(left.registration.id).localeCompare(clean(right.registration.id)));
+  const counters = new Map(), used = new Set(), result = new Map();
+  eligible.forEach(({ registration, division, affiliationId }) => {
+    const internalIds = [registration.id, registration.entryId, registration.stableEntryId];
+    const supplied = clean(registration.pairCode);
+    if (!isOpaquePairCode(supplied, internalIds) && !used.has(supplied)) {
+      result.set(registration, supplied);
+      used.add(supplied);
+      return;
+    }
+    const affiliation = affiliationLookup.get(affiliationId);
+    const prefix = pairCodeSegment(affiliation?.short || affiliation?.name || affiliationId, 'PAIR', 4);
+    const category = pairCodeSegment(division.category || division.name, 'DIV', 3);
+    const counterKey = `${division.id}|${affiliationId || prefix}`;
+    let number = (counters.get(counterKey) || 0) + 1;
+    let generated = `${prefix}-${category}-${number}`;
+    while (used.has(generated)) generated = `${prefix}-${category}-${++number}`;
+    counters.set(counterKey, number);
+    used.add(generated);
+    result.set(registration, generated);
+  });
+  return result;
+}
+
 function configuredAffiliations(config, registrations) {
   const source = Array.isArray(config.affiliations) && config.affiliations.length
     ? config.affiliations : (Array.isArray(config.clubs) ? config.clubs : []);
@@ -293,6 +343,7 @@ function buildDefinition(config, registrations, rankingOrders = {}, formatOverri
   const affiliations = configuredAffiliations(config, registrations);
   const affiliationIds = new Set(affiliations.map(item => item.id));
   const confirmed = registrations.filter(item => clean(item.status || 'confirmed').toLowerCase() === 'confirmed');
+  const readablePairCodes = generatedPairCodes(confirmed, divisions, affiliations);
   const entries = [];
   const entryDivision = new Map();
   confirmed.forEach((registration, index) => {
@@ -311,7 +362,8 @@ function buildDefinition(config, registrations, rankingOrders = {}, formatOverri
       return;
     }
     const names = playerNames(registration);
-    const displayName = clean(registration.entryName || registration.teamName) || names.join(' / ') || clean(registration.pairCode) || id;
+    const pairCode = readablePairCodes.get(registration) || 'PAIR';
+    const displayName = clean(registration.entryName || registration.teamName) || names.join(' / ') || pairCode;
     const affiliationId = clean(registration.affiliationId || registration.club) || null;
     const seed = Number(registration.seed);
     entries.push({
@@ -323,7 +375,7 @@ function buildDefinition(config, registrations, rankingOrders = {}, formatOverri
         && !(names.length && names.every(isDefaultNoPlayer)),
       seed: Number.isSafeInteger(seed) && seed > 0 ? seed : null,
       registrationId: clean(registration.id) || id,
-      pairCode: clean(registration.pairCode) || id,
+      pairCode,
       players: clone(registration.players || []),
       metadata: clone(registration.metadata || {})
     });
@@ -414,7 +466,7 @@ function buildPairs(engineState) {
       affiliationId: entry.affiliationId,
       affiliationName: affiliation?.name || '',
       category,
-      pairCode: entry.pairCode || entry.id
+      pairCode: entry.pairCode || 'PAIR'
     };
     result[`${category}|${entry.id}`] = value;
     result[entry.id] = value;
@@ -676,7 +728,7 @@ export function initializeStandardTournamentApp(services) {
   function standardPublicProjection() {
     const divisions = divisionLookup(state.standardState);
     const pairStandings = {};
-    const publicCode = entryId => entry(entryId)?.pairCode || entryId;
+    const publicCode = entryId => entry(entryId)?.pairCode || 'PAIR';
     const publicPairs = {};
     state.standardState.definition.entries.forEach(item => {
       const division = [...divisions.values()].find(value => value.entryIds?.includes(item.id));
@@ -696,8 +748,8 @@ export function initializeStandardTournamentApp(services) {
         const item = entry(row.entryId) || {};
         return {
           ...row,
-          code: item.pairCode || row.entryId,
-          pairCode: item.pairCode || row.entryId,
+          code: item.pairCode || 'PAIR',
+          pairCode: item.pairCode || 'PAIR',
           names: item.name || entryName(row.entryId),
           clubId: item.affiliationId || null,
           affiliationId: item.affiliationId || null
@@ -711,10 +763,17 @@ export function initializeStandardTournamentApp(services) {
         bronzeAward: bronze ? { code:publicCode(bronze.entryId), names:entryName(bronze.entryId), rank:3 } : null
       };
     });
-    const publicCheckins = Object.fromEntries(Object.entries(state.checkins || {}).map(([id, item]) => [id, {
-      category: item.category, pair: item.pair, club: item.club, playerIndex: item.playerIndex,
-      photoURL: item.photoURL || item.photoThumb || '', checkedInAt: item.checkedInAt || item.updatedAt || null
-    }]));
+    const entryByRegistration = new Map(state.standardState.definition.entries.map(item => [item.registrationId, item]));
+    const publicCheckins = Object.fromEntries(Object.entries(state.checkins || {}).map(([id, item]) => {
+      const linked = entryByRegistration.get(item.registrationId);
+      return [id, {
+        registrationId: item.registrationId,
+        category: linked ? [...divisions.values()].find(value => value.entryIds?.includes(linked.id))?.category || item.category : item.category,
+        pair: linked ? publicCode(linked.id) : (isOpaquePairCode(item.pair, [item.registrationId]) ? 'PAIR' : item.pair),
+        club: linked?.affiliationId || item.club, playerIndex: item.playerIndex,
+        photoURL: item.photoURL || item.photoThumb || '', checkedInAt: item.checkedInAt || item.updatedAt || null
+      }];
+    }));
     return {
       version: 4,
       sourceUpdatedAt: state.updatedAt || new Date().toISOString(),
@@ -1359,20 +1418,34 @@ export function initializeStandardTournamentApp(services) {
     const category = $('#scheduleCategory')?.value || 'all';
     const status = $('#scheduleStatus')?.value || 'all';
     const query = clean($('#scheduleSearch')?.value).toLowerCase();
+    const estimatedCourtCount = config.firebaseEventId === 'meralco-smc-sportsfest-2026-2026-09-25-9fbb'
+      ? 2 : Math.max(1, Object.keys(state.courts || {}).length);
+    const estimateFor = match => {
+      const number = Number(match.scheduleNumber);
+      if (!Number.isSafeInteger(number) || number < 1 || match.administrative || match.status === 'bye') return null;
+      const start = Number(state.standardScheduling?.startMinutes) || 540;
+      const slot = Number(state.standardScheduling?.slotMinutes) || 18;
+      return {
+        startMinutes: start + Math.floor((number - 1) / estimatedCourtCount) * slot,
+        court: (number - 1) % estimatedCourtCount + 1
+      };
+    };
     const matches = state.matches.filter(match => {
       const matchStatus = isComplete(match.id) ? 'complete' : 'pending';
       const haystack = `${displayMatchId(match)} ${match.divisionName} ${entryName(match.a)} ${entryName(match.b)} ${affiliationName(match.a)} ${affiliationName(match.b)}`.toLowerCase();
       return (category === 'all' || match.divisionId === category) && (status === 'all' || status === matchStatus) && (!query || haystack.includes(query));
-    });
+    }).sort((a, b) => Number(a.scheduleNumber ?? Infinity) - Number(b.scheduleNumber ?? Infinity)
+      || String(a.engineMatchId).localeCompare(String(b.engineMatchId)));
     if ($('#scheduleMatchCount')) $('#scheduleMatchCount').textContent = `${matches.length} matches shown`;
     if ($('#scheduleBody')) $('#scheduleBody').innerHTML = matches.length ? matches.map(match => {
       const score = scoreFor(match.id);
+      const estimate = estimateFor(match);
       const outcome = match.administrative === 'null' ? `Null · ${score?.a ?? 0}-${score?.b ?? 0}`
         : match.administrative === 'walkover' ? `W/O ${score?.a ?? 0}-${score?.b ?? 0}`
           : score ? `${score.a}-${score.b}` : match.status === 'bye' ? 'BYE' : match.status === 'pending' ? 'TBD' : 'Score';
       const statusLabel = match.administrative === 'null' ? 'Null'
         : match.administrative === 'walkover' ? 'Walkover' : score ? 'Complete' : match.status;
-      return `<tr class="${match.administrative ? 'administrative-match' : ''}"><td><code>${esc(match.administrative ? 'Admin' : displayMatchId(match))}</code></td><td>${esc(match.time)}</td><td>${match.court || '—'}</td><td>${esc(match.divisionName)}${match.poolId ? `<small class="table-sub">${esc(match.poolId.split('/').pop())} · R${match.round}</small>` : `<small class="table-sub">${esc(match.stage)} · R${match.round}</small>`}</td><td><b>${esc(entryName(match.a))}</b><small class="table-sub">${esc(affiliationName(match.a))}</small></td><td><button class="score-chip ${score ? 'done' : ''}" data-score-id="${esc(match.id)}" ${match.administrative || ['pending', 'bye'].includes(match.status) ? 'disabled' : ''}>${esc(outcome)}</button></td><td><b>${esc(entryName(match.b))}</b><small class="table-sub">${esc(affiliationName(match.b))}</small></td><td><span class="standard-status status-${esc(match.status)}">${esc(statusLabel)}</span></td></tr>`;
+      return `<tr class="${match.administrative ? 'administrative-match' : ''}"><td><code>${esc(match.administrative ? 'Admin' : displayMatchId(match))}</code></td><td>${estimate ? `${esc(timeLabel(estimate.startMinutes))}<small class="table-sub">Estimated</small>` : esc(match.time)}</td><td>${estimate ? `${estimate.court}<small class="table-sub">Estimated</small>` : '—'}</td><td>${esc(match.divisionName)}${match.poolId ? `<small class="table-sub">${esc(match.poolId.split('/').pop())} · R${match.round}</small>` : `<small class="table-sub">${esc(match.stage)} · R${match.round}</small>`}</td><td><b>${esc(entryName(match.a))}</b><small class="table-sub">${esc(affiliationName(match.a))}</small></td><td><button class="score-chip ${score ? 'done' : ''}" data-score-id="${esc(match.id)}" ${match.administrative || ['pending', 'bye'].includes(match.status) ? 'disabled' : ''}>${esc(outcome)}</button></td><td><b>${esc(entryName(match.b))}</b><small class="table-sub">${esc(affiliationName(match.b))}</small></td><td><span class="standard-status status-${esc(match.status)}">${esc(statusLabel)}</span></td></tr>`;
     }).join('') : '<tr><td colspan="8" class="empty">No matches match these filters.</td></tr>';
     bindScoreButtons();
   }

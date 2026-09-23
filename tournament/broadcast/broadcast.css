@@ -1,4 +1,4 @@
-.broadcast-grid.modern{align-items:stretch}
+.broadcast-grid.modern{grid-template-columns:repeat(var(--broadcast-court-columns,3),minmax(0,1fr));align-items:stretch}
 .broadcast-announcement{display:flex;align-items:center;gap:14px;margin:0 0 14px;padding:13px 16px;border:1px solid #b6ff3c88;border-radius:15px;background:linear-gradient(100deg,#b6ff3c,#48dce3);color:#061923;box-shadow:0 8px 28px #0004}
 .broadcast-announcement span{flex:0 0 auto;padding-right:14px;border-right:1px solid #06192355;font:800 8px var(--mono);letter-spacing:.1em;text-transform:uppercase}.broadcast-announcement>div{min-width:0;overflow:hidden;white-space:nowrap;flex:1}.broadcast-announcement b{display:inline-block;padding-left:100%;font:18px/1.1 var(--display);text-transform:uppercase;animation:broadcastAnnouncementScroll 16s linear infinite}.broadcast-announcement:hover b{animation-play-state:paused}@keyframes broadcastAnnouncementScroll{to{transform:translateX(-100%)}}
 .broadcast-calls{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:0 0 14px}.broadcast-call{position:relative;overflow:hidden;padding:15px 17px;border:1px solid #47dfff88;border-radius:17px;background:radial-gradient(circle at 100% 0,#2bc1df42,transparent 42%),linear-gradient(135deg,#0a4d68,#082333);box-shadow:0 12px 30px #0005}.broadcast-call.reporting{border-color:#b6ff3c;background:radial-gradient(circle at 100% 0,#b6ff3c50,transparent 42%),linear-gradient(135deg,#24553d,#082333);animation:callPulse 1.9s ease-in-out infinite}.broadcast-call>span{display:block;color:#92edff;font:800 8px var(--mono);letter-spacing:.12em;text-transform:uppercase}.broadcast-call.reporting>span{color:var(--lime)}.broadcast-call>b{display:block;margin:5px 0 8px;font:24px var(--display);letter-spacing:.02em;text-transform:uppercase}.broadcast-call p{display:flex;align-items:center;gap:7px;margin:0;min-width:0}.broadcast-call p strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 10px Inter,sans-serif}.broadcast-call p i{flex:0 0 auto;color:#80b7c9;font:700 8px var(--mono);font-style:normal}.broadcast-call small{display:block;margin-top:9px;color:#a4c8d4;font:700 7px var(--mono);letter-spacing:.05em;text-transform:uppercase}
@@ -105,13 +105,37 @@ body[data-view="compact"] .broadcast-player{grid-template-columns:1fr;min-height
 body[data-view="compact"] .broadcast-player b{text-align:center}
 body[data-view="compact"] .club-lockup{justify-content:center}
 body[data-view="compact"] .broadcast-club-logo{width:27px;height:27px;flex-basis:27px}
+
+/* Court-count-aware arena layouts keep the scoreboard legible without allowing
+   a small number of courts to consume the entire broadcast canvas. */
+body[data-view="arena"][data-courts="1"] .broadcast-grid.modern{max-width:1280px;margin-inline:auto}
+body[data-view="arena"][data-courts="1"] .modern-court{min-height:480px}
+body[data-view="arena"][data-courts="1"] .broadcast-versus,
+body[data-view="arena"][data-courts="2"] .broadcast-versus{grid-template-columns:minmax(0,1fr) minmax(120px,.42fr) minmax(0,1fr);align-items:stretch}
+body[data-view="arena"][data-courts="1"] .broadcast-score,
+body[data-view="arena"][data-courts="2"] .broadcast-score{order:initial;margin:0}
+body[data-view="arena"][data-courts="1"] .broadcast-side.rebels,
+body[data-view="arena"][data-courts="2"] .broadcast-side.rebels{order:initial}
+body[data-view="arena"][data-courts="1"] .broadcast-side,
+body[data-view="arena"][data-courts="2"] .broadcast-side{grid-template-columns:minmax(76px,.55fr) minmax(0,1.45fr)}
+body[data-view="arena"][data-courts="2"] .modern-court{min-height:430px}
+body[data-view="arena"][data-courts="2"] .broadcast-versus{gap:8px;padding:10px}
+body[data-view="arena"][data-courts="2"] .broadcast-player{grid-template-columns:52px minmax(0,1fr);min-height:72px}
+body[data-view="arena"][data-courts="2"] .broadcast-player img,
+body[data-view="arena"][data-courts="2"] .broadcast-player i{width:52px;height:64px}
+body[data-view="arena"][data-courts="1"] .broadcast-pair-standings,
+body[data-view="arena"][data-courts="2"] .broadcast-pair-standings{display:block;padding:13px}
+body[data-view="arena"][data-courts="1"] .broadcast-pair-standings>header,
+body[data-view="arena"][data-courts="2"] .broadcast-pair-standings>header{margin-bottom:9px}
+body[data-view="arena"][data-courts="1"] .broadcast-pair-standings>header h2,
+body[data-view="arena"][data-courts="2"] .broadcast-pair-standings>header h2{font-size:19px}
 @keyframes broadcastPaused{50%{box-shadow:0 0 0 7px #ffd43b,0 20px 65px #0009}}
 @keyframes broadcastTimerWarning{50%{box-shadow:0 0 0 7px #ffb82e,0 20px 65px #0009}}
 @keyframes broadcastTimerDanger{50%{box-shadow:0 0 0 9px #ff4d4d,0 20px 72px #000a}}
 @keyframes callPulse{50%{transform:translateY(-2px);box-shadow:0 0 0 3px #b6ff3c77,0 16px 36px #0007}}
 @media(max-width:1450px){.broadcast-club-standings article{grid-template-columns:44px 1fr}.broadcast-club-standings article>.broadcast-club-logo{width:42px;height:42px}.broadcast-club-standings dl{grid-column:1/-1}.pair-standing-grid{grid-template-columns:1fr 1fr}.pair-standing-card:last-child{grid-column:1/-1}}
-@media(max-width:1200px){.modern-court{min-height:650px}.broadcast-player b{font-size:10px}.next-match>span b{font-size:9px}.broadcast-club-standings{grid-template-columns:1fr}.broadcast-club-standings>header{display:grid;grid-template-columns:1fr auto}.broadcast-club-standings>header b{margin:0}}
-@media(max-width:700px){.modern-court{min-height:620px}.broadcast-side{grid-template-columns:108px minmax(0,1fr)}body[data-view="focus"] .broadcast-versus{grid-template-columns:1fr}body[data-view="focus"] .broadcast-score{order:2}body[data-view="focus"] .broadcast-side.rebels{order:3}.broadcast-club-standings>div,.pair-standing-grid{grid-template-columns:1fr}.pair-standing-card:last-child{grid-column:auto}.broadcast-pair-standings>header{align-items:start;flex-direction:column}}
+@media(max-width:1200px){body[data-courts="3"] .broadcast-grid.modern,body[data-courts="4"] .broadcast-grid.modern,body[data-courts="5"] .broadcast-grid.modern,body[data-courts="6"] .broadcast-grid.modern{grid-template-columns:repeat(2,minmax(0,1fr))}.modern-court{min-height:650px}.broadcast-player b{font-size:10px}.next-match>span b{font-size:9px}.broadcast-club-standings{grid-template-columns:1fr}.broadcast-club-standings>header{display:grid;grid-template-columns:1fr auto}.broadcast-club-standings>header b{margin:0}}
+@media(max-width:700px){.broadcast-grid.modern,body[data-view="arena"][data-courts="1"] .broadcast-grid.modern,body[data-view="arena"][data-courts="2"] .broadcast-grid.modern{grid-template-columns:1fr}.modern-court{min-height:620px}body[data-view="arena"][data-courts="1"] .broadcast-versus,body[data-view="arena"][data-courts="2"] .broadcast-versus{grid-template-columns:1fr}body[data-view="arena"][data-courts="1"] .broadcast-score,body[data-view="arena"][data-courts="2"] .broadcast-score{order:2}body[data-view="arena"][data-courts="1"] .broadcast-side.rebels,body[data-view="arena"][data-courts="2"] .broadcast-side.rebels{order:3}.broadcast-side{grid-template-columns:108px minmax(0,1fr)}body[data-view="focus"] .broadcast-versus{grid-template-columns:1fr}body[data-view="focus"] .broadcast-score{order:2}body[data-view="focus"] .broadcast-side.rebels{order:3}.broadcast-club-standings>div,.pair-standing-grid{grid-template-columns:1fr}.pair-standing-card:last-child{grid-column:auto}.broadcast-pair-standings>header{align-items:start;flex-direction:column}}
 @media(max-width:700px){.broadcast-announcement{align-items:flex-start;flex-direction:column;gap:6px}.broadcast-announcement span{padding:0;border:0}.broadcast-announcement b{font-size:15px}.broadcast-call>b{font-size:21px}.broadcast-call p{display:block}.broadcast-call p i{display:block;margin:3px 0}.broadcast-control nav{gap:6px}.broadcast-control nav button,.broadcast-control nav select{min-height:38px}}
 /* Keep the broadcast ticker readable in fullscreen and reserve rankings for the focus view. */
 .broadcast-ticker{min-width:0;overflow:hidden}.broadcast-ticker>b{flex:0 0 auto;white-space:nowrap}.broadcast-ticker>div{min-width:0;overflow:hidden;white-space:nowrap}.broadcast-ticker>div span{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}

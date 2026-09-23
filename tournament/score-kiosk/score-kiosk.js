@@ -10,6 +10,8 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
   const names = (category, code) => { const pair = state?.pairs?.[`${category}|${code}`] || {}; return [pair.player1, pair.player2].filter(Boolean).join(' / ') || 'Players not assigned'; };
   const display = (category, code) => `${category === 'Novice' ? 'NOV' : category === 'Low Intermediate' ? 'LOW' : category === 'High Intermediate' ? 'HIGH' : String(category).replace(/[^a-z0-9 ]/gi,'').split(/\s+/).filter(Boolean).map(word=>word[0]).join('').slice(0,4).toUpperCase() || 'CAT'}-${code}`;
   const pairRecord = (category, code) => state?.pairs?.[`${category}|${code}`] || state?.pairs?.[category]?.[code] || {};
+  const pairLabel = (category, code) => pairRecord(category, code)?.pairCode || 'PAIR';
+  const matchLabel = match => Number(match?.scheduleNumber) > 0 ? `M${Number(match.scheduleNumber)}` : 'MATCH';
   const affiliationId = (match, side) => { const pair = pairRecord(match.category, match[side]); return match?.[`${side}AffiliationId`] ?? pair.affiliationId ?? pair.club ?? (side === 'a' ? 'ocpc' : 'rebels'); };
   const affiliation = (match, side) => { const id = affiliationId(match, side); return (config.affiliations || config.clubs || []).find(item => item.id === id) || { id, short:id || (side === 'a' ? 'Side A' : 'Side B') }; };
   const clubName = (match, side) => affiliation(match, side).short || affiliation(match, side).name;
@@ -22,7 +24,7 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
     $('#kioskCourts').innerHTML = Array.from({ length: config.event.courts }, (_, index) => {
       const courtNo = index + 1, match = courtMatch(courtNo), officiated = match && Boolean(state.refereeAssignments?.[match.id]), complete = match && scoreComplete(match.id);
       if (!match) return `<article class="kiosk-court vacant"><header><b>Court ${courtNo}</b><span>Vacant</span></header><div><strong>No active match</strong><small>Wait for Match Control to place the next match on court.</small></div></article>`;
-      return `<article class="kiosk-court ${officiated ? 'officiated' : ''} ${complete ? 'reported' : ''}"><header><b>Court ${courtNo}</b><span>${officiated ? 'Referee scoring' : complete ? 'Score submitted' : 'Ready to report'}</span></header><div><small>${esc(match.category)} · ${esc(match.id)}</small><section><b>${esc(names(match.category, match.a))}</b><em>vs</em><b>${esc(names(match.category, match.b))}</b></section><button class="action ${officiated || complete ? 'alt' : 'lime'}" data-report-match="${match.id}" ${officiated || complete ? 'disabled' : ''}>${officiated ? 'Report through referee' : complete ? `${state.scores[match.id].a}-${state.scores[match.id].b} recorded` : `Report Court ${courtNo} score`}</button></div></article>`;
+      return `<article class="kiosk-court ${officiated ? 'officiated' : ''} ${complete ? 'reported' : ''}"><header><b>Court ${courtNo}</b><span>${officiated ? 'Referee scoring' : complete ? 'Score submitted' : 'Ready to report'}</span></header><div><small>${esc(match.category)} · ${esc(matchLabel(match))}</small><section><b>${esc(names(match.category, match.a))}</b><em>vs</em><b>${esc(names(match.category, match.b))}</b></section><button class="action ${officiated || complete ? 'alt' : 'lime'}" data-report-match="${match.id}" ${officiated || complete ? 'disabled' : ''}>${officiated ? 'Report through referee' : complete ? `${state.scores[match.id].a}-${state.scores[match.id].b} recorded` : `Report Court ${courtNo} score`}</button></div></article>`;
     }).join('');
     $$('[data-report-match]').forEach(button => button.onclick = () => openScoreSheet(button.dataset.reportMatch));
   }
@@ -38,8 +40,8 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
   function closeScoreSheet() { $('#kioskScoreSheet').hidden = true; selectedMatchId = ''; $('#scoreFormError').textContent = ''; }
   function openScoreSheet(matchId) {
     const match = state.matches.find(item => item.id === matchId); if (!match) return;
-    selectedMatchId = matchId; $('#kioskMatchMeta').textContent = `Court ${match.court} · ${match.category} · ${match.id}`;
-    $('#kioskMatchup').innerHTML = `<article><span>${esc(clubName(match, 'a'))} · ${display(match.category, match.a)}</span><b>${esc(names(match.category, match.a))}</b></article><strong>VS</strong><article><span>${esc(clubName(match, 'b'))} · ${display(match.category, match.b)}</span><b>${esc(names(match.category, match.b))}</b></article>`;
+    selectedMatchId = matchId; $('#kioskMatchMeta').textContent = `Court ${match.court} · ${match.category} · ${matchLabel(match)}`;
+    $('#kioskMatchup').innerHTML = `<article><span>${esc(clubName(match, 'a'))} · ${esc(pairLabel(match.category, match.a))}</span><b>${esc(names(match.category, match.a))}</b></article><strong>VS</strong><article><span>${esc(clubName(match, 'b'))} · ${esc(pairLabel(match.category, match.b))}</span><b>${esc(names(match.category, match.b))}</b></article>`;
     $('#kioskScoreALabel').textContent = `${clubName(match, 'a')} score`; $('#kioskScoreBLabel').textContent = `${clubName(match, 'b')} score`;
     $('#signatureALabel').textContent = `${names(match.category, match.a)} signature`; $('#signatureBLabel').textContent = `${names(match.category, match.b)} signature`;
     $('#kioskScoreA').value = ''; $('#kioskScoreB').value = ''; clearSignature('signatureA'); clearSignature('signatureB'); $('#scoreFormError').textContent = ''; $('#kioskScoreSheet').hidden = false;
