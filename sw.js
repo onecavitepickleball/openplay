@@ -2,7 +2,7 @@
 // HTML pages (so content stays fresh; cache is only a fallback if offline).
 // Firebase modules, QR support, and already-viewed Cloudinary images are also
 // cached so Matchday can reopen its field tools during a connection outage.
-const CACHE_NAME = 'ocpc-v31';
+const CACHE_NAME = 'ocpc-v32';
 const FIREBASE_VERSION = '10.13.2';
 const PRECACHE_URLS = ['/styles.css', '/script.js', '/nav-auth.js', '/assets/logo-2026.png',
   '/tournament/', '/tournament/index.html', '/tournament/control.html', '/tournament/portal.css', '/tournament/portal.js',

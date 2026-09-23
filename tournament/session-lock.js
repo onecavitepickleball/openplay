@@ -2,6 +2,7 @@ const DEVICE_KEY = 'matchday.deviceId';
 const SESSION_KEY = 'matchday.activeSession';
 const LEASE_MS = 12 * 60 * 60 * 1000;
 const HEARTBEAT_MS = 30 * 1000;
+const CLAIM_TIMEOUT_MS = 10000;
 
 function deviceId() {
   let value = localStorage.getItem(DEVICE_KEY);
@@ -51,6 +52,24 @@ export function createSessionLock({ db, auth, doc, onSnapshot, runTransaction, s
   const payload = current => ({ uid:current.uid, email:String(current.email || '').toLowerCase(), deviceId:deviceId(), deviceLabel:deviceLabel(), active:true, leaseUntilMs:Date.now() + LEASE_MS, lastSeenAt:serverTimestamp(), updatedAt:serverTimestamp() });
 
   async function claim(current, force = false) {
+    let timeout;
+    const attempt = { expired:false };
+    try {
+      return await Promise.race([
+        claimDevice(current, force, attempt),
+        new Promise((_, reject) => { timeout=setTimeout(() => {
+          attempt.expired=true;
+          reject(new Error('SESSION_CHECK_TIMEOUT'));
+        }, CLAIM_TIMEOUT_MS); })
+      ]);
+    } catch (error) {
+      console.error('Matchday device verification failed.', error);
+      showUnavailable(error);
+      return false;
+    } finally { clearTimeout(timeout); }
+  }
+
+  async function claimDevice(current, force, attempt) {
     user = current;
     if (navigator.onLine === false) {
       if (localSession(current)) { beginWatch(); return true; }
@@ -65,11 +84,13 @@ export function createSessionLock({ db, auth, doc, onSnapshot, runTransaction, s
     const ref = refFor(current);
     const result = await runTransaction(db, async transaction => {
       const snapshot = await transaction.get(ref), existing = snapshot.exists() ? snapshot.data() : null;
+      if (attempt.expired) throw new Error('SESSION_CHECK_TIMEOUT');
       const activeElsewhere = existing?.deviceId && existing.deviceId !== deviceId() && Number(existing.leaseUntilMs || 0) > Date.now();
       if (activeElsewhere && !force) return { allowed:false, existing };
       transaction.set(ref, payload(current), { merge:true });
       return { allowed:true, existing };
     });
+    if (attempt.expired) return false;
     if (!result.allowed) return showConflict(current, result.existing);
     saveLocal(current); lost = false; overlay().hidden = true; beginWatch(); return true;
   }
@@ -84,11 +105,24 @@ export function createSessionLock({ db, auth, doc, onSnapshot, runTransaction, s
         showLost(value);
         window.dispatchEvent(new CustomEvent('matchday-session-lost', { detail:value }));
       }
-    });
+    }, error => { lost=true; showUnavailable(error); });
     heartbeat = setInterval(() => {
       if (!user || lost || navigator.onLine === false) return;
       runTransaction(db,async transaction=>{const ref=refFor(user),snapshot=await transaction.get(ref),current=snapshot.data();if(current?.deviceId&&current.deviceId!==deviceId())throw Object.assign(new Error('SESSION_TAKEN_OVER'),{current});transaction.set(ref,payload(user),{merge:true})}).catch(error=>{if(error?.message==='SESSION_TAKEN_OVER'){lost=true;showLost(error.current);window.dispatchEvent(new CustomEvent('matchday-session-lost',{detail:error.current}))}});
     }, HEARTBEAT_MS);
+  }
+
+  function showUnavailable(error) {
+    const root=overlay();
+    root.querySelector('#matchdaySessionTitle').textContent='Your sign-in succeeded. Device access needs a retry.';
+    root.querySelector('#matchdaySessionMessage').textContent=error?.code==='permission-denied'
+      ? 'We could not verify your device access. Retry, or return to My Tournaments. Your tournament data has not been changed.'
+      : 'The connection interrupted device verification. Retry when connected, or return to My Tournaments.';
+    const retry=root.querySelector('[data-session-takeover]');
+    retry.disabled=false; retry.textContent='Retry device access'; retry.onclick=()=>location.reload();
+    const back=root.querySelector('[data-session-signout]');
+    back.textContent='My Tournaments'; back.onclick=()=>{location.href='/tournament/'};
+    root.hidden=false;
   }
 
   function showLost(existing) {
@@ -109,10 +143,13 @@ export function createSessionLock({ db, auth, doc, onSnapshot, runTransaction, s
   }
 
   function bindButtons(root, current = user) {
+    const takeover=root.querySelector('[data-session-takeover]');
+    takeover.disabled=false; takeover.textContent='Take over on this device';
+    root.querySelector('[data-session-signout]').textContent='Sign out';
     root.querySelector('[data-session-takeover]').onclick = async () => {
       const button = root.querySelector('[data-session-takeover]');
       button.disabled = true; button.textContent = 'Taking control…';
-      try { await claim(current, true); location.reload(); }
+      try { if (await claim(current, true)) location.reload(); }
       catch (_) { button.disabled = false; button.textContent = 'Try takeover again'; }
     };
     root.querySelector('[data-session-signout]').onclick = async () => { await release(false); await signOut(auth); location.href = new URL('./', location.origin + '/tournament/').href; };
@@ -120,6 +157,7 @@ export function createSessionLock({ db, auth, doc, onSnapshot, runTransaction, s
 
   async function release(removeRemote = true) {
     clearInterval(heartbeat); stop?.(); heartbeat = null; stop = null;
+    user = user || auth.currentUser;
     const local = user && localSession(user);
     localStorage.removeItem(SESSION_KEY);
     if (removeRemote && user && local && navigator.onLine !== false) {
