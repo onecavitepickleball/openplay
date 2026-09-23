@@ -30,3 +30,5 @@ button,a,input,select{touch-action:manipulation;-webkit-tap-highlight-color:tran
 .schedule-table tr.administrative-match td{opacity:.9}
 .schedule-table tr.administrative-match .status{background:#e7ecef;color:#405967}
 .schedule-table tr.administrative-match .score-link{cursor:default}
+.team-row label small{display:block;margin-top:3px;color:var(--ink);font:700 8px var(--body);overflow:hidden;text-overflow:ellipsis}
+.active-team .pair-affiliation{display:block;margin-top:4px;color:var(--brand);font:800 9px var(--mono);text-transform:uppercase;letter-spacing:.05em}.timeline-pairs b .timeline-affiliation{display:block;margin-top:2px;color:var(--brand);font:700 7px var(--mono);text-transform:uppercase}

@@ -8,7 +8,7 @@ layout: null
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#063b56">
   <meta name="robots" content="noindex,nofollow">
-  <title>Live Tournament Standings</title>
+  <title>Live Tournament</title>
   <link rel="stylesheet" href="public.css?v={{ site.github.build_revision }}">
 </head>
 <body>
@@ -16,26 +16,28 @@ layout: null
   <main id="app" class="shell" aria-live="polite">
     <section id="loadingState" class="state-card">
       <div class="loader"><i></i><i></i><i></i></div>
-      <p>Connecting to live tournament standings…</p>
+      <p>Connecting to live tournament…</p>
     </section>
 
     <section id="errorState" class="state-card" hidden>
       <div class="state-icon">!</div>
-      <h1 id="errorTitle">Standings unavailable</h1>
+        <h1 id="errorTitle">Tournament view unavailable</h1>
       <p id="errorMessage">This link may be invalid or no longer active.</p>
       <button id="retryButton" type="button">Try again</button>
     </section>
 
     <div id="content" hidden>
       <header class="event-hero">
-        <div class="hero-topline"><span class="live-pill"><i></i> Live standings</span><span id="lastUpdated">Waiting for update</span></div>
+        <div class="hero-topline"><span class="live-pill"><i></i> Live tournament</span><span id="lastUpdated">Waiting for update</span></div>
         <div class="event-copy"><p id="organizer">Tournament results</p><h1 id="eventName">Dual Meet</h1><div class="event-meta"><span id="eventDate"></span><span id="eventVenue"></span></div></div>
         <div id="clubVersus" class="club-versus"></div>
       </header>
 
-      <nav class="section-nav" aria-label="Standings sections">
-        <button class="active" data-view="standings">Standings</button>
-        <button data-view="medals">Medal Round</button>
+      <nav class="section-nav" aria-label="Public tournament views">
+        <button class="active" data-view="standings" aria-selected="true">Standings</button>
+        <button data-view="profiles" aria-selected="false">Player Profiles</button>
+        <button data-view="schedule" aria-selected="false">Schedule</button>
+        <button data-view="medals" aria-selected="false">Medal Round</button>
       </nav>
 
       <section id="standingsView" class="view active">
@@ -44,6 +46,20 @@ layout: null
         <div class="section-heading pair-heading"><div><span>Category rankings</span><h2>Pair standings</h2></div></div>
         <div id="categoryTabs" class="category-tabs"></div>
         <div id="pairStandings" class="pair-grid"></div>
+      </section>
+
+      <section id="profilesView" class="view">
+        <div class="section-heading directory-heading"><div><span>Personal matchday pages</span><h2>Find your player profile</h2></div><p>Search your name, pair code, category, or club. Open your profile to see your live schedule, court calls, standings, and medal status.</p></div>
+        <label class="public-search" for="profileSearch"><span>Search players</span><input id="profileSearch" type="search" autocomplete="off" placeholder="Type a player name or pair code"></label>
+        <div id="profileCategoryTabs" class="category-tabs" aria-label="Filter player profiles by category"></div>
+        <div id="profileDirectory" class="profile-directory"></div>
+      </section>
+
+      <section id="scheduleView" class="view">
+        <div class="section-heading directory-heading"><div><span>Live match order</span><h2>Public schedule</h2></div><p>Estimated times and courts update with Match Control. Live, completed, walkover, and null results are clearly identified.</p></div>
+        <div id="scheduleCategoryTabs" class="category-tabs" aria-label="Filter schedule by category"></div>
+        <div id="scheduleStatusTabs" class="category-tabs schedule-status-tabs" aria-label="Filter schedule by status"></div>
+        <div id="publicSchedule" class="public-schedule"></div>
       </section>
 
       <section id="medalsView" class="view">

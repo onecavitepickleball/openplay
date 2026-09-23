@@ -380,6 +380,22 @@ test('a no-contest result resolves a match without awarding standings statistics
   ]);
 });
 
+test('an administrative null can count as played without awarding any result statistics', () => {
+  let state = engine.createCompetition({
+    id:'counted-defaults', mode:'standard', entries:ids(2).map(id => ({ id })),
+    divisions:[{ id:'open', entryIds:ids(2), format:'round-robin' }]
+  });
+  const match = stage(state).matches[0];
+  state = engine.recordResult(state, match.id, { void:true, countsAsPlayed:true, reason:'Both entries defaulted' });
+  assert.deepEqual(stage(state).tables[0].rows.map(row => ({
+    played:row.played, wins:row.wins, losses:row.losses, draws:row.draws,
+    pointsFor:row.pointsFor, pointsAgainst:row.pointsAgainst, differential:row.pointDifferential
+  })), [
+    { played:1, wins:0, losses:0, draws:0, pointsFor:0, pointsAgainst:0, differential:0 },
+    { played:1, wins:0, losses:0, draws:0, pointsFor:0, pointsAgainst:0, differential:0 }
+  ]);
+});
+
 test('draws and standing points are opt-in, configurable, and forbidden in elimination', () => {
   let state = engine.createCompetition(definition(2, {
     standings: { allowDraws: true, order: ['standingPoints'], points: { win: 2, draw: 0.5, loss: -1 } }

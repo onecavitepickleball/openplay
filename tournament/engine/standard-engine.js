@@ -241,7 +241,7 @@
 
   function validateResult(result, allowDraws) {
     check(result && typeof result === 'object', 'Result is required');
-    if (result.void === true) return { a: 0, b: 0, void: true, reason: String(result.reason || 'No contest') };
+    if (result.void === true) return { a: 0, b: 0, void: true, countsAsPlayed:result.countsAsPlayed === true, reason: String(result.reason || 'No contest') };
     integer(result.a, 0, 'Score a');
     integer(result.b, 0, 'Score b');
     check(allowDraws || result.a !== result.b, 'A decisive result is required');
@@ -328,7 +328,13 @@
       const b = match.participants ? match.participants.b : match.b.entryId;
       check(a !== b && rows.has(a) && rows.has(b), `Invalid standings participants in ${match.id}`);
       const result = validateResult(match.result, options.allowDraws);
-      if (result.void) return;
+      if (result.void) {
+        if (result.countsAsPlayed) {
+          rows.get(a).played += 1;
+          rows.get(b).played += 1;
+        }
+        return;
+      }
       addResult(rows.get(a), rows.get(b), result, options.points);
       completed.push({ a, b, result });
     });

@@ -159,6 +159,12 @@ function playerNames(registration) {
   return players.map(player => clean(player?.fullName || player?.name)).filter(Boolean);
 }
 
+function teamDisplayName(teamName, names, fallback = '') {
+  const team = clean(teamName);
+  const players = (names || []).map(clean).filter(Boolean);
+  return team ? `${team}${players.length ? ` (${players.join(' & ')})` : ''}` : players.join(' / ') || fallback;
+}
+
 function isDefaultNoPlayer(value) {
   const parts = clean(value).split('/').map(part => part.trim()).filter(Boolean);
   return parts.length > 0 && parts.every(part => /^\[?\s*DEFAULT NO PLAYER(?:\]|\b)/i.test(part));
@@ -365,7 +371,8 @@ function buildDefinition(config, registrations, rankingOrders = {}, formatOverri
     }
     const names = playerNames(registration);
     const pairCode = readablePairCodes.get(registration) || 'PAIR';
-    const displayName = clean(registration.entryName || registration.teamName) || names.join(' / ') || pairCode;
+    const teamName = clean(registration.teamName || registration.entryName);
+    const displayName = teamDisplayName(teamName, names, pairCode);
     const affiliationId = clean(registration.affiliationId || registration.club) || null;
     const seed = Number(registration.seed);
     entries.push({
@@ -378,6 +385,7 @@ function buildDefinition(config, registrations, rankingOrders = {}, formatOverri
       seed: Number.isSafeInteger(seed) && seed > 0 ? seed : null,
       registrationId: clean(registration.id) || id,
       pairCode,
+      teamName,
       players: clone(registration.players || []),
       metadata: clone(registration.metadata || {})
     });
@@ -461,6 +469,7 @@ function buildPairs(engineState) {
       entryId: entry.id,
       registrationId: entry.registrationId || entry.id,
       name: entry.name,
+      teamName: entry.teamName || '',
       player1: names[0] || entry.name || '',
       player2: names[1] || '',
       players: clone(entry.players || []),
@@ -736,7 +745,7 @@ export function initializeStandardTournamentApp(services) {
       const division = [...divisions.values()].find(value => value.entryIds?.includes(item.id));
       const category = division?.category || division?.name || division?.id || '';
       const names = (item.players || []).map(player => clean(player.fullName || player.name)).filter(Boolean);
-      const value = { ...clone(item), name:item.name || names.join(' / '), names:item.name || names.join(' / '), player1:names[0] || '', player2:names[1] || '', category, pairCode:publicCode(item.id) };
+      const value = { ...clone(item), name:item.name || names.join(' / '), names:item.name || names.join(' / '), teamName:item.teamName || '', player1:names[0] || '', player2:names[1] || '', category, pairCode:publicCode(item.id) };
       publicPairs[publicCode(item.id)] = value;
       publicPairs[`${category}|${publicCode(item.id)}`] = value;
     });
@@ -791,7 +800,7 @@ export function initializeStandardTournamentApp(services) {
       medals,
       checkins: publicCheckins,
       playerPortal: {
-        matches: state.matches.filter(match => !match.administrative && match.status !== 'bye').map(match => ({ id: match.id, category: match.category, a:publicCode(match.a), b:publicCode(match.b), aAffiliationId:entry(match.a)?.affiliationId || null, bAffiliationId:entry(match.b)?.affiliationId || null, court: match.court || null, startMinutes: match.startMinutes ?? null, time: match.time || '', wave: match.wave || null })),
+        matches: state.matches.filter(match => match.status !== 'bye').map(match => ({ id: match.id, scheduleNumber:match.scheduleNumber || match.sequence || match.id, category: match.category, a:publicCode(match.a), b:publicCode(match.b), aAffiliationId:entry(match.a)?.affiliationId || null, bAffiliationId:entry(match.b)?.affiliationId || null, court: match.court || null, startMinutes: match.startMinutes ?? null, time: match.time || '', wave: match.wave || null, status:match.status || '', administrative:match.administrative || '' })),
         courtSchedules: clone(state.courtSchedules || {}), courts: clone(state.courts || {}), scores: clone(state.scores || {})
       }
     };
@@ -824,12 +833,18 @@ export function initializeStandardTournamentApp(services) {
       changed = false;
       const entries = entryLookup(next);
       for (const { division, match } of allEngineMatches(next)) {
-        if (match.status !== 'ready' || match.result) continue;
         const aDefault = isDefaultEntry(entries.get(match.participants.a));
         const bDefault = isDefaultEntry(entries.get(match.participants.b));
+        if (aDefault && bDefault && match.result?.void && !match.result.countsAsPlayed) {
+          next = engine.clearResult(next, match.id);
+          next = engine.recordResult(next, match.id, { void:true, countsAsPlayed:true, reason:'Both entries defaulted' });
+          changed = true;
+          break;
+        }
+        if (match.status !== 'ready' || match.result) continue;
         if (!aDefault && !bDefault) continue;
         if (aDefault && bDefault) {
-          next = engine.recordResult(next, match.id, { void:true, reason:'Both entries defaulted' });
+          next = engine.recordResult(next, match.id, { void:true, countsAsPlayed:true, reason:'Both entries defaulted' });
         } else {
           const definition = next.definition.divisions.find(item => item.id === division.id);
           const target = Math.max(1, Number(definition?.scoring?.target || config.scoring?.target) || 11);
@@ -1150,10 +1165,10 @@ export function initializeStandardTournamentApp(services) {
       ? state.matches.find(item => item.id === state.queue?.[0])
       : state.matches.filter(item => Number(item.court) === Number(courtNumber) && item.status === 'ready' && !isComplete(item.id) && !item.administrative)
         .sort((a, b) => Number(a.startMinutes) - Number(b.startMinutes))[0];
-    if (!match) return `<section class="active-court empty ${next && standardCheckinWarning(next) ? 'needs-checkin' : ''}"><b>Court vacant</b><small>${next ? `${entryName(next.a)} vs ${entryName(next.b)} · ${state.standardScheduling?.dispatchMode === 'fixed-sequence' ? 'Next in sequence' : timeLabel(next.startMinutes)}` : 'Schedule complete'}</small>${next && standardCheckinWarning(next) ? `<strong class="checkin-alert">⚠ ${esc(standardCheckinWarning(next))}</strong>` : ''}${next ? `<button class="btn btn-primary" data-promote-court="${courtNumber}">Promote next match</button>` : ''}</section>`;
+    if (!match) return `<section class="active-court empty ${next && standardCheckinWarning(next) ? 'needs-checkin' : ''}"><b>Court vacant</b><small>${next ? `${entryName(next.a)} (${affiliationName(next.a)}) vs ${entryName(next.b)} (${affiliationName(next.b)}) · ${state.standardScheduling?.dispatchMode === 'fixed-sequence' ? 'Next in sequence' : timeLabel(next.startMinutes)}` : 'Schedule complete'}</small>${next && standardCheckinWarning(next) ? `<strong class="checkin-alert">⚠ ${esc(standardCheckinWarning(next))}</strong>` : ''}${next ? `<button class="btn btn-primary" data-promote-court="${courtNumber}">Promote next match</button>` : ''}</section>`;
     const live = state.liveScoring?.[match.id] || court, score = scoreFor(match.id), seconds = elapsedSeconds(live), warning = standardCheckinWarning(match), official = state.refereeAssignments?.[match.id], interruption = live.interruption?.active ? live.interruption : null, rules = standardMatchRules(match);
     const winner = score && Number(score.a) !== Number(score.b) ? Number(score.a) > Number(score.b) ? 'a' : 'b' : '';
-    return `<section class="active-court category-${slug(match.category)} ${standardTimerTone(seconds)} ${!live.running && seconds && !score ? 'match-paused' : ''} ${interruption ? (interruption.type === 'team' ? 'interruption-warning' : 'interruption-danger') : ''} ${warning ? 'needs-checkin' : ''}"><div class="active-court-top"><span>${esc(match.divisionName)} · Court ${courtNumber}</span><b data-court-status="${courtNumber}">${esc(standardCourtStatus(live, score))}</b></div>${warning ? `<div class="checkin-alert">⚠ ${esc(warning)}</div>` : ''}${interruption ? `<div class="court-interruption"><span>${esc(interruption.label)}</span><b data-standard-interruption-clock="${courtNumber}">${timerLabel(elapsedSeconds(interruption))}</b><button data-end-standard-interruption="${courtNumber}">End interruption</button></div>` : ''}<div class="active-score"><div class="active-team ${winner === 'a' ? 'winner' : ''}"><div>${standardPortraits(match.a)}</div><strong>${winner === 'a' ? '🏆 ' : ''}${esc(entryName(match.a))}</strong></div><b>${score?.a ?? live.a ?? 0}<small>–</small>${score?.b ?? live.b ?? 0}</b><div class="active-team ${winner === 'b' ? 'winner' : ''}"><div>${standardPortraits(match.b)}</div><strong>${winner === 'b' ? '🏆 ' : ''}${esc(entryName(match.b))}</strong></div></div><div class="court-official"><span>Referee</span><b>${official ? esc(standardRefereeName(official)) : 'Unassigned'}</b><button data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? 'Swap' : 'Assign'}</button></div><div class="court-rule-summary"><b>${match.medal === 'gold' ? 'Gold / Silver' : match.stage === 'elimination' ? 'Elimination' : 'Preliminary'}</b><span>${rules.scoring === 'rally' ? 'Rally scoring' : 'Side-out scoring'} · to ${rules.target} · ${rules.timer ? 'timed' : 'no timer'}</span></div><div class="active-actions">${rules.timer ? `<button class="court-timer-control ${live.running ? 'is-running' : seconds ? 'is-paused' : ''}" data-timer-toggle="${courtNumber}" ${score || interruption ? 'disabled' : ''}><span>${interruption ? 'Interrupted' : live.running ? 'Pause' : seconds ? 'Resume' : 'Start'}</span><b data-court-clock="${courtNumber}">${timerLabel(seconds)}</b></button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${esc(match.id)}">${score ? 'Review score' : 'Update score'}</button>${score ? '' : `<button class="end-match-action" data-end-match="${esc(match.id)}">End Match</button>`}<button data-standard-settings="${courtNumber}" ${score ? 'disabled' : ''}>Scoring settings</button><button data-standard-tools="${courtNumber}" ${score ? 'disabled' : ''}>Match tools</button><button class="vacate" data-vacate-court="${courtNumber}" ${score ? '' : 'disabled'}>Confirm court vacant</button></div></section>`;
+    return `<section class="active-court category-${slug(match.category)} ${standardTimerTone(seconds)} ${!live.running && seconds && !score ? 'match-paused' : ''} ${interruption ? (interruption.type === 'team' ? 'interruption-warning' : 'interruption-danger') : ''} ${warning ? 'needs-checkin' : ''}"><div class="active-court-top"><span>${esc(match.divisionName)} · Court ${courtNumber}</span><b data-court-status="${courtNumber}">${esc(standardCourtStatus(live, score))}</b></div>${warning ? `<div class="checkin-alert">⚠ ${esc(warning)}</div>` : ''}${interruption ? `<div class="court-interruption"><span>${esc(interruption.label)}</span><b data-standard-interruption-clock="${courtNumber}">${timerLabel(elapsedSeconds(interruption))}</b><button data-end-standard-interruption="${courtNumber}">End interruption</button></div>` : ''}<div class="active-score"><div class="active-team ${winner === 'a' ? 'winner' : ''}"><div>${standardPortraits(match.a)}</div><strong>${winner === 'a' ? '🏆 ' : ''}${esc(entryName(match.a))}</strong><small class="pair-affiliation">${esc(affiliationName(match.a))}</small></div><b>${score?.a ?? live.a ?? 0}<small>–</small>${score?.b ?? live.b ?? 0}</b><div class="active-team ${winner === 'b' ? 'winner' : ''}"><div>${standardPortraits(match.b)}</div><strong>${winner === 'b' ? '🏆 ' : ''}${esc(entryName(match.b))}</strong><small class="pair-affiliation">${esc(affiliationName(match.b))}</small></div></div><div class="court-official"><span>Referee</span><b>${official ? esc(standardRefereeName(official)) : 'Unassigned'}</b><button data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? 'Swap' : 'Assign'}</button></div><div class="court-rule-summary"><b>${match.medal === 'gold' ? 'Gold / Silver' : match.stage === 'elimination' ? 'Elimination' : 'Preliminary'}</b><span>${rules.scoring === 'rally' ? 'Rally scoring' : 'Side-out scoring'} · to ${rules.target} · ${rules.timer ? 'timed' : 'no timer'}</span></div><div class="active-actions">${rules.timer ? `<button class="court-timer-control ${live.running ? 'is-running' : seconds ? 'is-paused' : ''}" data-timer-toggle="${courtNumber}" ${score || interruption ? 'disabled' : ''}><span>${interruption ? 'Interrupted' : live.running ? 'Pause' : seconds ? 'Resume' : 'Start'}</span><b data-court-clock="${courtNumber}">${timerLabel(seconds)}</b></button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${esc(match.id)}">${score ? 'Review score' : 'Update score'}</button>${score ? '' : `<button class="end-match-action" data-end-match="${esc(match.id)}">End Match</button>`}<button data-standard-settings="${courtNumber}" ${score ? 'disabled' : ''}>Scoring settings</button><button data-standard-tools="${courtNumber}" ${score ? 'disabled' : ''}>Match tools</button><button class="vacate" data-vacate-court="${courtNumber}" ${score ? '' : 'disabled'}>Confirm court vacant</button></div></section>`;
   }
 
   function standardScheduleCell(courtNumber, minute) {
@@ -1161,7 +1176,7 @@ export function initializeStandardTournamentApp(services) {
     const match = matches[0];
     if (!match) return `<div class="calendar-cell empty" data-drop-court="${courtNumber}" data-drop-minute="${minute}"></div>`;
     const active = state.courts[courtNumber]?.matchId === match.id, complete = isComplete(match.id), conflicts = standardConflicts(match), warning = standardCheckinWarning(match), official = state.refereeAssignments?.[match.id];
-    return `<div class="calendar-cell occupied" data-drop-court="${courtNumber}" data-drop-minute="${minute}"><article class="timeline-match category-${slug(match.category)} ${conflicts.length || matches.length > 1 ? 'has-conflict' : ''} ${warning ? 'needs-checkin' : ''} ${active ? 'on-court' : ''} ${complete ? 'completed' : ''} ${selectedScheduleMatchId === match.id ? 'schedule-selected' : ''}" draggable="${!active && !complete && match.status === 'ready'}" data-drag-match="${esc(match.id)}" title="${esc([warning, ...conflicts].filter(Boolean).join(' · '))}"><div class="timeline-pairs"><small>${esc(match.divisionName)} · ${timeLabel(minute)}</small><b>${esc(entryName(match.a))}</b><span>vs</span><b>${esc(entryName(match.b))}</b>${warning ? `<em class="checkin-warning">⚠ ${esc(warning)}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : complete ? `<em>Final ${scoreFor(match.id).a}-${scoreFor(match.id).b}</em>` : active ? '<em>Currently on court</em>' : ''}</div>${complete ? '' : `<button class="calendar-referee ${official ? 'assigned' : ''}" data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? `Ref · ${esc(standardRefereeName(official))}` : 'Assign ref'}</button>`}${warning ? '<span class="checkin-mark">⚠</span>' : ''}${conflicts.length || matches.length > 1 ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
+    return `<div class="calendar-cell occupied" data-drop-court="${courtNumber}" data-drop-minute="${minute}"><article class="timeline-match category-${slug(match.category)} ${conflicts.length || matches.length > 1 ? 'has-conflict' : ''} ${warning ? 'needs-checkin' : ''} ${active ? 'on-court' : ''} ${complete ? 'completed' : ''} ${selectedScheduleMatchId === match.id ? 'schedule-selected' : ''}" draggable="${!active && !complete && match.status === 'ready'}" data-drag-match="${esc(match.id)}" title="${esc([warning, ...conflicts].filter(Boolean).join(' · '))}"><div class="timeline-pairs"><small>${esc(match.divisionName)} · ${timeLabel(minute)}</small><b>${esc(entryName(match.a))}<i class="timeline-affiliation">${esc(affiliationName(match.a))}</i></b><span>vs</span><b>${esc(entryName(match.b))}<i class="timeline-affiliation">${esc(affiliationName(match.b))}</i></b>${warning ? `<em class="checkin-warning">⚠ ${esc(warning)}</em>` : conflicts.length ? `<em>${esc(conflicts[0])}</em>` : complete ? `<em>Final ${scoreFor(match.id).a}-${scoreFor(match.id).b}</em>` : active ? '<em>Currently on court</em>' : ''}</div>${complete ? '' : `<button class="calendar-referee ${official ? 'assigned' : ''}" data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? `Ref · ${esc(standardRefereeName(official))}` : 'Assign ref'}</button>`}${warning ? '<span class="checkin-mark">⚠</span>' : ''}${conflicts.length || matches.length > 1 ? '<span class="conflict-mark">!</span>' : ''}</article></div>`;
   }
 
   function positionStandardNeedle(minute, start) {
@@ -1188,8 +1203,8 @@ export function initializeStandardTournamentApp(services) {
     const rows = playable.length ? Math.max(1, Math.ceil((1440 - first) / calendarStep)) : 1;
     const scheduledRows = playable.length ? Array.from({ length:rows }, (_, row) => { const minute = first + row * calendarStep; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}" data-calendar-minute="${minute}">${timeLabel(minute)}</div>${courtNumbers.map(number => standardScheduleCell(number, minute)).join('')}`; }).join('') : `<div class="calendar-time hour">—</div>${courtNumbers.map(number => '<div class="calendar-cell empty"></div>').join('')}`;
     const sequence = (state.queue || []).map(id => state.matches.find(match => match.id === id)).filter(Boolean);
-    const sequenceRows = sequence.length ? `<div class="sequence-label">NEXT</div><div class="next-available-sequence" style="grid-column:2/-1"><header><b>Next available court sequence</b><span>Exact RR Schedule order. The first match goes to whichever court opens next.</span></header><div>${sequence.map((match,index)=>`<article><em aria-label="Next in line ${index+1}">#${index+1}</em><span><small>${displayMatchId(match)} · ${esc(match.divisionName)}</small><b><span>${esc(entryName(match.a))}</span><i>vs</i><span>${esc(entryName(match.b))}</span></b></span></article>`).join('')}</div></div>` : '<div class="sequence-label">NEXT</div><div class="next-available-sequence empty" style="grid-column:2/-1">No ready matches remain.</div>';
-    const completedRows = completed.length ? `<details class="completed-match-history" style="grid-column:1/-1"><summary>Show ${completed.length} completed match${completed.length===1?'':'es'}</summary><div>${completed.map(match=>`<article><span>${displayMatchId(match)} · ${esc(match.divisionName)}</span><b>${esc(entryName(match.a))} ${scoreFor(match.id).a}-${scoreFor(match.id).b} ${esc(entryName(match.b))}</b></article>`).join('')}</div></details>` : '';
+    const sequenceRows = sequence.length ? `<div class="sequence-label">NEXT</div><div class="next-available-sequence" style="grid-column:2/-1"><header><b>Next available court sequence</b><span>Exact RR Schedule order. The first match goes to whichever court opens next.</span></header><div>${sequence.map((match,index)=>`<article><em aria-label="Next in line ${index+1}">#${index+1}</em><span><small>${displayMatchId(match)} · ${esc(match.divisionName)}</small><b><span>${esc(entryName(match.a))}<small>${esc(affiliationName(match.a))}</small></span><i>vs</i><span>${esc(entryName(match.b))}<small>${esc(affiliationName(match.b))}</small></span></b></span></article>`).join('')}</div></div>` : '<div class="sequence-label">NEXT</div><div class="next-available-sequence empty" style="grid-column:2/-1">No ready matches remain.</div>';
+    const completedRows = completed.length ? `<details class="completed-match-history" style="grid-column:1/-1"><summary>Show ${completed.length} completed match${completed.length===1?'':'es'}</summary><div>${completed.map(match=>`<article><span>${displayMatchId(match)} · ${esc(match.divisionName)}</span><b>${esc(entryName(match.a))} (${esc(affiliationName(match.a))}) ${scoreFor(match.id).a}-${scoreFor(match.id).b} ${esc(entryName(match.b))} (${esc(affiliationName(match.b))})</b></article>`).join('')}</div></details>` : '';
     const scheduleRows = state.standardScheduling?.dispatchMode === 'fixed-sequence' ? sequenceRows : scheduledRows;
     target.className = 'calendar-stage standard-rich-calendar';
     target.style.setProperty('--court-count', courtNumbers.length);

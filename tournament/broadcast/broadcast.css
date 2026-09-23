@@ -19,6 +19,7 @@
 .club-lockup{display:flex;min-width:0;align-items:center;gap:7px}
 .club-lockup small{display:flex;min-width:0;flex-direction:column;color:#fff;font:800 8px/1.2 var(--mono);text-transform:uppercase}
 .club-lockup small i{margin-top:4px;color:var(--court-color);font-style:normal;font-size:7px}
+.club-lockup small em{margin-top:5px;color:#fff;font:900 9px/1.2 var(--body);text-transform:none}
 .broadcast-club-logo{width:38px;height:38px;flex:0 0 38px;border:1px solid #ffffff55;border-radius:10px;background:#fff;object-fit:contain;padding:3px}
 .broadcast-club-logo.fallback{display:grid;place-items:center;padding:0;background:linear-gradient(135deg,var(--court-color),#fff);color:#071721;font:900 11px var(--display)}
 .broadcast-players{gap:8px}
@@ -158,3 +159,4 @@ body[data-view="arena"] .broadcast-club-standings dl div{padding:5px}
 body[data-view="arena"] .broadcast-club-standings dd{font-size:13px}
 body:fullscreen .broadcast-control{position:sticky;top:0;z-index:20}.live-broadcast:fullscreen .broadcast-stage{padding-top:12px}
 body.cast-mode .broadcast-control{display:none}body.cast-mode .broadcast-stage{width:min(100%,1920px);margin:0 auto;padding:18px 24px}body.cast-mode .broadcast-pair-standings{display:none}body.cast-mode .broadcast-club-standings{margin-bottom:12px}@media(max-width:850px){body.cast-mode .broadcast-stage{padding:12px}}
+.broadcast-call p strong small,.next-match>span b small{display:block;margin:2px 0 0;color:var(--court-color,#92edff);font:800 6px/1.1 var(--mono);text-transform:uppercase}.broadcast-ticker>div span>i{color:#92edff;font:800 7px var(--mono);font-style:normal;text-transform:uppercase}
