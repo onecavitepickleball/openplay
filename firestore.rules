@@ -73,6 +73,20 @@ service cloud.firestore {
       return isAdmin() || hasRole('tournament_organizer') || (request.auth != null && exists(/databases/$(database)/documents/tournamentUsers/$(request.auth.uid)) && get(/databases/$(database)/documents/tournamentUsers/$(request.auth.uid)).data.organizerStatus == 'approved');
     }
 
+    function activeTournamentDevice() {
+      return request.auth != null
+        && (
+          // Migration path for the currently deployed client. Once an account
+          // opens the new app its session document remains in place forever,
+          // and all subsequent operational writes are device-bound.
+          !exists(/databases/$(database)/documents/tournamentUserSessions/$(request.auth.uid))
+          || (
+            request.resource.data.sessionDeviceId is string
+            && request.resource.data.sessionDeviceId == get(/databases/$(database)/documents/tournamentUserSessions/$(request.auth.uid)).data.deviceId
+          )
+        );
+    }
+
     match /tournamentUsers/{userId} {
       allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
@@ -85,6 +99,16 @@ service cloud.firestore {
       allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow list, update, delete: if isAdmin();
       allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.applicantUid == userId && request.resource.data.status == 'pending';
+    }
+
+    // One active Matchday device per tournament account. Tabs on the same
+    // browser share one device ID, while another phone/tablet/computer must
+    // explicitly take over the session. Only the account owner can read or
+    // update its lease; platform admins may inspect it for support.
+    match /tournamentUserSessions/{userId} {
+      allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
     }
 
     match /tournamentPublicViews/{token} {
@@ -475,16 +499,20 @@ service cloud.firestore {
       allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_score_desk') || legacyTournamentRole(eventId, 'tournament_referee') || (request.auth != null && resource.data.refereeEmails.hasAny([request.auth.token.email]));
       allow create: if approvedOrganizer() && request.resource.data.ownerId == request.auth.uid && request.resource.data.memberIds.hasOnly([request.auth.uid]);
       allow delete: if managesTournament(eventId);
-      allow update: if managesTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || (
+      allow update: if ((managesTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin'))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['state']) || activeTournamentDevice())) || (
         (hasTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'match_control'))
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'refereeEmails', 'updatedAt'])
+        && activeTournamentDevice()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'refereeEmails', 'sessionDeviceId', 'updatedAt'])
       ) || (
         (hasTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_registration'))
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'updatedAt'])
+        && activeTournamentDevice()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'sessionDeviceId', 'updatedAt'])
         && request.resource.data.state.diff(resource.data.state).affectedKeys().hasOnly(['pairs', 'updatedAt'])
       ) || (
         (hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_checkin'))
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'updatedAt'])
+        && activeTournamentDevice()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'sessionDeviceId', 'updatedAt'])
         && request.resource.data.state.diff(resource.data.state).affectedKeys().hasOnly(['checkins', 'updatedAt'])
       );
 
@@ -499,10 +527,10 @@ service cloud.firestore {
 
       match /matches/{matchId} {
         allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_score_desk') || legacyTournamentRole(eventId, 'tournament_referee') || (request.auth != null && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email]));
-        allow create, update: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_score_desk') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_score_desk') || (
+        allow create, update: if activeTournamentDevice() && (controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_score_desk') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_score_desk') || (
           request.auth != null
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.state.refereeAssignments[matchId] == request.auth.token.email
-        );
+        ));
         allow delete: if controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control');
       }
 
@@ -510,7 +538,8 @@ service cloud.firestore {
       // DUPR IDs. Only tournament operations staff may access them. Public-
       // safe names and thumbnails are copied into the event state at check-in.
       match /registrations/{registrationId} {
-        allow read, create, update, delete: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_registration') || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_checkin');
+        allow read, delete: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_registration') || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_checkin');
+        allow create, update: if activeTournamentDevice() && (controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_registration') || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_checkin'));
       }
 
       // Small per-player check-in documents keep camera thumbnails available
@@ -520,7 +549,7 @@ service cloud.firestore {
           request.auth != null
           && get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.refereeEmails.hasAny([request.auth.token.email])
         );
-        allow create, update: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_checkin');
+        allow create, update: if activeTournamentDevice() && (controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_checkin'));
         allow delete: if controlsTournament(eventId) || hasTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_checkin');
       }
     }
@@ -539,7 +568,7 @@ service cloud.firestore {
     // Referee-safe overview without registration PII, signatures, or photos.
     match /tournamentRefereeBoards/{eventId} {
       allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_referee');
-      allow write: if controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control');
+      allow write: if activeTournamentDevice() && (controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control'));
     }
   }
 }

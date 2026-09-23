@@ -1924,7 +1924,7 @@ export function initializeStandardTournamentApp(services) {
       catch (_) { toast('The tournament could not be archived.'); }
       finally { $('#createArchive').disabled = false; }
     };
-    if ($('#exportBtn')) $('#exportBtn').onclick = () => {
+    const downloadBackup = () => {
       const blob = new Blob([JSON.stringify({ configSnapshot: config, state }, null, 2)], { type: 'application/json' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -1932,6 +1932,8 @@ export function initializeStandardTournamentApp(services) {
       link.click();
       URL.revokeObjectURL(link.href);
     };
+    if ($('#exportBtn')) $('#exportBtn').onclick = downloadBackup;
+    if ($('#downloadEmergencyBackup')) $('#downloadEmergencyBackup').onclick = downloadBackup;
     if ($('#importInput')) $('#importInput').onchange = async event => {
       const file = event.target.files?.[0];
       event.target.value = '';

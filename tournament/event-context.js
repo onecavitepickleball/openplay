@@ -41,7 +41,7 @@ export async function loadTournamentContext() {
   const eventId = currentEventId();
   sessionStorage.setItem('matchday.currentEvent', eventId);
 
-  const [{ initializeApp, getApps, getApp }, { getAuth, onAuthStateChanged }, { getFirestore, doc, getDoc }] = await Promise.all([
+  const [{ initializeApp, getApps, getApp }, { getAuth, onAuthStateChanged }, { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc }] = await Promise.all([
     import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),
     import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`),
     import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore.js`)
@@ -49,8 +49,11 @@ export async function loadTournamentContext() {
   const firebaseConfig = { apiKey:'AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo',authDomain:'ocpc-website-faf5e.firebaseapp.com',projectId:'ocpc-website-faf5e',storageBucket:'ocpc-website-faf5e.firebasestorage.app',messagingSenderId:'15833259684',appId:'1:15833259684:web:0f2f4400f9995517ae5031' };
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig), auth = getAuth(app), user = auth.currentUser || await waitForAuth(auth, onAuthStateChanged);
   if (!user) { location.replace(portalUrl({ return:location.pathname + location.search })); return new Promise(() => {}); }
+  let db;
+  try { db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})}); }
+  catch (_) { db=getFirestore(app); }
   let snapshot;
-  try { snapshot = await getDoc(doc(getFirestore(app), 'tournamentEvents', eventId)); }
+  try { snapshot = await getDoc(doc(db, 'tournamentEvents', eventId)); }
   catch (_) { location.replace(portalUrl({ denied:'1' })); return new Promise(() => {}); }
   if (!snapshot.exists() && eventId !== LEGACY_EVENT_ID) { location.replace(portalUrl({ missing:'1' })); return new Promise(() => {}); }
   const saved = snapshot.exists() ? snapshot.data().config : null;
