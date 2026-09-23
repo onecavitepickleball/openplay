@@ -61,6 +61,70 @@ const { watchAuth, watchControl, watchMatches, watchCheckins } = await import(`.
     state.scores = scores;
   }
   $('#eventName').textContent = c.event.name; $('#eventMeta').textContent = [c.event.displayDate, c.event.venue, c.event.location].filter(Boolean).join(' · '); document.querySelector('.broadcast-hero h1').textContent = standard() ? c.event.name : affiliations().slice(0, 2).map(item => item.short || item.name).join(' × '); document.querySelector('.field-brand img').src = c.brand.logo; document.querySelector('.field-brand img').alt = `${c.brand?.organizer || c.event?.name || 'Tournament'} logo`; $('#focusCourt').innerHTML = Array.from({ length:Number(c.event.courts) || 1 }, (_, index) => `<option value="${index + 1}">Court ${index + 1}</option>`).join(''); document.querySelector('.broadcast-gate a').href = window.MATCHDAY_EVENT_URL('../control.html'); $$('[data-broadcast-view]').forEach(button => button.onclick = () => { view = button.dataset.broadcastView; render(); }); $('#focusCourt').onchange = event => { focus = Number(event.target.value); view = 'focus'; render(); }; $('#broadcastSound').onclick = () => { soundEnabled = !soundEnabled; localStorage.setItem('matchday.broadcast.sound', soundEnabled ? '1' : '0'); render(); if (soundEnabled) playCue(); }; $('#fullscreenBroadcast').onclick = () => document.documentElement.requestFullscreen?.(); $('#openCast').onclick = () => window.open(window.MATCHDAY_EVENT_URL(location.pathname, { cast:'1', view, court:focus }), 'matchday-live-cast', 'noopener'); if (cast) $('#broadcastControl').hidden = true;
-  showFeedMessage('Connecting to live courts', 'Loading this tournament’s schedule, scores, and court activity.');
-  if (demo) { try { state = JSON.parse(localStorage.getItem(`${c.storageKey}.demo`)); } catch (_) {} $('#broadcastGate').hidden = true; state ? render() : showFeedMessage('Demo data unavailable', 'Open Demo Mode from this tournament before opening its broadcast.'); window.addEventListener('storage', event => { if (event.key === `${c.storageKey}.demo` && event.newValue) { state = JSON.parse(event.newValue); render(); } }); } else { let subscribed = false; watchAuth(user => { if (!user) { $('#broadcastGate').hidden = false; return; } $('#broadcastGate').hidden = true; if (subscribed) return; subscribed = true; watchControl(incoming => { if (!incoming) return showFeedMessage('Match Control is not initialized', 'Open Match Control for this tournament once to create its live schedule.'); state = { ...incoming, liveScoring:state?.liveScoring || {}, checkins:state?.checkins || {} }; applyMatchFeed(); try { render(); } catch (error) { console.error('Broadcast render failed', error); showFeedMessage('Broadcast display needs attention', error?.message || 'Reload this page and try again.'); } }, error => { console.error('Broadcast control feed failed', error); showFeedMessage('Live feed unavailable', 'Check your connection and tournament access, then reload this page.'); }); watchMatches(items => { applyMatchFeed(items); if (state) render(); }, error => { console.error('Broadcast score feed failed', error); showFeedMessage('Score feed unavailable', 'The court display could not read live match updates.'); }); watchCheckins(items => { if (!state) return; state.checkins = Object.fromEntries(items.map(item => [item.id, item])); render(); }, error => console.error('Broadcast check-in feed failed', error)); }); } setInterval(() => { updateClock(); if (state) render(); }, 1000); updateClock();
+  function startDemoFeed() {
+    try { state = JSON.parse(localStorage.getItem(`${c.storageKey}.demo`)); }
+    catch (_) { state = null; }
+    $('#broadcastGate').hidden = true;
+    if (state) render();
+    else showFeedMessage('Demo data unavailable', 'Open Demo Mode from this tournament before opening its broadcast.');
+    window.addEventListener('storage', event => {
+      if (event.key !== `${c.storageKey}.demo` || !event.newValue) return;
+      state = JSON.parse(event.newValue);
+      render();
+    });
+  }
+
+  function startLiveFeed() {
+    let subscribed = false;
+    watchAuth(user => {
+      if (!user) {
+        $('#broadcastGate').hidden = false;
+        return;
+      }
+      $('#broadcastGate').hidden = true;
+      if (subscribed) return;
+      subscribed = true;
+      watchControl(incoming => {
+        if (!incoming) {
+          showFeedMessage('Match Control is not initialized', 'Open Match Control for this tournament once to create its live schedule.');
+          return;
+        }
+        state = {
+          ...incoming,
+          liveScoring: state?.liveScoring || {},
+          checkins: state?.checkins || {}
+        };
+        applyMatchFeed();
+        try { render(); }
+        catch (error) {
+          console.error('Broadcast render failed', error);
+          showFeedMessage('Broadcast display needs attention', error?.message || 'Reload this page and try again.');
+        }
+      }, error => {
+        console.error('Broadcast control feed failed', error);
+        showFeedMessage('Live feed unavailable', 'Check your connection and tournament access, then reload this page.');
+      });
+      watchMatches(items => {
+        applyMatchFeed(items);
+        if (state) render();
+      }, error => {
+        console.error('Broadcast score feed failed', error);
+        showFeedMessage('Score feed unavailable', 'The court display could not read live match updates.');
+      });
+      watchCheckins(items => {
+        if (!state) return;
+        state.checkins = Object.fromEntries(items.map(item => [item.id, item]));
+        render();
+      }, error => console.error('Broadcast check-in feed failed', error));
+    });
+  }
+
+  showFeedMessage('Connecting to live courts', 'Loading this tournament schedule, scores, and court activity.');
+  if (demo) startDemoFeed();
+  else startLiveFeed();
+  setInterval(() => {
+    updateClock();
+    if (state) render();
+  }, 1000);
+  updateClock();
 })();
