@@ -800,7 +800,7 @@ export function initializeStandardTournamentApp(services) {
       medals,
       checkins: publicCheckins,
       playerPortal: {
-        matches: state.matches.filter(match => match.status !== 'bye').map(match => ({ id: match.id, scheduleNumber:match.scheduleNumber || match.sequence || match.id, category: match.category, a:publicCode(match.a), b:publicCode(match.b), aAffiliationId:entry(match.a)?.affiliationId || null, bAffiliationId:entry(match.b)?.affiliationId || null, court: match.court || null, startMinutes: match.startMinutes ?? null, time: match.time || '', wave: match.wave || null, status:match.status || '', administrative:match.administrative || '' })),
+        matches: state.matches.filter(match => match.status !== 'bye').map(match => ({ id: match.id, scheduleNumber:Number(match.scheduleNumber || match.sequence) || null, category: match.category, a:publicCode(match.a), b:publicCode(match.b), aAffiliationId:entry(match.a)?.affiliationId || null, bAffiliationId:entry(match.b)?.affiliationId || null, court: match.court || null, startMinutes:match.startMinutes ?? null, time:match.time || '', wave:match.wave || null, status:match.status || '', administrative:match.administrative || '' })),
         courtSchedules: clone(state.courtSchedules || {}), courts: clone(state.courts || {}), scores: clone(state.scores || {})
       }
     };
