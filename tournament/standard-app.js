@@ -20,6 +20,54 @@ const TIEBREAK_LABELS = {
 };
 const DEFAULT_RANKING_ORDER = ['wins', 'pointDifferential', 'pointsFor', 'pointsAgainst', 'headToHead'];
 const DISPATCH_MODES = new Set(['fixed-sequence', 'pre-scheduled']);
+// User-approved match order from MERALCO - SCHEDULE AND MANUAL SYSTEM.xlsx, RR SCHEDULE rows 2-44.
+const REFERENCE_MATCH_SEQUENCES = {
+  'meralco-smc-sportsfest-2026-2026-09-25-9fbb': [
+    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
+    ['Advanced', 'Maricor Arriane A. Lozano & Miguel Lorenzo Q. Panagsagan', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
+    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Germina, Earl Julius & Caguiat, Hezron'],
+    ['Advanced', 'Marco Antonio Somogat & Jose Roel Garcia', 'Caballero, Robert Celso & Peralta, Giovanni G.'],
+    ['Intermediate', 'Carmen Grace Ramos & Sahcel Estoperes', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
+    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Nulla, Gillian & Macasero, Kym Lorraine'],
+    ['Beginner', 'Posado, Armina Joyce & Monsalve, Mary Joy', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
+    ['Intermediate', 'Chris Daeniel R. Calanog & Julius Evangelista', 'Villanueva, Jo Ann Margarita & Velasco, Lourdjean'],
+    ['Advanced', 'Sheryl Castro & Norman Bernardo', 'Abrojena, Rolando & Dilla, Allan Bien'],
+    ['Intermediate', 'Julie Dulce & Joseph Acuna', 'Madarang, Shella L. & Pamintuan, Regine'],
+    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Germina, Earl Julius & Caguiat, Hezron'],
+    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
+    ['Advanced', 'Caballero, Robert Celso & Peralta, Giovanni G.', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
+    ['Beginner', 'Nulla, Gillian & Macasero, Kym Lorraine', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
+    ['Intermediate', 'Carmen Grace Ramos & Sahcel Estoperes', 'Villanueva, Jo Ann Margarita & Velasco, Lourdjean'],
+    ['Intermediate', 'Chris Daeniel R. Calanog & Julius Evangelista', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
+    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Posado, Armina Joyce & Monsalve, Mary Joy'],
+    ['Advanced', 'Maricor Arriane A. Lozano & Miguel Lorenzo Q. Panagsagan', 'Abrojena, Rolando & Dilla, Allan Bien'],
+    ['Advanced', 'Sheryl Castro & Norman Bernardo', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
+    ['Beginner', 'Germina, Earl Julius & Caguiat, Hezron', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
+    ['Intermediate', 'Carmen Grace Ramos & Sahcel Estoperes', 'Madarang, Shella L. & Pamintuan, Regine'],
+    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Nulla, Gillian & Macasero, Kym Lorraine'],
+    ['Intermediate', 'Julie Dulce & Joseph Acuna', 'Villanueva, Jo Ann Margarita & Velasco, Lourdjean'],
+    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
+    ['Advanced', 'Marco Antonio Somogat & Jose Roel Garcia', 'Abrojena, Rolando & Dilla, Allan Bien'],
+    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Germina, Earl Julius & Caguiat, Hezron'],
+    ['Advanced', 'Maricor Arriane A. Lozano & Miguel Lorenzo Q. Panagsagan', 'Caballero, Robert Celso & Peralta, Giovanni G.'],
+    ['Beginner', 'Posado, Armina Joyce & Monsalve, Mary Joy', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
+    ['Intermediate', 'Madarang, Shella L. & Pamintuan, Regine', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
+    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
+    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Nulla, Gillian & Macasero, Kym Lorraine'],
+    ['Advanced', 'Abrojena, Rolando & Dilla, Allan Bien', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
+    ['Advanced', 'Sheryl Castro & Norman Bernardo', 'Caballero, Robert Celso & Peralta, Giovanni G.'],
+    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
+    ['Intermediate', 'Villanueva, Jo Ann Margarita & Velasco, Lourdjean', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
+    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Posado, Armina Joyce & Monsalve, Mary Joy'],
+    ['Beginner', 'Germina, Earl Julius & Caguiat, Hezron', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
+    ['Intermediate', 'Chris Daeniel R. Calanog & Julius Evangelista', 'Madarang, Shella L. & Pamintuan, Regine'],
+    ['Advanced', 'Marco Antonio Somogat & Jose Roel Garcia', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
+    ['Beginner', 'Nulla, Gillian & Macasero, Kym Lorraine', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
+    ['Intermediate', 'Julie Dulce & Joseph Acuna', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
+    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Posado, Armina Joyce & Monsalve, Mary Joy'],
+    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.']
+  ]
+};
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -29,6 +77,23 @@ const esc = value => String(value ?? '').replace(/[&<>'"]/g, character => ({
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 const clean = value => String(value ?? '').trim();
 const slug = value => clean(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'division';
+const nameKey = value => clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+const pairNameKey = value => clean(value).split(/\s+(?:&|\/)\s+/).map(nameKey).filter(Boolean).sort().join('::');
+const entryNameKey = entry => {
+  const players = (entry?.players || []).map(player => player?.fullName || player?.name).filter(Boolean);
+  return pairNameKey(players.length ? players.join(' & ') : entry?.name || entry?.pairCode || entry?.id);
+};
+const referenceMatchKey = (category, pairA, pairB) => `${slug(category)}|${[pairA, pairB].sort().join('||')}`;
+function referenceSequenceMap(config, entries) {
+  const rows = Array.isArray(config.standardMatchSequence)
+    ? config.standardMatchSequence.map(item => [item.category, item.pairA, item.pairB])
+    : REFERENCE_MATCH_SEQUENCES[config.firebaseEventId] || [];
+  const sequence = new Map(rows.map(([category, pairA, pairB], index) => [
+    referenceMatchKey(category, pairNameKey(pairA), pairNameKey(pairB)), index + 1
+  ]));
+  const entryKeys = new Map([...entries].map(([id, item]) => [id, entryNameKey(item)]));
+  return { sequence, entryKeys };
+}
 const numericScore = value => clean(value) !== '' && Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 const roleSet = value => new Set([
   ...(Array.isArray(value?.roles) ? value.roles : []),
@@ -363,6 +428,7 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
   const start = schedule.startMinutes;
   const source = allEngineMatches(engineState);
   const entries = entryLookup(engineState);
+  const reference = referenceSequenceMap(config, entries);
   const administrativeType = match => {
     const defaults = [match.participants.a, match.participants.b].filter(entryId => isDefaultEntry(entries.get(entryId))).length;
     return defaults === 2 ? 'null' : defaults === 1 ? 'walkover' : '';
@@ -413,11 +479,17 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
     const startMinutes = schedulable && keepScheduledPlacement && Number.isFinite(Number(old?.startMinutes))
       ? Number(old.startMinutes) : (schedulable ? automatic?.startMinutes ?? null : null);
     const definition = divisions.get(division.id) || {};
+    const category = definition.category || definition.name || division.id;
+    const referenceSequence = stage.type === 'single-elimination' ? null : reference.sequence.get(referenceMatchKey(
+      category,
+      reference.entryKeys.get(match.participants.a) || '',
+      reference.entryKeys.get(match.participants.b) || ''
+    )) || null;
     return {
       id: publicMatchId(match.id),
       engineMatchId: match.id,
       divisionId: division.id,
-      category: definition.category || definition.name || division.id,
+      category,
       divisionName: definition.name || definition.category || division.id,
       stage: stage.type === 'single-elimination' ? 'elimination' : stage.type,
       stageId: stage.id,
@@ -433,6 +505,7 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
       medal: match.medal || '',
       result: clone(match.result),
       administrative,
+      referenceSequence,
       scheduleNumber: null,
       court,
       wave,
@@ -443,10 +516,12 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
     };
   });
   const sequence = projected.filter(match => match.status !== 'bye' && !match.administrative)
-    .sort((a, b) => Number(a.startMinutes ?? Infinity) - Number(b.startMinutes ?? Infinity)
+    .sort((a, b) => Number(a.referenceSequence ?? Infinity) - Number(b.referenceSequence ?? Infinity)
+      || Number(a.startMinutes ?? Infinity) - Number(b.startMinutes ?? Infinity)
       || Number(a.court ?? Infinity) - Number(b.court ?? Infinity)
       || String(a.engineMatchId).localeCompare(String(b.engineMatchId)));
-  const numbers = new Map(sequence.map((match, index) => [match.engineMatchId, index + 1]));
+  let fallbackNumber = Math.max(0, ...reference.sequence.values()) + 1;
+  const numbers = new Map(sequence.map(match => [match.engineMatchId, match.referenceSequence || fallbackNumber++]));
   return projected.map(match => ({ ...match, scheduleNumber:numbers.get(match.engineMatchId) || null }));
 }
 
@@ -1046,7 +1121,7 @@ export function initializeStandardTournamentApp(services) {
     const rows = playable.length ? Math.max(1, Math.ceil((1440 - first) / calendarStep)) : 1;
     const scheduledRows = playable.length ? Array.from({ length:rows }, (_, row) => { const minute = first + row * calendarStep; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}" data-calendar-minute="${minute}">${timeLabel(minute)}</div>${courtNumbers.map(number => standardScheduleCell(number, minute)).join('')}`; }).join('') : `<div class="calendar-time hour">—</div>${courtNumbers.map(number => '<div class="calendar-cell empty"></div>').join('')}`;
     const sequence = (state.queue || []).map(id => state.matches.find(match => match.id === id)).filter(Boolean);
-    const sequenceRows = sequence.length ? `<div class="sequence-label">NEXT</div><div class="next-available-sequence" style="grid-column:2/-1"><header><b>Next available court sequence</b><span>The first match goes to whichever court opens next.</span></header><div>${sequence.slice(0,12).map((match,index)=>`<article><em>${index+1}</em><span><small>${esc(match.divisionName)} · ${displayMatchId(match)}</small><b>${esc(entryName(match.a))} <i>vs</i> ${esc(entryName(match.b))}</b></span></article>`).join('')}</div></div>` : '<div class="sequence-label">NEXT</div><div class="next-available-sequence empty" style="grid-column:2/-1">No ready matches remain.</div>';
+    const sequenceRows = sequence.length ? `<div class="sequence-label">NEXT</div><div class="next-available-sequence" style="grid-column:2/-1"><header><b>Next available court sequence</b><span>Exact RR Schedule order. The first match goes to whichever court opens next.</span></header><div>${sequence.map(match=>`<article><em>${displayMatchId(match)}</em><span><small>${esc(match.divisionName)}</small><b><span>${esc(entryName(match.a))}</span><i>vs</i><span>${esc(entryName(match.b))}</span></b></span></article>`).join('')}</div></div>` : '<div class="sequence-label">NEXT</div><div class="next-available-sequence empty" style="grid-column:2/-1">No ready matches remain.</div>';
     const completedRows = completed.length ? `<details class="completed-match-history" style="grid-column:1/-1"><summary>Show ${completed.length} completed match${completed.length===1?'':'es'}</summary><div>${completed.map(match=>`<article><span>${displayMatchId(match)} · ${esc(match.divisionName)}</span><b>${esc(entryName(match.a))} ${scoreFor(match.id).a}-${scoreFor(match.id).b} ${esc(entryName(match.b))}</b></article>`).join('')}</div></details>` : '';
     const scheduleRows = state.standardScheduling?.dispatchMode === 'fixed-sequence' ? sequenceRows : scheduledRows;
     target.className = 'calendar-stage standard-rich-calendar';

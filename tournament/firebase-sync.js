@@ -89,7 +89,7 @@ export async function login(email, password) { await setPersistence(auth, browse
 export async function createAccount(email, password, displayName = '') { const credential = await createUserWithEmailAndPassword(auth, email, password), normalizedEmail = String(email).trim().toLowerCase(), name = String(displayName || normalizedEmail.split('@')[0].replace(/[._-]+/g,' ')).trim(); await setDoc(doc(db,'tournamentUsers',credential.user.uid), { uid:credential.user.uid, displayName:name, email:normalizedEmail, accountStatus:'active', platformRole:'user', organizerStatus:'none', createdAt:serverTimestamp(), updatedAt:serverTimestamp() }); await setDoc(doc(db,'tournamentAccountDirectory',normalizedEmail), { uid:credential.user.uid,email:normalizedEmail,name,updatedAt:serverTimestamp() }); return credential; }
 export function logout() { return signOut(auth); }
 export async function uploadTournamentImage(file, kind = 'matchday') {
-  if (!(file instanceof Blob)) throw new Error('IMAGE_REQUIRED');
+  if (!(file instanceof Blob) || !file.size) throw new Error('IMAGE_REQUIRED');
   if (file.size > 12 * 1024 * 1024) throw new Error('IMAGE_TOO_LARGE');
   const formData = new FormData();
   formData.append('file', file, `matchday-${kind}-${Date.now()}.${file.type.includes('webp') ? 'webp' : 'jpg'}`);
@@ -97,8 +97,8 @@ export async function uploadTournamentImage(file, kind = 'matchday') {
   formData.append('folder', `tournament-assets/${eventId}/${kind}`);
   formData.append('tags', `matchday,tournament,${eventId},${kind}`);
   const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
-  if (!response.ok) throw new Error('IMAGE_UPLOAD_FAILED');
-  const payload = await response.json();
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.error?.message || `IMAGE_UPLOAD_FAILED_${response.status}`);
   if (!payload?.secure_url) throw new Error('IMAGE_URL_MISSING');
   return payload.secure_url;
 }

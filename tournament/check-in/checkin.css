@@ -45,3 +45,7 @@
 @media(max-width:900px){.checkin-main #checkinWorkspace{grid-template-columns:1fr}.staff-panel{order:2}.checkin-flow{max-width:none}}
 @media(max-width:600px){.checkin-intro{grid-template-columns:1fr;gap:16px;padding-top:18px}.arrival-count{justify-self:stretch;min-width:0}.checkin-flow{padding:18px}.flow-stepper{gap:5px;padding:9px 7px}.flow-stepper span{font-size:8px}.flow-stepper span b{display:none}.eligible-players{max-height:220px}}
 .access-return{display:inline-flex;margin-top:18px;text-decoration:none}
+.camera-flip{z-index:4;width:44px;height:44px;border:2px solid #ffffffb8;place-items:center;background:#003f5ee8;font-size:24px;line-height:1;box-shadow:0 5px 16px #001f3099;backdrop-filter:blur(5px)}
+.camera-flip:not([hidden]){display:grid}
+.camera-flip:hover,.camera-flip:focus-visible{background:var(--brand);outline:3px solid var(--lime);outline-offset:2px}
+.camera-flip:disabled{opacity:.55;cursor:wait}
