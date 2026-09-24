@@ -2060,11 +2060,15 @@ export function initializeStandardTournamentApp(services) {
         incomingControlState = incoming;
         if (!registrationsReady) return;
         applyingCloud = true;
+        // Older control snapshots predate teamStandings. Rebuild keeps all
+        // match data intact, then republishes the derived public projection
+        // so an existing public QR/link immediately gains live team rankings.
+        const refreshPublicProjection = Boolean(incoming?.competitionType === 'standard' && !Array.isArray(incoming?.teamStandings));
         const prior = incoming?.competitionType === 'standard' || incoming?.standardState ? incoming : state;
         try { rebuild(prior); renderAll(); }
         catch (error) { console.error('Standard tournament state rejected.', error); toast(`Tournament state is invalid: ${error.message}`); }
         finally { applyingCloud = false; }
-        if (!incoming && state) publishState();
+        if ((!incoming || refreshPublicProjection) && state) publishState();
       }, () => showGate('This account cannot read Match Control data.')));
 
       sessionCleanups.push(services.watchRegistrations(items => {
