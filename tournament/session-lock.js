@@ -64,6 +64,15 @@ export function createSessionLock({ db, auth, doc, onSnapshot, runTransaction, s
       ]);
     } catch (error) {
       console.error('Matchday device verification failed.', error);
+      // A lease check is an additional safeguard, not an authentication
+      // requirement. Firestore can briefly be unavailable while Auth has
+      // already completed successfully. Keep a valid signed-in user moving
+      // into the app, while preserving the hard block returned by an actual
+      // active-device conflict below.
+      if (navigator.onLine !== false) {
+        saveLocal(current);
+        return true;
+      }
       showUnavailable(error);
       return false;
     } finally { clearTimeout(timeout); }
@@ -90,7 +99,7 @@ export function createSessionLock({ db, auth, doc, onSnapshot, runTransaction, s
       transaction.set(ref, payload(current), { merge:true });
       return { allowed:true, existing };
     });
-    if (attempt.expired) return false;
+    if (attempt.expired) throw new Error('SESSION_CHECK_TIMEOUT');
     if (!result.allowed) return showConflict(current, result.existing);
     saveLocal(current); lost = false; overlay().hidden = true; beginWatch(); return true;
   }
@@ -105,7 +114,13 @@ export function createSessionLock({ db, auth, doc, onSnapshot, runTransaction, s
         showLost(value);
         window.dispatchEvent(new CustomEvent('matchday-session-lost', { detail:value }));
       }
-    }, error => { lost=true; showUnavailable(error); });
+    }, error => {
+      // Do not freeze a live tournament simply because the passive device
+      // watcher reconnects. Operational reads/writes retain their normal
+      // Firestore error handling and the next signed-in load reclaims the
+      // lease.
+      console.warn('Matchday device watcher deferred.', error);
+    });
     heartbeat = setInterval(() => {
       if (!user || lost || navigator.onLine === false) return;
       runTransaction(db,async transaction=>{const ref=refFor(user),snapshot=await transaction.get(ref),current=snapshot.data();if(current?.deviceId&&current.deviceId!==deviceId())throw Object.assign(new Error('SESSION_TAKEN_OVER'),{current});transaction.set(ref,payload(user),{merge:true})}).catch(error=>{if(error?.message==='SESSION_TAKEN_OVER'){lost=true;showLost(error.current);window.dispatchEvent(new CustomEvent('matchday-session-lost',{detail:error.current}))}});

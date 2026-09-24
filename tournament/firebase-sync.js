@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, addDoc, updateDoc, getDoc, getDocs, writeBatch, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, runTransaction } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
-import { createSessionLock } from './session-lock.js?v=portal-recovery-20260923';
+import { createSessionLock } from './session-lock.js?v=portal-recovery-20260924';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyBQYKgSchzlmtIGsIhf68e8OYt7Y8kY7Vo', authDomain: 'ocpc-website-faf5e.firebaseapp.com', projectId: 'ocpc-website-faf5e', storageBucket: 'ocpc-website-faf5e.firebasestorage.app', messagingSenderId: '15833259684', appId: '1:15833259684:web:0f2f4400f9995517ae5031'
