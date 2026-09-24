@@ -49,3 +49,4 @@
 .camera-flip:not([hidden]){display:grid}
 .camera-flip:hover,.camera-flip:focus-visible{background:var(--brand);outline:3px solid var(--lime);outline-offset:2px}
 .camera-flip:disabled{opacity:.55;cursor:wait}
+.camera-stage img.has-photo{display:block!important;object-fit:cover;image-rendering:auto}

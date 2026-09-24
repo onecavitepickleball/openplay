@@ -125,7 +125,7 @@ async function writeControlNow({ state }) {
   await trackWrite(write,'control');
 }
 
-export function watchAuth(callback) { return onAuthStateChanged(auth, async user => { if (!user) return callback(null); let allowed=false; try { allowed=await sessionLock.claim(user); } catch (_) { allowed=Boolean(sessionLock.localSession(user)) && navigator.onLine===false; } if (allowed) callback(user); }); }
+export function watchAuth(callback, options = {}) { return onAuthStateChanged(auth, async user => { if (!user) return callback(null); if (options.passive) return callback(user); let allowed=false; try { allowed=await sessionLock.claim(user); } catch (_) { allowed=Boolean(sessionLock.localSession(user)) && navigator.onLine===false; } if (allowed) callback(user); }); }
 export async function login(email, password) { await setPersistence(auth, browserLocalPersistence); return signInWithEmailAndPassword(auth, email, password); }
 export async function createAccount(email, password, displayName = '') { const credential = await createUserWithEmailAndPassword(auth, email, password), normalizedEmail = String(email).trim().toLowerCase(), name = String(displayName || normalizedEmail.split('@')[0].replace(/[._-]+/g,' ')).trim(); await setDoc(doc(db,'tournamentUsers',credential.user.uid), { uid:credential.user.uid, displayName:name, email:normalizedEmail, accountStatus:'active', platformRole:'user', organizerStatus:'none', createdAt:serverTimestamp(), updatedAt:serverTimestamp() }); await setDoc(doc(db,'tournamentAccountDirectory',normalizedEmail), { uid:credential.user.uid,email:normalizedEmail,name,updatedAt:serverTimestamp() }); return credential; }
 export async function logout() { await sessionLock.release(); return signOut(auth); }
