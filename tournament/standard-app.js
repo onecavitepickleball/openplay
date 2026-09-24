@@ -20,52 +20,64 @@ const TIEBREAK_LABELS = {
 };
 const DEFAULT_RANKING_ORDER = ['wins', 'pointDifferential', 'pointsFor', 'pointsAgainst', 'headToHead'];
 const DISPATCH_MODES = new Set(['fixed-sequence', 'pre-scheduled']);
-// User-approved match order from MERALCO - SCHEDULE AND MANUAL SYSTEM.xlsx, RR SCHEDULE rows 2-44.
+const MERALCO_OFFICIAL_SCHEDULE_REVISION = 'meralco-official-2026-09-25-v1';
+// Official Meralco Sportsfest 2026 SCHEDULE tab. Default slots stay in results, not the court queue.
 const REFERENCE_MATCH_SEQUENCES = {
-  'meralco-smc-sportsfest-2026-2026-09-25-9fbb': [
-    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
-    ['Advanced', 'Maricor Arriane A. Lozano & Miguel Lorenzo Q. Panagsagan', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
-    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Germina, Earl Julius & Caguiat, Hezron'],
-    ['Advanced', 'Marco Antonio Somogat & Jose Roel Garcia', 'Caballero, Robert Celso & Peralta, Giovanni G.'],
-    ['Intermediate', 'Carmen Grace Ramos & Sahcel Estoperes', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
-    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Nulla, Gillian & Macasero, Kym Lorraine'],
-    ['Beginner', 'Posado, Armina Joyce & Monsalve, Mary Joy', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
-    ['Intermediate', 'Chris Daeniel R. Calanog & Julius Evangelista', 'Villanueva, Jo Ann Margarita & Velasco, Lourdjean'],
-    ['Advanced', 'Sheryl Castro & Norman Bernardo', 'Abrojena, Rolando & Dilla, Allan Bien'],
-    ['Intermediate', 'Julie Dulce & Joseph Acuna', 'Madarang, Shella L. & Pamintuan, Regine'],
-    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Germina, Earl Julius & Caguiat, Hezron'],
-    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
-    ['Advanced', 'Caballero, Robert Celso & Peralta, Giovanni G.', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
-    ['Beginner', 'Nulla, Gillian & Macasero, Kym Lorraine', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
-    ['Intermediate', 'Carmen Grace Ramos & Sahcel Estoperes', 'Villanueva, Jo Ann Margarita & Velasco, Lourdjean'],
-    ['Intermediate', 'Chris Daeniel R. Calanog & Julius Evangelista', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
-    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Posado, Armina Joyce & Monsalve, Mary Joy'],
-    ['Advanced', 'Maricor Arriane A. Lozano & Miguel Lorenzo Q. Panagsagan', 'Abrojena, Rolando & Dilla, Allan Bien'],
-    ['Advanced', 'Sheryl Castro & Norman Bernardo', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
-    ['Beginner', 'Germina, Earl Julius & Caguiat, Hezron', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
-    ['Intermediate', 'Carmen Grace Ramos & Sahcel Estoperes', 'Madarang, Shella L. & Pamintuan, Regine'],
-    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Nulla, Gillian & Macasero, Kym Lorraine'],
-    ['Intermediate', 'Julie Dulce & Joseph Acuna', 'Villanueva, Jo Ann Margarita & Velasco, Lourdjean'],
-    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
-    ['Advanced', 'Marco Antonio Somogat & Jose Roel Garcia', 'Abrojena, Rolando & Dilla, Allan Bien'],
-    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Germina, Earl Julius & Caguiat, Hezron'],
-    ['Advanced', 'Maricor Arriane A. Lozano & Miguel Lorenzo Q. Panagsagan', 'Caballero, Robert Celso & Peralta, Giovanni G.'],
-    ['Beginner', 'Posado, Armina Joyce & Monsalve, Mary Joy', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
-    ['Intermediate', 'Madarang, Shella L. & Pamintuan, Regine', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
-    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
-    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Nulla, Gillian & Macasero, Kym Lorraine'],
-    ['Advanced', 'Abrojena, Rolando & Dilla, Allan Bien', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
-    ['Advanced', 'Sheryl Castro & Norman Bernardo', 'Caballero, Robert Celso & Peralta, Giovanni G.'],
-    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
-    ['Intermediate', 'Villanueva, Jo Ann Margarita & Velasco, Lourdjean', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
-    ['Beginner', 'Castillo, Filbert G. & Mendoza, Kier Oliver S.', 'Posado, Armina Joyce & Monsalve, Mary Joy'],
-    ['Beginner', 'Germina, Earl Julius & Caguiat, Hezron', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.'],
-    ['Intermediate', 'Chris Daeniel R. Calanog & Julius Evangelista', 'Madarang, Shella L. & Pamintuan, Regine'],
-    ['Advanced', 'Marco Antonio Somogat & Jose Roel Garcia', 'Claveria, Ram Derick C. & Cristobal, Aaron Gian D.'],
-    ['Beginner', 'Nulla, Gillian & Macasero, Kym Lorraine', 'Macalinao, Prencelita L. & Despabiladeras, Jethro E.'],
-    ['Intermediate', 'Julie Dulce & Joseph Acuna', 'Ramirez, Cholo G. & Magpantay, Jude Fauper L.'],
-    ['Beginner', 'Gesline Almero & Genevee A. Rellores', 'Posado, Armina Joyce & Monsalve, Mary Joy'],
-    ['Beginner', 'Gessica A. Sitjar & Airalynne T. Enriquez', 'Zapanta, Mark Jason E. & Ilagan, Von Daeniel T.']
+  "meralco-smc-sportsfest-2026-2026-09-25-9fbb": [
+    [2,"Intermediate","MERALCO","Pair 1: Chris Daeniel R. Calanog & Julius Evangelista","MGEN","Pair 2: Pormon, Jerald John & Layug, Ken"],
+    [4,"Intermediate","MPOWER","Pair 1: Villanueva, Jo Ann Margarita & Velasco, Lourdjean","MGEN","Pair 1: Ramirez, Cholo G. & Magpantay, Jude Fauper, L."],
+    [5,"Beginner","MERALCO","Pair 3: Castillo, Filbert G. & Mendoza, Kier Oliver S.","MGEN","Pair 1: Macalinao, Prencelita L. & Despabiladeras, Jethro, E."],
+    [7,"Beginner","MPOWER","Pair 1: Germina, Earl Julius & Caguiat, Hezron","MGEN","Pair 3: Rosita, Hercy & Martinez, Kennt"],
+    [8,"Beginner","MERALCO","Pair 2: Gessica A. Sitjar & Airalynne T. Enriquez","MPOWER","Pair 2: Posado, Armina Joyce & Monsalve, Mary Joy"],
+    [10,"Advanced","MERALCO","Pair 3: Marco Antonio Somogat & Jose Roel Garcia","MGEN","Pair 1: Claveria, Ram Derick C. & Cristobal, Aaron Gian, D."],
+    [11,"Beginner","MERALCO","Pair 1: Gesline Almero & Genevee A. Rellores","MGEN","Pair 2: Zapanta, Mark Jason, E. & Ilagan, Von Daeniel T."],
+    [12,"Intermediate","MERALCO","Pair 1: Chris Daeniel R. Calanog & Julius Evangelista","MPOWER","Pair 2: Madarang, Shella L. & Pamintuan, Regine"],
+    [13,"Advanced","MERALCO","Pair 2: Sheryl Castro & Norman Bernardo","MPOWER","Pair 1: Abrojena, Rolando & Dilla, Allan Bien"],
+    [15,"Intermediate","MERALCO","Pair 2: Carmen Grace Ramos & Sahcel Estoperes","MPOWER","Pair 1: Villanueva, Jo Ann Margarita & Velasco, Lourdjean"],
+    [16,"Beginner","MPOWER","Pair 3: Nulla, Gillian & Macasero, Kym Lorraine","MGEN","Pair 1: Macalinao, Prencelita L. & Despabiladeras, Jethro, E."],
+    [17,"Advanced","MERALCO","Pair 1: Maricor Arriane A. Lozano & Miguel Lorenzo Q. Panagsagan","MPOWER","Pair 2: Caballero, Robert Celso & Peralta, Giovanni G."],
+    [18,"Intermediate","MERALCO","Pair 3: Julie Dulce & Joseph Acuna","MGEN","Pair 2: Pormon, Jerald John & Layug, Ken"],
+    [20,"Beginner","MERALCO","Pair 1: Gesline Almero & Genevee A. Rellores","MGEN","Pair 3: Rosita, Hercy & Martinez, Kennt"],
+    [22,"Intermediate","MERALCO","Pair 1: Chris Daeniel R. Calanog & Julius Evangelista","MGEN","Pair 1: Ramirez, Cholo G. & Magpantay, Jude Fauper, L."],
+    [23,"Advanced","MPOWER","Pair 1: Abrojena, Rolando & Dilla, Allan Bien","MGEN","Pair 1: Claveria, Ram Derick C. & Cristobal, Aaron Gian, D."],
+    [24,"Beginner","MPOWER","Pair 1: Germina, Earl Julius & Caguiat, Hezron","MGEN","Pair 2: Zapanta, Mark Jason, E. & Ilagan, Von Daeniel T."],
+    [25,"Beginner","MERALCO","Pair 2: Gessica A. Sitjar & Airalynne T. Enriquez","MPOWER","Pair 3: Nulla, Gillian & Macasero, Kym Lorraine"],
+    [28,"Intermediate","MERALCO","Pair 3: Julie Dulce & Joseph Acuna","MPOWER","Pair 1: Villanueva, Jo Ann Margarita & Velasco, Lourdjean"],
+    [29,"Beginner","MPOWER","Pair 2: Posado, Armina Joyce & Monsalve, Mary Joy","MGEN","Pair 1: Macalinao, Prencelita L. & Despabiladeras, Jethro, E."],
+    [30,"Intermediate","MPOWER","Pair 2: Madarang, Shella L. & Pamintuan, Regine","MGEN","Pair 1: Ramirez, Cholo G. & Magpantay, Jude Fauper, L."],
+    [32,"Advanced","MERALCO","Pair 3: Marco Antonio Somogat & Jose Roel Garcia","MPOWER","Pair 1: Abrojena, Rolando & Dilla, Allan Bien"],
+    [34,"Beginner","MERALCO","Pair 3: Castillo, Filbert G. & Mendoza, Kier Oliver S.","MGEN","Pair 3: Rosita, Hercy & Martinez, Kennt"],
+    [35,"Beginner","MPOWER","Pair 3: Nulla, Gillian & Macasero, Kym Lorraine","MGEN","Pair 2: Zapanta, Mark Jason, E. & Ilagan, Von Daeniel T."],
+    [39,"Beginner","MERALCO","Pair 1: Gesline Almero & Genevee A. Rellores","MPOWER","Pair 1: Germina, Earl Julius & Caguiat, Hezron"],
+    [41,"Intermediate","MPOWER","Pair 2: Madarang, Shella L. & Pamintuan, Regine","MGEN","Pair 2: Pormon, Jerald John & Layug, Ken"],
+    [42,"Beginner","MERALCO","Pair 2: Gessica A. Sitjar & Airalynne T. Enriquez","MGEN","Pair 1: Macalinao, Prencelita L. & Despabiladeras, Jethro, E."],
+    [43,"Beginner","MERALCO","Pair 3: Castillo, Filbert G. & Mendoza, Kier Oliver S.","MPOWER","Pair 2: Posado, Armina Joyce & Monsalve, Mary Joy"],
+    [44,"Advanced","MERALCO","Pair 1: Maricor Arriane A. Lozano & Miguel Lorenzo Q. Panagsagan","MPOWER","Pair 1: Abrojena, Rolando & Dilla, Allan Bien"],
+    [45,"Advanced","MERALCO","Pair 3: Marco Antonio Somogat & Jose Roel Garcia","MPOWER","Pair 2: Caballero, Robert Celso & Peralta, Giovanni G."],
+    [46,"Intermediate","MERALCO","Pair 3: Julie Dulce & Joseph Acuna","MGEN","Pair 1: Ramirez, Cholo G. & Magpantay, Jude Fauper, L."],
+    [47,"Intermediate","MERALCO","Pair 1: Chris Daeniel R. Calanog & Julius Evangelista","MPOWER","Pair 1: Villanueva, Jo Ann Margarita & Velasco, Lourdjean"],
+    [49,"Beginner","MPOWER","Pair 1: Germina, Earl Julius & Caguiat, Hezron","MGEN","Pair 1: Macalinao, Prencelita L. & Despabiladeras, Jethro, E."],
+    [50,"Beginner","MERALCO","Pair 3: Castillo, Filbert G. & Mendoza, Kier Oliver S.","MPOWER","Pair 3: Nulla, Gillian & Macasero, Kym Lorraine"],
+    [51,"Beginner","MPOWER","Pair 2: Posado, Armina Joyce & Monsalve, Mary Joy","MGEN","Pair 3: Rosita, Hercy & Martinez, Kennt"],
+    [52,"Intermediate","MERALCO","Pair 2: Carmen Grace Ramos & Sahcel Estoperes","MPOWER","Pair 2: Madarang, Shella L. & Pamintuan, Regine"],
+    [54,"Beginner","MERALCO","Pair 2: Gessica A. Sitjar & Airalynne T. Enriquez","MGEN","Pair 2: Zapanta, Mark Jason, E. & Ilagan, Von Daeniel T."],
+    [55,"Advanced","MERALCO","Pair 1: Maricor Arriane A. Lozano & Miguel Lorenzo Q. Panagsagan","MGEN","Pair 1: Claveria, Ram Derick C. & Cristobal, Aaron Gian, D."],
+    [56,"Advanced","MERALCO","Pair 2: Sheryl Castro & Norman Bernardo","MPOWER","Pair 2: Caballero, Robert Celso & Peralta, Giovanni G."],
+    [58,"Beginner","MERALCO","Pair 1: Gesline Almero & Genevee A. Rellores","MGEN","Pair 1: Macalinao, Prencelita L. & Despabiladeras, Jethro, E."],
+    [61,"Beginner","MPOWER","Pair 2: Posado, Armina Joyce & Monsalve, Mary Joy","MGEN","Pair 2: Zapanta, Mark Jason, E. & Ilagan, Von Daeniel T."],
+    [62,"Intermediate","MPOWER","Pair 1: Villanueva, Jo Ann Margarita & Velasco, Lourdjean","MGEN","Pair 2: Pormon, Jerald John & Layug, Ken"],
+    [64,"Beginner","MERALCO","Pair 2: Gessica A. Sitjar & Airalynne T. Enriquez","MPOWER","Pair 1: Germina, Earl Julius & Caguiat, Hezron"],
+    [66,"Beginner","MERALCO","Pair 1: Gesline Almero & Genevee A. Rellores","MPOWER","Pair 3: Nulla, Gillian & Macasero, Kym Lorraine"],
+    [67,"Intermediate","MERALCO","Pair 3: Julie Dulce & Joseph Acuna","MPOWER","Pair 2: Madarang, Shella L. & Pamintuan, Regine"],
+    [69,"Beginner","MERALCO","Pair 3: Castillo, Filbert G. & Mendoza, Kier Oliver S.","MPOWER","Pair 1: Germina, Earl Julius & Caguiat, Hezron"],
+    [70,"Beginner","MERALCO","Pair 2: Gessica A. Sitjar & Airalynne T. Enriquez","MGEN","Pair 3: Rosita, Hercy & Martinez, Kennt"],
+    [71,"Intermediate","MERALCO","Pair 2: Carmen Grace Ramos & Sahcel Estoperes","MGEN","Pair 1: Ramirez, Cholo G. & Magpantay, Jude Fauper, L."],
+    [73,"Advanced","MPOWER","Pair 2: Caballero, Robert Celso & Peralta, Giovanni G.","MGEN","Pair 1: Claveria, Ram Derick C. & Cristobal, Aaron Gian, D."],
+    [74,"Beginner","MERALCO","Pair 1: Gesline Almero & Genevee A. Rellores","MPOWER","Pair 2: Posado, Armina Joyce & Monsalve, Mary Joy"],
+    [75,"Beginner","MERALCO","Pair 3: Castillo, Filbert G. & Mendoza, Kier Oliver S.","MGEN","Pair 2: Zapanta, Mark Jason, E. & Ilagan, Von Daeniel T."],
+    [76,"Intermediate","MERALCO","Pair 2: Carmen Grace Ramos & Sahcel Estoperes","MGEN","Pair 2: Pormon, Jerald John & Layug, Ken"],
+    [78,"Beginner","MPOWER","Pair 3: Nulla, Gillian & Macasero, Kym Lorraine","MGEN","Pair 3: Rosita, Hercy & Martinez, Kennt"],
+    [81,"Advanced","MERALCO","Pair 2: Sheryl Castro & Norman Bernardo","MGEN","Pair 1: Claveria, Ram Derick C. & Cristobal, Aaron Gian, D."]
   ]
 };
 
@@ -82,7 +94,7 @@ const nameKey = value => clean(value).normalize('NFD').replace(/[\u0300-\u036f]/
 // registration desk stores "Given Middle Surname". A person's identity key
 // is therefore based on their normalized token set, not the written order.
 const personNameKey = value => nameKey(value).split(' ').filter(Boolean).sort().join(' ');
-const pairNameKey = value => clean(value).split(/\s+(?:&|\/)\s+/).map(personNameKey).filter(Boolean).sort().join('::');
+const pairNameKey = value => clean(value).replace(/^pair\s*\d+\s*:\s*/i, '').split(/\s+(?:&|\/)\s+/).map(personNameKey).filter(Boolean).sort().join('::');
 const entryNameKey = entry => {
   const players = (entry?.players || []).map(player => player?.fullName || player?.name).filter(Boolean);
   return pairNameKey(players.length ? players.join(' & ') : entry?.name || entry?.pairCode || entry?.id);
@@ -90,13 +102,14 @@ const entryNameKey = entry => {
 const referenceMatchKey = (category, pairA, pairB) => `${slug(category)}|${[pairA, pairB].sort().join('||')}`;
 function referenceSequenceMap(config, entries) {
   const rows = Array.isArray(config.standardMatchSequence)
-    ? config.standardMatchSequence.map(item => [item.category, item.pairA, item.pairB])
+    ? config.standardMatchSequence.map(item => [item.sourceMatchNo || null, item.category, item.teamA || '', item.pairA, item.teamB || '', item.pairB])
     : REFERENCE_MATCH_SEQUENCES[config.firebaseEventId] || [];
-  const sequence = new Map(rows.map(([category, pairA, pairB], index) => [
+  const playable = rows.filter(([, , , pairA, , pairB]) => !isDefaultPlaceholder(pairA) && !isDefaultPlaceholder(pairB));
+  const sequence = new Map(playable.map(([, category, , pairA, , pairB], index) => [
     referenceMatchKey(category, pairNameKey(pairA), pairNameKey(pairB)), index + 1
   ]));
   const entryKeys = new Map([...entries].map(([id, item]) => [id, entryNameKey(item)]));
-  return { sequence, entryKeys };
+  return { sequence, entryKeys, expected:playable.length };
 }
 const numericScore = value => clean(value) !== '' && Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 const roleSet = value => new Set([
@@ -168,17 +181,14 @@ function teamDisplayName(teamName, names, fallback = '') {
   return team ? `${team}${players.length ? ` (${players.join(' & ')})` : ''}` : players.join(' / ') || fallback;
 }
 
-function isDefaultNoPlayer(value) {
-  const parts = clean(value).split('/').map(part => part.trim()).filter(Boolean);
-  return parts.length > 0 && parts.every(part => /^\[?\s*DEFAULT NO PLAYER(?:\]|\b)/i.test(part));
-}
+function isDefaultPlaceholder(value) { return /\bdefault\b/i.test(clean(value)); }
 
 function isDefaultEntry(entry) {
   if (!entry) return false;
   const players = Array.isArray(entry.players) ? entry.players
     .map(player => clean(player?.fullName || player?.name)).filter(Boolean) : [];
-  return isDefaultNoPlayer(entry.name) || isDefaultNoPlayer(entry.pairCode)
-    || (players.length > 0 && players.every(isDefaultNoPlayer));
+  return isDefaultPlaceholder(entry.name) || isDefaultPlaceholder(entry.pairCode)
+    || players.some(isDefaultPlaceholder);
 }
 
 function isOpaquePairCode(value, internalIds = []) {
@@ -288,7 +298,7 @@ function resolvedAffiliationId(registration, affiliations) {
   // Placeholder entries are still team representatives. Schedules can identify
   // them as "[DEFAULT NO PLAYER] MP-ADV-3A" without a player registration.
   const names = playerNames(registration);
-  const defaulted = [registration?.name, registration?.pairCode, registration?.teamName, ...names].some(isDefaultNoPlayer);
+  const defaulted = [registration?.name, registration?.pairCode, registration?.teamName, ...names].some(isDefaultPlaceholder);
   if (!defaulted) return null;
   const source = [registration?.pairCode, registration?.name, registration?.teamName, ...names].map(value => clean(value).toUpperCase()).join(' ');
   return items.find(item => affiliationAliases(item).some(alias => new RegExp(`(?:^|[^A-Z0-9])${alias}(?:[-_\\s]|$)`).test(source)))?.id || null;
@@ -415,9 +425,9 @@ function buildDefinition(config, registrations, rankingOrders = {}, formatOverri
       id,
       name: displayName,
       affiliationId: affiliationId && affiliationIds.has(affiliationId) ? affiliationId : null,
-      eligibleForAdvancement: !isDefaultNoPlayer(displayName)
-        && !isDefaultNoPlayer(registration.pairCode)
-        && !(names.length && names.every(isDefaultNoPlayer)),
+      eligibleForAdvancement: !isDefaultPlaceholder(displayName)
+        && !isDefaultPlaceholder(registration.pairCode)
+        && !names.some(isDefaultPlaceholder),
       seed: Number.isSafeInteger(seed) && seed > 0 ? seed : null,
       registrationId: clean(registration.id) || id,
       pairCode,
@@ -676,6 +686,12 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
 function projectState(engineState, previous, config, warnings) {
   const scheduling = standardScheduling(config, previous);
   const matches = scheduleProjection(engineState, previous?.matches, config, previous);
+  const reference = referenceSequenceMap(config, entryLookup(engineState));
+  const matched = matches.filter(match => match.referenceSequence && !match.administrative).length;
+  const scheduleWarnings = (warnings || []).filter(warning => !String(warning).startsWith('Official match order matched '));
+  if (reference.expected && matched !== reference.expected) {
+    scheduleWarnings.push(`Official match order matched ${matched} of ${reference.expected} playable matchups. Check player names and registered pairs before dispatch.`);
+  }
   const validIds = new Set(matches.map(match => match.id));
   const scores = {};
   matches.forEach(match => {
@@ -719,7 +735,9 @@ function projectState(engineState, previous, config, warnings) {
     competitionType: 'standard',
     standardScheduling: scheduling,
     standardState: engineState,
-    standardWarnings: warnings,
+    standardWarnings: scheduleWarnings,
+    standardScheduleRevision: REFERENCE_MATCH_SEQUENCES[config.firebaseEventId] && !Array.isArray(config.standardMatchSequence)
+      ? MERALCO_OFFICIAL_SCHEDULE_REVISION : null,
     pairs: buildPairs(engineState),
     teamStandings: buildTeamStandings(engineState),
     matches,
@@ -1296,7 +1314,7 @@ export function initializeStandardTournamentApp(services) {
     const rows = playable.length ? Math.max(1, Math.ceil((1440 - first) / calendarStep)) : 1;
     const scheduledRows = playable.length ? Array.from({ length:rows }, (_, row) => { const minute = first + row * calendarStep; return `<div class="calendar-time ${minute % 60 === 0 ? 'hour' : ''}" data-calendar-minute="${minute}">${timeLabel(minute)}</div>${courtNumbers.map(number => standardScheduleCell(number, minute)).join('')}`; }).join('') : `<div class="calendar-time hour">—</div>${courtNumbers.map(number => '<div class="calendar-cell empty"></div>').join('')}`;
     const sequence = (state.queue || []).map(id => state.matches.find(match => match.id === id)).filter(Boolean);
-    const sequenceRows = sequence.length ? `<div class="sequence-label">NEXT</div><div class="next-available-sequence" style="grid-column:2/-1"><header><b>Next available court sequence</b><span>Exact RR Schedule order. The first match goes to whichever court opens next.</span></header><div>${sequence.map((match,index)=>`<article><em aria-label="Next in line ${index+1}">#${index+1}</em><span><small>${displayMatchId(match)} · ${esc(match.divisionName)}</small><b><span>${esc(entryName(match.a))}<small>${esc(affiliationName(match.a))}</small></span><i>vs</i><span>${esc(entryName(match.b))}<small>${esc(affiliationName(match.b))}</small></span></b></span></article>`).join('')}</div></div>` : '<div class="sequence-label">NEXT</div><div class="next-available-sequence empty" style="grid-column:2/-1">No ready matches remain.</div>';
+    const sequenceRows = sequence.length ? `<div class="sequence-label">NEXT</div><div class="next-available-sequence" style="grid-column:2/-1"><header><b>Next available court sequence</b><span>Official match schedule order. The first match goes to whichever court opens next.</span></header><div>${sequence.map((match,index)=>`<article><em aria-label="Next in line ${index+1}">#${index+1}</em><span><small>${displayMatchId(match)} · ${esc(match.divisionName)}</small><b><span>${esc(entryName(match.a))}<small>${esc(affiliationName(match.a))}</small></span><i>vs</i><span>${esc(entryName(match.b))}<small>${esc(affiliationName(match.b))}</small></span></b></span></article>`).join('')}</div></div>` : '<div class="sequence-label">NEXT</div><div class="next-available-sequence empty" style="grid-column:2/-1">No ready matches remain.</div>';
     const completedRows = completed.length ? `<details class="completed-match-history" style="grid-column:1/-1"><summary>Show ${completed.length} completed match${completed.length===1?'':'es'}</summary><div>${completed.map(match=>`<article><span>${displayMatchId(match)} · ${esc(match.divisionName)}</span><b>${esc(entryName(match.a))} (${esc(affiliationName(match.a))}) ${scoreFor(match.id).a}-${scoreFor(match.id).b} ${esc(entryName(match.b))} (${esc(affiliationName(match.b))})</b></article>`).join('')}</div></details>` : '';
     const scheduleRows = state.standardScheduling?.dispatchMode === 'fixed-sequence' ? sequenceRows : scheduledRows;
     target.className = 'calendar-stage standard-rich-calendar';
@@ -2206,14 +2224,16 @@ export function initializeStandardTournamentApp(services) {
         const refreshPublicProjection = Boolean(incoming?.competitionType === 'standard' && !Array.isArray(incoming?.teamStandings));
         const prior = incoming?.competitionType === 'standard' || incoming?.standardState ? incoming : state;
         let rebuiltDefinitionChanged = false;
+        let officialScheduleChanged = false;
         try {
           rebuild(prior);
           rebuiltDefinitionChanged = JSON.stringify(incoming?.standardState?.definition || null) !== JSON.stringify(state?.standardState?.definition || null);
+          officialScheduleChanged = Boolean(state?.standardScheduleRevision && incoming?.standardScheduleRevision !== state.standardScheduleRevision);
           renderAll();
         }
         catch (error) { console.error('Standard tournament state rejected.', error); toast(`Tournament state is invalid: ${error.message}`); }
         finally { applyingCloud = false; }
-        if ((!incoming || refreshPublicProjection || rebuiltDefinitionChanged) && state) publishState();
+        if ((!incoming || refreshPublicProjection || rebuiltDefinitionChanged || officialScheduleChanged) && state) publishState();
       }, () => showGate('This account cannot read Match Control data.')));
 
       sessionCleanups.push(services.watchRegistrations(items => {
