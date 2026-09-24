@@ -29,8 +29,9 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
   }
   function renderCourts() {
     if (!state) return;
-    $('#kioskCourts').innerHTML = Array.from({ length: config.event.courts }, (_, index) => {
-      const courtNo = index + 1, match = courtMatch(courtNo), officiated = match && Boolean(state.refereeAssignments?.[match.id]), complete = match && scoreComplete(match.id);
+    const courtNumbers = Object.keys(state.courts || {}).map(Number).filter(number => state.courtAvailability?.[number] !== false);
+    $('#kioskCourts').innerHTML = courtNumbers.map(courtNo => {
+      const match = courtMatch(courtNo), officiated = match && Boolean(state.refereeAssignments?.[match.id]), complete = match && scoreComplete(match.id);
       if (!match) return `<article class="kiosk-court vacant"><header><b>Court ${courtNo}</b><span>Vacant</span></header><div><strong>No active match</strong><small>Wait for Match Control to place the next match on court.</small></div></article>`;
       return `<article class="kiosk-court ${officiated ? 'officiated' : ''} ${complete ? 'reported' : ''}"><header><b>Court ${courtNo}</b><span>${officiated ? 'Referee scoring' : complete ? 'Score submitted' : 'Ready to report'}</span></header><div><small>${esc(match.category)} · ${esc(matchLabel(match))}</small><section><b>${esc(names(match.category, match.a))}<small>${esc(clubName(match,'a'))}</small></b><em>vs</em><b>${esc(names(match.category, match.b))}<small>${esc(clubName(match,'b'))}</small></b></section><button class="action ${officiated || complete ? 'alt' : 'lime'}" data-report-match="${match.id}" ${officiated || complete ? 'disabled' : ''}>${officiated ? 'Report through referee' : complete ? `${state.scores[match.id].a}-${state.scores[match.id].b} recorded` : `Report Court ${courtNo} score`}</button></div></article>`;
     }).join('');
