@@ -568,7 +568,7 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
   const previous = new Map((previousMatches || []).map(match => [match.engineMatchId || match.id, match]));
   const keepScheduledPlacement = Boolean(prior?.standardScheduling);
   const divisions = divisionLookup(engineState);
-  const courts = Math.max(1, Number(config.event?.courts) || 1);
+  const courts = Math.max(1, Number(config.event?.courts) || 1, Number(prior?.courtCount) || 0, ...Object.keys(prior?.courts || {}).map(Number));
   const schedule = standardScheduling(config, prior);
   const slotMinutes = schedule.slotMinutes;
   const start = schedule.startMinutes;
@@ -689,7 +689,7 @@ function projectState(engineState, previous, config, warnings) {
       ...(noContest ? { resultType:'null', reason:match.result.reason || 'Both entries defaulted' } : {})
     };
   });
-  const courtCount = Math.max(1, Number(config.event?.courts) || 1);
+  const courtCount = Math.max(1, Number(config.event?.courts) || 1, Number(previous?.courtCount) || 0, ...Object.keys(previous?.courts || {}).map(Number));
   const courts = Object.fromEntries(Array.from({ length: courtCount }, (_, index) => {
     const number = index + 1;
     const prior = previous?.courts?.[number] || {};
@@ -701,8 +701,8 @@ function projectState(engineState, previous, config, warnings) {
       calledAt: prior.calledAt || null
     }];
   }));
-  // Operational availability is shared by Match Control and every field view.
-  const courtAvailability = Object.fromEntries(Object.keys(courts).map(number => [number, previous?.courtAvailability?.[number] !== false]));
+  // Retire saved closure flags, including for older clients still connected.
+  const courtAvailability = Object.fromEntries(Object.keys(courts).map(number => [number, true]));
   const active = new Set(Object.values(courts).map(court => court.matchId).filter(Boolean));
   const queue = matches.filter(match => match.status === 'ready' && !match.administrative && !scores[match.id] && !active.has(match.id))
     .sort((a, b) => Number(a.scheduleNumber) - Number(b.scheduleNumber))
@@ -725,6 +725,7 @@ function projectState(engineState, previous, config, warnings) {
     matches,
     courts,
     courtAvailability,
+    courtCount,
     courtSchedules,
     queue,
     scores,
@@ -1114,7 +1115,7 @@ export function initializeStandardTournamentApp(services) {
   function metrics() {
     const playable = state.matches.filter(match => match.status !== 'bye');
     const completed = playable.filter(match => isComplete(match.id)).length;
-    const enabledCourts = Object.keys(state.courts).map(Number).filter(number => state.courtAvailability?.[number] !== false);
+    const enabledCourts = Object.keys(state.courts).map(Number);
     const live = enabledCourts.filter(number => state.courts[number]?.matchId).length;
     return [
       ['Completed', `${completed}/${playable.length}`, playable.length ? `${Math.round(completed / playable.length * 100)}% of all matches` : 'Waiting for entries'],
@@ -1156,12 +1157,12 @@ export function initializeStandardTournamentApp(services) {
     if ($('#leaderList')) $('#leaderList').innerHTML = leaders.length ? leaders.map(item => `<div class="leader-item"><div class="leader-rank">${item.row.rank}</div><div><b>${esc(entryName(item.row.entryId))}</b><small>${esc(divisionLookup(state.standardState).get(item.division.id)?.name || item.division.id)}${item.table.poolId ? ` · ${esc(item.table.poolId.split('/').pop())}` : ''}</small></div><div class="leader-wins">${item.row.wins} W</div></div>`).join('') : '<p class="empty">Leaders appear after entries are registered.</p>';
     const activity = state.activityLog.slice(0, 5);
     if ($('#activityLog')) $('#activityLog').innerHTML = activity.length ? activity.map(item => `<div class="leader-item"><div class="leader-rank">•</div><div><b>${esc(item.text)}</b><small>${new Date(item.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</small></div></div>`).join('') : '<p class="empty">Score and court activity will appear here.</p>';
-    if ($('#courtReadiness')) $('#courtReadiness').innerHTML = Object.entries(state.courts).filter(([number]) => state.courtAvailability?.[number] !== false).map(([number, court]) => {
+    if ($('#courtReadiness')) $('#courtReadiness').innerHTML = Object.entries(state.courts).map(([number, court]) => {
       const active = state.matches.find(match => match.id === court.matchId);
       const next = state.matches.find(match => match.id === state.queue.find(id => state.matches.find(item => item.id === id)?.court === Number(number)));
       return `<div class="leader-item"><div class="leader-rank">${number}</div><div><b>${active ? entryName(active.a) + ' vs ' + entryName(active.b) : 'Court available'}</b><small>${active ? (isComplete(active.id) ? 'Final score recorded' : 'Match on court') : next ? `${next.divisionName} ready` : 'No ready match'}</small></div></div>`;
     }).join('');
-    if ($('#courtUtilization')) $('#courtUtilization').innerHTML = Object.keys(state.courts).filter(number => state.courtAvailability?.[number] !== false).map(number => {
+    if ($('#courtUtilization')) $('#courtUtilization').innerHTML = Object.keys(state.courts).map(number => {
       const assigned = state.matches.filter(match => Number(match.court) === Number(number) && match.status !== 'bye');
       const complete = assigned.filter(match => isComplete(match.id)).length;
       return `<div class="leader-item"><div class="leader-rank">${number}</div><div><b>Court ${number} · ${complete}/${assigned.length} complete</b><small>${assigned.length - complete} scheduled matches remain</small></div></div>`;
@@ -1288,12 +1289,7 @@ export function initializeStandardTournamentApp(services) {
     const slotMinutes = state.standardScheduling?.slotMinutes || 18;
     const calendarStep = slotMinutes;
     const first = playable.length ? Math.max(0, Math.floor(Math.min(...playable.map(match => Number(match.startMinutes))) / calendarStep) * calendarStep) : 0;
-    const courtNumbers = Object.keys(state.courts).map(Number).filter(number => state.courtAvailability?.[number] !== false);
-    const availability = $('#standardCourtAvailability');
-    if (availability) availability.innerHTML = Object.keys(state.courts).map(Number => {
-      const enabled = state.courtAvailability?.[Number] !== false;
-      return `<button type="button" class="${enabled ? 'is-enabled' : 'is-disabled'}" data-toggle-standard-court="${Number}" aria-pressed="${enabled}">Court ${Number} · ${enabled ? 'Open' : 'Closed'}</button>`;
-    }).join('');
+    const courtNumbers = Object.keys(state.courts).map(Number);
     const now = new Date(), nowMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
     const headers = `<div class="calendar-corner">Time</div>${courtNumbers.map(number => { const status = standardCourtScheduleStatus(number, nowMinutes); return `<header class="timeline-head ${status.tone}" data-standard-court-status="${number}"><div><b>Court ${number}</b><small>${state.courtSchedules[number]?.filter(id => !isComplete(id)).length || 0} scheduled</small></div><strong>${esc(status.text)}</strong></header>`; }).join('')}`;
     const liveRow = `<div class="calendar-live-label">LIVE<br>COURT</div>${courtNumbers.map(standardActiveCourtMarkup).join('')}`;
@@ -1313,7 +1309,6 @@ export function initializeStandardTournamentApp(services) {
     if (note) note.textContent = state.standardScheduling?.dispatchMode === 'fixed-sequence' ? 'Matches follow one sequence and move to the next available court. Completed matches stay collapsed below.' : `${slotMinutes}-minute court slots, live timers, conflict warnings, check-in alerts, referee assignment, and drag-to-swap remain available.`;
     bindScoreButtons();
     $$('[data-promote-court]').forEach(button => button.onclick = () => promoteMatch(Number(button.dataset.promoteCourt)));
-    $$('[data-toggle-standard-court]').forEach(button => button.onclick = () => toggleCourtAvailability(Number(button.dataset.toggleStandardCourt)));
     $$('[data-timer-toggle]').forEach(button => button.onclick = () => toggleCourt(Number(button.dataset.timerToggle)));
     $$('[data-vacate-court]').forEach(button => button.onclick = () => vacateCourt(Number(button.dataset.vacateCourt)));
     $$('[data-end-match]').forEach(button => button.onclick = () => openScore(button.dataset.endMatch));
@@ -1339,19 +1334,6 @@ export function initializeStandardTournamentApp(services) {
       rebuildButton.onclick = rebuildPreSchedule;
     }
     renderOfficials();
-  }
-
-  function toggleCourtAvailability(courtNumber) {
-    const court = state.courts?.[courtNumber];
-    if (!court) return;
-    const enabled = state.courtAvailability?.[courtNumber] !== false;
-    if (enabled && court.matchId) return toast(`Finish and vacate Court ${courtNumber} before taking it offline.`);
-    state.courtAvailability ||= {};
-    state.courtAvailability[courtNumber] = !enabled;
-    recordActivity(`Court ${courtNumber} ${enabled ? 'closed' : 'reopened'} for operations`);
-    publishState();
-    renderAll();
-    toast(`Court ${courtNumber} is now ${enabled ? 'closed' : 'open'}.`);
   }
 
   function showStandardRefereeAssignment(matchId, courtNumber) {
@@ -1485,11 +1467,10 @@ export function initializeStandardTournamentApp(services) {
 
   function promoteMatch(courtNumber) {
     const court = state.courts[courtNumber];
-    if (state.courtAvailability?.[courtNumber] === false) return toast(`Court ${courtNumber} is currently closed.`);
     if (!court || court.matchId) return;
     const preScheduled = state.standardScheduling?.dispatchMode === 'pre-scheduled';
     const nextId = preScheduled
-      ? state.queue.find(id => { const planned = Number(state.matches.find(match => match.id === id)?.court); return planned === courtNumber || state.courtAvailability?.[planned] === false; })
+      ? state.queue.find(id => { const planned = Number(state.matches.find(match => match.id === id)?.court); return planned === courtNumber; })
       : state.queue[0];
     if (!nextId) return toast('No match is ready for this court.');
     promoteSpecificMatch(nextId, courtNumber);
@@ -1499,9 +1480,8 @@ export function initializeStandardTournamentApp(services) {
     const court = state.courts[courtNumber];
     const match = state.matches.find(item => item.id === nextId);
     if (!court || court.matchId) return toast(`Court ${courtNumber} is not vacant.`);
-    if (state.courtAvailability?.[courtNumber] === false) return toast(`Court ${courtNumber} is currently closed.`);
     if (!match || match.administrative || match.status !== 'ready' || isComplete(nextId)) return toast('That match is not ready to be called.');
-    if (state.standardScheduling?.dispatchMode === 'pre-scheduled' && Number(match.court) !== courtNumber && state.courtAvailability?.[Number(match.court)] !== false) return toast(`This match is pre-scheduled for Court ${match.court}.`);
+    if (state.standardScheduling?.dispatchMode === 'pre-scheduled' && Number(match.court) !== courtNumber) return toast(`This match is pre-scheduled for Court ${match.court}.`);
     const activeConflict = Object.entries(state.courts).map(([number, item]) => ({ number, match:state.matches.find(candidate => candidate.id === item.matchId) }))
       .find(item => item.match && [match.a, match.b].some(id => id === item.match.a || id === item.match.b));
     if (activeConflict) return toast(`Player conflict: this pair is still active on Court ${activeConflict.number}.`);
@@ -1548,7 +1528,7 @@ export function initializeStandardTournamentApp(services) {
     const category = $('#scheduleCategory')?.value || 'all';
     const status = $('#scheduleStatus')?.value || 'all';
     const query = clean($('#scheduleSearch')?.value).toLowerCase();
-    const estimatedCourtNumbers = Object.keys(state.courts || {}).map(Number).filter(number => state.courtAvailability?.[number] !== false);
+    const estimatedCourtNumbers = Object.keys(state.courts || {}).map(Number);
     const estimatedCourtCount = Math.max(1, estimatedCourtNumbers.length);
     const estimateFor = match => {
       const number = Number(match.scheduleNumber);
@@ -1767,6 +1747,32 @@ export function initializeStandardTournamentApp(services) {
     toast(`${definition?.name || 'Division'} final round seeded from rankings.`);
   }
 
+  function renderCourtSettings() {
+    const grid = $('[data-settings-panel="event"] .settings-grid');
+    if (!grid) return;
+    let panel = $('#standardCourtSettings');
+    if (!panel) {
+      grid.insertAdjacentHTML('beforeend', '<article class="panel" id="standardCourtSettings"></article>');
+      panel = $('#standardCourtSettings');
+    }
+    const count = Object.keys(state.courts || {}).length;
+    panel.innerHTML = `<span class="section-label">Live operations</span><h2>Courts</h2><p><b>${count}</b> courts available. Add courts during play when more space becomes available.</p><label class="standard-format-field">Total courts<input id="standardCourtCount" type="number" min="${count}" max="20" step="1" value="${count}"></label><button class="btn btn-primary" id="addStandardCourts">Add courts</button>`;
+    $('#addStandardCourts').onclick = () => {
+      const total = Number($('#standardCourtCount').value);
+      if (!Number.isInteger(total) || total <= count || total > 20) return toast(`Enter a total above ${count}, up to 20 courts.`);
+      for (let number = count + 1; number <= total; number++) {
+        state.courts[number] = { matchId:'', running:false, startedAt:null, elapsed:0, calledAt:null };
+        state.courtSchedules[number] = [];
+      }
+      state.courtCount = total;
+      state.courtAvailability = Object.fromEntries(Object.keys(state.courts).map(number => [number, true]));
+      recordActivity(`Courts increased from ${count} to ${total}`);
+      publishState();
+      renderAll();
+      toast(`${total} courts are now available.`);
+    };
+  }
+
   function renderSettings() {
     if (!state) return;
     const definitions = divisionLookup(state.standardState);
@@ -1828,6 +1834,7 @@ export function initializeStandardTournamentApp(services) {
     }
     const eventPanel = $('[data-settings-panel="event"] .settings-grid');
     if (eventPanel) eventPanel.querySelector('.white-label-panel')?.setAttribute('hidden', '');
+    renderCourtSettings();
     renderTeamLogoUploads();
     const scheduleSummary = $('#scheduleOptimizerSummary');
     if (scheduleSummary) scheduleSummary.innerHTML = `<div class="optimizer-summary"><span><b>${state.matches.filter(match => match.status !== 'bye' && !match.administrative).length}</b> scheduled court matches</span><span><b>${state.matches.filter(match => match.administrative === 'walkover').length}</b> automatic walkovers</span><span><b>${state.matches.filter(match => match.administrative === 'null').length}</b> null matches</span><span><b>${state.standardScheduling?.slotMinutes || 18} min</b> slots from ${timeLabel(state.standardScheduling?.startMinutes || 540)}</span><span><b>${Object.keys(state.courts).length}</b> live courts</span></div>`;
@@ -2152,7 +2159,7 @@ export function initializeStandardTournamentApp(services) {
         // A reset clears match-day data, not the spectator link. Retaining the
         // token lets publishState overwrite the old public scores immediately.
         publicShare:clone(state.publicShare || null),
-        courtAvailability:clone(state.courtAvailability || {})
+        courtCount:Object.keys(state.courts || {}).length
       };
       const built = buildDefinition(config, registrations, preserved.standardRankingOrders, preserved.standardFormatOverrides);
       state = projectState(engine.createCompetition(built.definition), preserved, config, built.warnings);

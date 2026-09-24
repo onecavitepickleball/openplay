@@ -29,7 +29,7 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
   }
   function renderCourts() {
     if (!state) return;
-    const courtNumbers = Object.keys(state.courts || {}).map(Number).filter(number => state.courtAvailability?.[number] !== false);
+    const courtNumbers = Object.keys(state.courts || {}).map(Number);
     $('#kioskCourts').innerHTML = courtNumbers.map(courtNo => {
       const match = courtMatch(courtNo), officiated = match && Boolean(state.refereeAssignments?.[match.id]), complete = match && scoreComplete(match.id);
       if (!match) return `<article class="kiosk-court vacant"><header><b>Court ${courtNo}</b><span>Vacant</span></header><div><strong>No active match</strong><small>Wait for Match Control to place the next match on court.</small></div></article>`;

@@ -269,10 +269,6 @@
 .standard-tournament-control .standard-calendar-key i { width: 9px; height: 9px; border-radius: 50%; background: #39a76b; }
 .standard-tournament-control .standard-calendar-key i.pending { background: #9caab1; }
 .standard-tournament-control .standard-calendar-key i.complete { background: #e8ad32; }
-.standard-tournament-control .standard-court-availability { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
-.standard-tournament-control .standard-court-availability button { border:1px solid #d4e0e6; background:#fff; color:#173347; border-radius:999px; padding:8px 12px; font:700 12px/1 var(--font-mono, monospace); cursor:pointer; }
-.standard-tournament-control .standard-court-availability button.is-enabled { border-color:#42a76c; background:#effaf2; color:#15703d; }
-.standard-tournament-control .standard-court-availability button.is-disabled { border-color:#d8914c; background:#fff7eb; color:#9a5719; }
 
 .standard-tournament-control .standard-calendar-grid {
   display: grid;

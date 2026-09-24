@@ -50,7 +50,7 @@ function updateTime(value) {
 function watchCollection(ref, onData, onError, mapSnapshot, ignoreStale = false) {
   let lastKey = '', lastUpdateTime = 0;
   const metadataId = `firestore:${ref.path || 'query'}`;
-  return onSnapshot(ref, { includeMetadataChanges:true }, snapshot => {
+  return onSnapshot(ref, snapshot => {
     if (snapshot.metadata?.hasPendingWrites) pendingWrites.add(metadataId); else pendingWrites.delete(metadataId);
     emitSyncState();
     const value = mapSnapshot(snapshot);
@@ -58,7 +58,7 @@ function watchCollection(ref, onData, onError, mapSnapshot, ignoreStale = false)
     // Firestore can replay an identical local/server snapshot; suppressing it
     // keeps a replay from causing a full tournament render.
     if (key === lastKey) return;
-    const nextUpdateTime = updateTime(value);
+    const nextUpdateTime = ignoreStale ? updateTime(value) : 0;
     // Single-document feeds can briefly deliver an older cached snapshot after
     // a server acknowledgement; do not let it replace newer optimistic state.
     if (ignoreStale && nextUpdateTime && nextUpdateTime < lastUpdateTime) return;
@@ -73,10 +73,10 @@ function emitSyncState(error = '') {
   window.dispatchEvent(new CustomEvent('matchday-sync-state', { detail }));
   const banner = document.getElementById('offlineBanner');
   if (banner) {
-    banner.hidden = detail.online && !detail.pending && !error;
-    banner.classList.toggle('is-syncing', detail.online && detail.pending > 0);
+    banner.hidden = detail.online && !error;
+    banner.classList.remove('is-syncing');
     const heading = banner.querySelector('b');
-    if (heading) heading.textContent = detail.online ? (error ? 'Sync needs attention' : 'Synchronizing match data') : 'Offline emergency mode';
+    if (heading) heading.textContent = detail.online ? 'Save needs attention' : 'Offline emergency mode';
     const copy = banner.querySelector('span');
     if (copy) copy.textContent = error ? `Sync needs attention: ${error}` : detail.label;
   }
@@ -119,7 +119,7 @@ async function writeControlNow({ state }) {
     if (!player.photoURL && player.photoThumb) player.photoURL = player.photoThumb;
   });
   Object.values(safe.scores || {}).forEach(score => { if (score.confirmation) { delete score.confirmation.ocpcSignature; delete score.confirmation.rebelsSignature; } });
-  const refereeState = { matches:safe.matches || [], pairs:safe.pairs || {}, courts:safe.courts || {}, scores:safe.scores || {}, matchSettings:safe.matchSettings || {}, refereeAssignments:safe.refereeAssignments || {}, updatedAt:safe.updatedAt || new Date().toISOString() };
+  const refereeState = { matches:safe.matches || [], pairs:safe.pairs || {}, courts:safe.courts || {}, scores:safe.scores || {}, matchSettings:safe.matchSettings || {}, refereeAssignments:safe.refereeAssignments || {}, queue:safe.queue || [], standardScheduling:safe.standardScheduling || null, competitionType:safe.competitionType || 'dual-meet', updatedAt:safe.updatedAt || new Date().toISOString() };
   const sessionDeviceId=sessionLock.deviceId(),batch=writeBatch(db);batch.set(controlRef,{state:safe,refereeEmails:[...new Set(Object.values(state.refereeAssignments||{}))],sessionDeviceId,updatedAt:serverTimestamp()},{merge:true});batch.set(refereeBoardRef,{state:refereeState,sessionDeviceId,updatedAt:serverTimestamp()},{merge:true});
   const write=batch.commit().catch(()=>setDoc(controlRef,{state:safe,refereeEmails:[...new Set(Object.values(state.refereeAssignments||{}))],sessionDeviceId,updatedAt:serverTimestamp()},{merge:true}));
   await trackWrite(write,'control');
