@@ -304,7 +304,7 @@ function normalizedFormat(division, entryCount, warnings) {
   if (configured === 'single-elimination') return { format: configured, standings };
   if (configured === 'cross-affiliation-round-robin'
     || (configured === 'affiliation-round-robin' && !division.qualifiers)) {
-    if (automaticNinePairFinalRound) return { format:'affiliation-round-robin', standings, qualifiers:{ count:2 } };
+    if (automaticNinePairFinalRound) return { format:'affiliation-round-robin', standings, qualifiers:{ count:2, distinctAffiliations:true } };
     return { format: 'affiliation-round-robin', standings };
   }
   if (configured === 'full-round-robin' || (configured === 'round-robin' && !division.qualifiers)) {
@@ -341,7 +341,7 @@ function normalizedFormat(division, entryCount, warnings) {
     format: ['cross-affiliation-round-robin-elimination', 'affiliation-round-robin'].includes(configured)
       ? 'affiliation-round-robin' : 'round-robin',
     standings,
-    qualifiers: { count }
+    qualifiers: { count, distinctAffiliations: ['cross-affiliation-round-robin-elimination', 'affiliation-round-robin'].includes(configured) || division.qualifiers?.distinctAffiliations === true }
   };
 }
 
@@ -483,6 +483,49 @@ function buildPairs(engineState) {
     result[entry.id] = value;
   });
   return result;
+}
+
+// Team rankings are deliberately separate from pair standings. Every completed
+// match win by a representative contributes one point to that representative's
+// affiliated team, including an automatically recorded walkover. A null
+// default-v-default result stays on record but awards no team point.
+function buildTeamStandings(engineState) {
+  const entries = entryLookup(engineState);
+  const divisions = divisionLookup(engineState);
+  const affiliations = new Map((engineState?.definition?.affiliations || []).map(item => [item.id, item]));
+  const rows = new Map([...affiliations.values()].map(item => [item.id, {
+    id:item.id, clubId:item.id, name:item.name || item.id, short:item.short || item.name || item.id,
+    logo:item.logo || '', color:item.color || '', played:0, wins:0, losses:0,
+    pointsFor:0, pointsAgainst:0, differential:0, total:0, recentWins:[]
+  }]));
+  const rowFor = affiliationId => rows.get(affiliationId) || null;
+  allEngineMatches(engineState).forEach(({ division, match }) => {
+    if (match.status !== 'complete' || !match.result || match.result.void) return;
+    const a = entries.get(match.participants.a), b = entries.get(match.participants.b);
+    const aRow = rowFor(a?.affiliationId), bRow = rowFor(b?.affiliationId);
+    const scoreA = Number(match.result.a), scoreB = Number(match.result.b);
+    if (!Number.isFinite(scoreA) || !Number.isFinite(scoreB)) return;
+    if (aRow) { aRow.played += 1; aRow.pointsFor += scoreA; aRow.pointsAgainst += scoreB; }
+    if (bRow) { bRow.played += 1; bRow.pointsFor += scoreB; bRow.pointsAgainst += scoreA; }
+    if (scoreA === scoreB) return;
+    const winner = scoreA > scoreB ? { row:aRow, entry:a, opponent:b, score:`${scoreA}-${scoreB}` } : { row:bRow, entry:b, opponent:a, score:`${scoreB}-${scoreA}` };
+    const loser = scoreA > scoreB ? bRow : aRow;
+    if (winner.row) {
+      winner.row.wins += 1;
+      winner.row.total += 1;
+      winner.row.recentWins.unshift({
+        names:winner.entry?.name || winner.entry?.pairCode || 'Winning pair',
+        pair:winner.entry?.pairCode || '', category:divisions.get(division.id)?.category || divisions.get(division.id)?.name || division.id,
+        opponent:winner.opponent?.name || winner.opponent?.pairCode || '', score:winner.score,
+        walkover:isDefaultEntry(winner.opponent)
+      });
+    }
+    if (loser) loser.losses += 1;
+  });
+  return [...rows.values()].map(row => ({ ...row, differential:row.pointsFor - row.pointsAgainst,
+    recentWins:row.recentWins.slice(0, 5) }))
+    .sort((a, b) => b.total - a.total || b.wins - a.wins || b.differential - a.differential || b.pointsFor - a.pointsFor || a.name.localeCompare(b.name))
+    .map((row, index) => ({ ...row, rank:index + 1 }));
 }
 
 function scheduleProjection(engineState, previousMatches, config, prior) {
@@ -640,6 +683,7 @@ function projectState(engineState, previous, config, warnings) {
     standardState: engineState,
     standardWarnings: warnings,
     pairs: buildPairs(engineState),
+    teamStandings: buildTeamStandings(engineState),
     matches,
     courts,
     courtSchedules,
@@ -796,7 +840,11 @@ export function initializeStandardTournamentApp(services) {
       announcement: clone(state.announcement || {}),
       pairs: publicPairs,
       pairStandings,
-      clubStandings: [],
+      // The public viewer already understands clubStandings. In standard mode
+      // these are team rankings rather than a dual-meet championship table.
+      clubStandings: clone(state.teamStandings || []),
+      teamStandings: clone(state.teamStandings || []),
+      clubScoringNote: 'Each completed representative win is worth 1 team point. Walkovers count as wins; null matches do not award a point.',
       medals,
       checkins: publicCheckins,
       playerPortal: {
@@ -989,7 +1037,7 @@ export function initializeStandardTournamentApp(services) {
       if (panel) panel.hidden = true;
     });
     $('#dreamBreakerSummary')?.remove();
-    if ($('#clubStandings')) $('#clubStandings').hidden = true;
+    if ($('#clubStandings')) $('#clubStandings').hidden = false;
     const medalHead = $('#view-medals .page-head');
     if (medalHead) medalHead.innerHTML = '<div><span class="eyebrow dark">Elimination and podium</span><h1>Final Round</h1><p>Qualifiers advance to elimination. Gold and Silver are decided by the final; third place is awarded from the final rankings, with no bronze match.</p></div><div class="medal-actions"><button class="btn btn-primary is-pending" id="seedMedalsBtn" type="button">Seed from rankings</button></div>';
     const medalBoard = $('#medalBoard');
@@ -997,7 +1045,7 @@ export function initializeStandardTournamentApp(services) {
     const teamHead = $('#view-teams .page-head');
     if (teamHead) teamHead.innerHTML = '<div><span class="eyebrow dark">Stable registration roster</span><h1>Entries</h1><p>Confirmed entries retain their identity when names, seeds, or affiliations change.</p></div><a class="btn btn-primary" href="registration/">Open registration desk</a>';
     const standingsHead = $('#view-standings .page-head');
-    if (standingsHead) standingsHead.innerHTML = '<div><span class="eyebrow dark">Live calculations</span><h1>Division & Pool Standings</h1><p>Standings and advancement are calculated by the Standard Tournament Engine.</p></div>';
+    if (standingsHead) standingsHead.innerHTML = '<div><span class="eyebrow dark">Live calculations</span><h1>Team & Division Standings</h1><p>Every representative win adds one point to their team, including a walkover. Division standings and advancement are calculated by the Standard Tournament Engine.</p></div>';
     const courtsHead = $('#view-courts .page-head');
     if (courtsHead) courtsHead.innerHTML = '<div><span class="eyebrow dark">Matchday operations</span><h1>Live Courts & Pre-Schedule</h1><p>Run active courts while keeping every upcoming match visible in its planned court and time slot.</p></div><button class="btn btn-quiet" id="standardRebuildSchedule" type="button">Rebuild pre-schedule</button>';
     const calendarHead = $('#view-courts .court-timeline-panel .panel-head');
@@ -1141,12 +1189,16 @@ export function initializeStandardTournamentApp(services) {
   }
 
   function standardMatchRules(match) {
-    const elimination = match.stage === 'elimination';
-    return state.matchSettings?.[match.id] || {
-      scoring:'side-out', target:elimination ? 15 : Number(config.scoring?.target) || 11,
-      winBy:2, hardCap:elimination ? 19 : Number(config.scoring?.hardCap) || 11,
-      timer:!elimination, timerSeconds:(state.standardScheduling?.matchMinutes || 18) * 60
-    };
+    const championship = match.medal === 'gold';
+    // Sportsfest rules are fixed per phase. Old per-match settings are
+    // intentionally ignored so an earlier 15-to-19 preset cannot leak into a
+    // preliminary match or a Championship final.
+    return championship
+      ? { mode:'championship', label:'Championship Final', scoring:'side-out', twoServes:true,
+        target:11, winBy:2, hardCap:15, suddenDeathAt:null, timer:false, timerSeconds:0 }
+      : { mode:'preliminary', label:'Preliminary', scoring:'side-out', twoServes:true,
+        target:11, winBy:2, hardCap:11, suddenDeathAt:10, timer:true,
+        timerSeconds:(state.standardScheduling?.matchMinutes || 18) * 60 };
   }
 
   function standardPortraits(entryId) {
@@ -1168,7 +1220,7 @@ export function initializeStandardTournamentApp(services) {
     if (!match) return `<section class="active-court empty ${next && standardCheckinWarning(next) ? 'needs-checkin' : ''}"><b>Court vacant</b><small>${next ? `${entryName(next.a)} (${affiliationName(next.a)}) vs ${entryName(next.b)} (${affiliationName(next.b)}) · ${state.standardScheduling?.dispatchMode === 'fixed-sequence' ? 'Next in sequence' : timeLabel(next.startMinutes)}` : 'Schedule complete'}</small>${next && standardCheckinWarning(next) ? `<strong class="checkin-alert">⚠ ${esc(standardCheckinWarning(next))}</strong>` : ''}${next ? `<button class="btn btn-primary" data-promote-court="${courtNumber}">Promote next match</button>` : ''}</section>`;
     const live = state.liveScoring?.[match.id] || court, score = scoreFor(match.id), seconds = elapsedSeconds(live), warning = standardCheckinWarning(match), official = state.refereeAssignments?.[match.id], interruption = live.interruption?.active ? live.interruption : null, rules = standardMatchRules(match);
     const winner = score && Number(score.a) !== Number(score.b) ? Number(score.a) > Number(score.b) ? 'a' : 'b' : '';
-    return `<section class="active-court category-${slug(match.category)} ${standardTimerTone(seconds)} ${!live.running && seconds && !score ? 'match-paused' : ''} ${interruption ? (interruption.type === 'team' ? 'interruption-warning' : 'interruption-danger') : ''} ${warning ? 'needs-checkin' : ''}"><div class="active-court-top"><span>${esc(match.divisionName)} · Court ${courtNumber}</span><b data-court-status="${courtNumber}">${esc(standardCourtStatus(live, score))}</b></div>${warning ? `<div class="checkin-alert">⚠ ${esc(warning)}</div>` : ''}${interruption ? `<div class="court-interruption"><span>${esc(interruption.label)}</span><b data-standard-interruption-clock="${courtNumber}">${timerLabel(elapsedSeconds(interruption))}</b><button data-end-standard-interruption="${courtNumber}">End interruption</button></div>` : ''}<div class="active-score"><div class="active-team ${winner === 'a' ? 'winner' : ''}"><div>${standardPortraits(match.a)}</div><strong>${winner === 'a' ? '🏆 ' : ''}${esc(entryName(match.a))}</strong><small class="pair-affiliation">${esc(affiliationName(match.a))}</small></div><b>${score?.a ?? live.a ?? 0}<small>–</small>${score?.b ?? live.b ?? 0}</b><div class="active-team ${winner === 'b' ? 'winner' : ''}"><div>${standardPortraits(match.b)}</div><strong>${winner === 'b' ? '🏆 ' : ''}${esc(entryName(match.b))}</strong><small class="pair-affiliation">${esc(affiliationName(match.b))}</small></div></div><div class="court-official"><span>Referee</span><b>${official ? esc(standardRefereeName(official)) : 'Unassigned'}</b><button data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? 'Swap' : 'Assign'}</button></div><div class="court-rule-summary"><b>${match.medal === 'gold' ? 'Gold / Silver' : match.stage === 'elimination' ? 'Elimination' : 'Preliminary'}</b><span>${rules.scoring === 'rally' ? 'Rally scoring' : 'Side-out scoring'} · to ${rules.target} · ${rules.timer ? 'timed' : 'no timer'}</span></div><div class="active-actions">${rules.timer ? `<button class="court-timer-control ${live.running ? 'is-running' : seconds ? 'is-paused' : ''}" data-timer-toggle="${courtNumber}" ${score || interruption ? 'disabled' : ''}><span>${interruption ? 'Interrupted' : live.running ? 'Pause' : seconds ? 'Resume' : 'Start'}</span><b data-court-clock="${courtNumber}">${timerLabel(seconds)}</b></button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${esc(match.id)}">${score ? 'Review score' : 'Update score'}</button>${score ? '' : `<button class="end-match-action" data-end-match="${esc(match.id)}">End Match</button>`}<button data-standard-settings="${courtNumber}" ${score ? 'disabled' : ''}>Scoring settings</button><button data-standard-tools="${courtNumber}" ${score ? 'disabled' : ''}>Match tools</button><button class="vacate" data-vacate-court="${courtNumber}" ${score ? '' : 'disabled'}>Confirm court vacant</button></div></section>`;
+    return `<section class="active-court category-${slug(match.category)} ${standardTimerTone(seconds)} ${!live.running && seconds && !score ? 'match-paused' : ''} ${interruption ? (interruption.type === 'team' ? 'interruption-warning' : 'interruption-danger') : ''} ${warning ? 'needs-checkin' : ''}"><div class="active-court-top"><span>${esc(match.divisionName)} · Court ${courtNumber}</span><b data-court-status="${courtNumber}">${esc(standardCourtStatus(live, score))}</b></div>${warning ? `<div class="checkin-alert">⚠ ${esc(warning)}</div>` : ''}${interruption ? `<div class="court-interruption"><span>${esc(interruption.label)}</span><b data-standard-interruption-clock="${courtNumber}">${timerLabel(elapsedSeconds(interruption))}</b><button data-end-standard-interruption="${courtNumber}">End interruption</button></div>` : ''}<div class="active-score"><div class="active-team ${winner === 'a' ? 'winner' : ''}"><div>${standardPortraits(match.a)}</div><strong>${winner === 'a' ? '🏆 ' : ''}${esc(entryName(match.a))}</strong><small class="pair-affiliation">${esc(affiliationName(match.a))}</small></div><b>${score?.a ?? live.a ?? 0}<small>–</small>${score?.b ?? live.b ?? 0}</b><div class="active-team ${winner === 'b' ? 'winner' : ''}"><div>${standardPortraits(match.b)}</div><strong>${winner === 'b' ? '🏆 ' : ''}${esc(entryName(match.b))}</strong><small class="pair-affiliation">${esc(affiliationName(match.b))}</small></div></div><div class="court-official"><span>Referee</span><b>${official ? esc(standardRefereeName(official)) : 'Unassigned'}</b><button data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? 'Swap' : 'Assign'}</button></div><div class="court-rule-summary"><b>${rules.label}</b><span>Side-out · two serves · first to 11 · ${rules.hardCap === 11 ? 'sudden death at 10-10' : 'win by 2 · 15-point cap'}</span></div><div class="active-actions">${rules.timer ? `<button class="court-timer-control ${live.running ? 'is-running' : seconds ? 'is-paused' : ''}" data-timer-toggle="${courtNumber}" ${score || interruption ? 'disabled' : ''}><span>${interruption ? 'Interrupted' : live.running ? 'Pause' : seconds ? 'Resume' : 'Start'}</span><b data-court-clock="${courtNumber}">${timerLabel(seconds)}</b></button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${esc(match.id)}">${score ? 'Review score' : 'Update score'}</button>${score ? '' : `<button class="end-match-action" data-end-match="${esc(match.id)}">End Match</button>`}<button data-standard-settings="${courtNumber}" ${score ? 'disabled' : ''}>Scoring rules</button><button data-standard-tools="${courtNumber}" ${score ? 'disabled' : ''}>Match tools</button><button class="vacate" data-vacate-court="${courtNumber}" ${score ? '' : 'disabled'}>Confirm court vacant</button></div></section>`;
   }
 
   function standardScheduleCell(courtNumber, minute) {
@@ -1287,10 +1339,10 @@ export function initializeStandardTournamentApp(services) {
     if (!match) return;
     const rules = standardMatchRules(match);
     $('#standardCourtModal')?.remove();
-    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber} · ${esc(match.divisionName)}</span><h2>Scoring settings</h2><div class="stack-form"><label>Scoring<select id="standardScoringType"><option value="side-out" ${rules.scoring === 'side-out' ? 'selected' : ''}>Side-out scoring</option><option value="rally" ${rules.scoring === 'rally' ? 'selected' : ''}>Rally scoring</option></select></label><label>Winning score<input id="standardTargetScore" type="number" min="1" value="${rules.target}"></label><label>Win by<input id="standardWinBy" type="number" min="1" value="${rules.winBy}"></label><label>Hard cap<input id="standardHardCap" type="number" min="1" value="${rules.hardCap}"></label><label>Match timer (minutes)<input id="standardMatchMinutes" type="number" min="1" max="180" value="${Math.round((rules.timerSeconds || 1080) / 60)}"></label><label class="setting-check"><input id="standardTimerEnabled" type="checkbox" ${rules.timer ? 'checked' : ''}> Use match timer</label><button class="btn btn-primary" id="saveStandardRules">Save match settings</button></div></section></div>`);
+    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber} · ${esc(match.divisionName)}</span><h2>${esc(rules.label)} scoring rules</h2><div class="stack-form standard-rules-readonly"><p><b>Side-out scoring</b> · Two serves per service turn · First to 11 points.</p><p>${rules.hardCap === 11 ? '<b>Preliminary:</b> at 10-10, the next rally decides the match. Operational timer is managed from the court.' : '<b>Championship Final:</b> win by 2 until 15; the team that reaches 15 wins regardless of margin. There is no match timer.'}</p><button class="btn btn-primary" id="saveStandardRules">Close</button></div></section></div>`);
     const modal = $('#standardCourtModal'), close = () => modal.remove();
     modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-standard-modal]')) close(); };
-    $('#saveStandardRules').onclick = () => { state.matchSettings ||= {}; state.matchSettings[matchId] = { scoring:$('#standardScoringType').value, target:Math.max(1, Number($('#standardTargetScore').value) || 11), winBy:Math.max(1, Number($('#standardWinBy').value) || 2), hardCap:Math.max(1, Number($('#standardHardCap').value) || 11), timer:$('#standardTimerEnabled').checked, timerSeconds:Math.max(60, Number($('#standardMatchMinutes').value || 18) * 60) }; recordActivity(`Scoring settings updated on Court ${courtNumber}`, matchId); publishState(); close(); renderCourts(); };
+    $('#saveStandardRules').onclick = close;
   }
 
   function endStandardInterruption(courtNumber) {
@@ -1482,10 +1534,19 @@ export function initializeStandardTournamentApp(services) {
     return `<button type="button" class="standard-division-tab ${division.id === active ? 'active' : ''}" ${attribute}="${esc(division.id)}" aria-pressed="${division.id === active}"><span>${esc(definition?.name || division.id)}</span><small>${division.entryIds.length} pairs · ${total ? `${complete}/${total} complete` : 'Awaiting draw'}</small></button>`;
   }
 
+  function renderTeamRankings() {
+    const target = $('#clubStandings');
+    if (!target) return;
+    const rows = state?.teamStandings || [];
+    target.hidden = false;
+    target.innerHTML = `<section class="panel standard-team-rankings"><header><div><span class="section-label">Team points</span><h2>Live Team Rankings</h2><p>Every completed representative win is worth 1 team point. Automatic walkovers count as wins. A null result does not award a point.</p></div><strong>${rows.reduce((sum, row) => sum + Number(row.total || 0), 0)} pts awarded</strong></header><div class="standard-team-grid">${rows.map((row, index) => `<article class="standard-team-card ${index === 0 ? 'leader' : ''}" style="--team-color:${esc(row.color || config.brand?.primary || '#0a6b98')}"><div><span class="team-rank">${row.rank || index + 1}</span>${row.logo ? `<img src="${esc(row.logo)}" alt="${esc(row.name)} logo">` : '<i class="team-logo-fallback">★</i>'}<span><b>${esc(row.name)}</b><small>${index === 0 ? 'Current leader' : 'Team standing'}</small></span><strong>${Number(row.total || 0)}<small>pts</small></strong></div><dl><div><dt>W-L</dt><dd>${row.wins}-${row.losses}</dd></div><div><dt>Played</dt><dd>${row.played}</dd></div><div><dt>+/-</dt><dd>${Number(row.differential || 0) > 0 ? '+' : ''}${row.differential || 0}</dd></div></dl>${row.recentWins?.length ? `<p><b>Latest win:</b> ${esc(row.recentWins[0].names)}${row.recentWins[0].walkover ? ' · Walkover' : ''}</p>` : ''}</article>`).join('') || '<p class="empty">Team rankings will appear once entries are affiliated with a team.</p>'}</div></section>`;
+  }
+
   function renderStandings() {
     const tabs = $('#standingsTabs');
     const grid = $('#standingsGrid');
     if (!tabs || !grid || !state) return;
+    renderTeamRankings();
     const definitions = divisionLookup(state.standardState);
     activeDivision = definitions.has(activeDivision) ? activeDivision : state.standardState.divisions[0]?.id || '';
     tabs.className = 'standard-division-nav';
@@ -1614,7 +1675,8 @@ export function initializeStandardTournamentApp(services) {
         const order = definition?.standings?.order || DEFAULT_RANKING_ORDER;
         const configured = definition?.configuredFormat || definition?.format || 'full-round-robin';
         const qualifierCount = Number(definition?.qualifiers?.count ?? 2) || 2;
-        return `<fieldset class="standard-ranking-order" data-standard-division-settings="${esc(division.id)}"><legend>${esc(definition?.name || division.id)}</legend><label class="standard-format-field">Format<select data-standard-format="${esc(division.id)}"><option value="cross-affiliation-round-robin" ${configured === 'cross-affiliation-round-robin' ? 'selected' : ''}>Cross-team round robin</option><option value="cross-affiliation-round-robin-elimination" ${configured === 'cross-affiliation-round-robin-elimination' ? 'selected' : ''}>Cross-team round robin → elimination</option><option value="full-round-robin" ${configured === 'full-round-robin' ? 'selected' : ''}>Full round robin</option><option value="round-robin-elimination" ${configured === 'round-robin-elimination' ? 'selected' : ''}>Round robin → elimination</option><option value="pools-elimination" ${configured === 'pools-elimination' ? 'selected' : ''}>Pools → elimination</option><option value="single-elimination" ${configured === 'single-elimination' ? 'selected' : ''}>Single elimination</option></select></label><label class="standard-format-field">Pairs advancing<input data-standard-qualifiers="${esc(division.id)}" type="number" min="0" max="32" value="${qualifierCount}"></label>${DEFAULT_RANKING_ORDER.map((criterion, index) => `<label>${index + 1}<select data-standard-ranking="${esc(division.id)}"><option value="wins" ${order[index] === 'wins' ? 'selected' : ''}>Wins</option><option value="pointDifferential" ${order[index] === 'pointDifferential' ? 'selected' : ''}>Point Differential</option><option value="pointsFor" ${order[index] === 'pointsFor' ? 'selected' : ''}>Points For</option><option value="pointsAgainst" ${order[index] === 'pointsAgainst' ? 'selected' : ''}>Points Against</option><option value="headToHead" ${order[index] === 'headToHead' ? 'selected' : ''}>Head-to-head</option></select></label>`).join('')}</fieldset>`;
+        const distinct = definition?.qualifiers?.distinctAffiliations === true || configured.startsWith('cross-affiliation');
+        return `<fieldset class="standard-ranking-order" data-standard-division-settings="${esc(division.id)}"><legend>${esc(definition?.name || division.id)}</legend><label class="standard-format-field">Format<select data-standard-format="${esc(division.id)}"><option value="cross-affiliation-round-robin" ${configured === 'cross-affiliation-round-robin' ? 'selected' : ''}>Cross-team round robin</option><option value="cross-affiliation-round-robin-elimination" ${configured === 'cross-affiliation-round-robin-elimination' ? 'selected' : ''}>Cross-team round robin → elimination</option><option value="full-round-robin" ${configured === 'full-round-robin' ? 'selected' : ''}>Full round robin</option><option value="round-robin-elimination" ${configured === 'round-robin-elimination' ? 'selected' : ''}>Round robin → elimination</option><option value="pools-elimination" ${configured === 'pools-elimination' ? 'selected' : ''}>Pools → elimination</option><option value="single-elimination" ${configured === 'single-elimination' ? 'selected' : ''}>Single elimination</option></select></label><label class="standard-format-field">Pairs advancing<input data-standard-qualifiers="${esc(division.id)}" type="number" min="0" max="32" value="${qualifierCount}"></label><label class="setting-check standard-distinct-qualifiers"><input type="checkbox" data-standard-distinct-affiliations="${esc(division.id)}" ${distinct ? 'checked' : ''}> Championship qualifiers must represent different teams</label>${DEFAULT_RANKING_ORDER.map((criterion, index) => `<label>${index + 1}<select data-standard-ranking="${esc(division.id)}"><option value="wins" ${order[index] === 'wins' ? 'selected' : ''}>Wins</option><option value="pointDifferential" ${order[index] === 'pointDifferential' ? 'selected' : ''}>Point Differential</option><option value="pointsFor" ${order[index] === 'pointsFor' ? 'selected' : ''}>Points For</option><option value="pointsAgainst" ${order[index] === 'pointsAgainst' ? 'selected' : ''}>Points Against</option><option value="headToHead" ${order[index] === 'headToHead' ? 'selected' : ''}>Head-to-head</option></select></label>`).join('')}</fieldset>`;
       }).join('');
       settingsGrid.insertAdjacentHTML('afterbegin', `<article class="panel standard-summary standard-dispatch-settings"><span class="section-label">Schedule and rankings</span><h2>Matchday sequence</h2><p>All standard schedules begin at 9:00 AM in 18-minute blocks. The fixed sequence follows the generated, data-driven draw order shown in the schedule reference.</p><label class="setting-check"><input type="radio" name="standardDispatchMode" value="fixed-sequence" ${scheduling.dispatchMode === 'fixed-sequence' ? 'checked' : ''}> Fixed sequence · send the next ready match to any open court</label><label class="setting-check"><input type="radio" name="standardDispatchMode" value="pre-scheduled" ${scheduling.dispatchMode === 'pre-scheduled' ? 'checked' : ''}> Pre-scheduled · dispatch only to the assigned court</label>${rankingControls}<button class="btn btn-primary" id="saveStandardScheduling">Save dispatch and ranking order</button></article>`);
       $('.standard-dispatch-settings .setting-check')?.insertAdjacentHTML('beforebegin', `<label class="standard-format-field">Default match timer (minutes)<input id="standardDefaultMatchMinutes" type="number" min="1" max="180" value="${scheduling.matchMinutes || 18}"></label>`);
@@ -1627,7 +1689,7 @@ export function initializeStandardTournamentApp(services) {
           orders[id] = order;
           const format = $('[data-standard-format]', fieldset)?.value || 'full-round-robin';
           const qualifiers = Math.max(0, Number($('[data-standard-qualifiers]', fieldset)?.value) || 0);
-          formats[id] = { format, qualifiers:{ count:qualifiers } };
+          formats[id] = { format, qualifiers:{ count:qualifiers, distinctAffiliations:Boolean($('[data-standard-distinct-affiliations]', fieldset)?.checked) } };
         });
         if (Object.keys(orders).length !== state.standardState.divisions.length) return toast('Each ranking criterion must appear exactly once in every division.');
         state.standardRankingOrders = orders;
@@ -1807,6 +1869,10 @@ export function initializeStandardTournamentApp(services) {
     if (!activeMatchId) return;
     const a = numericScore($('#scoreA')?.value), b = numericScore($('#scoreB')?.value);
     if (a === null || b === null) return void ($('#scoreMessage').textContent = 'Enter whole-number scores of zero or higher.');
+    const match = state.matches.find(item => item.id === activeMatchId), rules = match && standardMatchRules(match), high = Math.max(a, b), low = Math.min(a, b);
+    if (!match || a === b) return void ($('#scoreMessage').textContent = 'A completed match needs a decisive score.');
+    if (high > rules.hardCap) return void ($('#scoreMessage').textContent = `The maximum score for this match is ${rules.hardCap}.`);
+    if (rules.mode === 'championship' && !(high === 15 || (high >= 11 && high - low >= 2))) return void ($('#scoreMessage').textContent = 'Championship Final: first to 11, win by 2, with a 15-point maximum cap.');
     try {
       applyResult(activeMatchId, { a, b });
       closeScore();

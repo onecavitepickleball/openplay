@@ -19,6 +19,14 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
   const scoreComplete = id => { const score = state?.scores?.[id]; return score && score.a !== '' && score.b !== ''; };
 
   function courtMatch(courtNo) { const id = state?.courts?.[courtNo]?.matchId; return id ? state.matches?.find(match => match.id === id) : null; }
+  function matchRules(match) {
+    if (state?.competitionType === 'standard' || config.competitionType === 'standard') {
+      return match?.medal === 'gold'
+        ? { mode:'championship', target:11, hardCap:15, timer:false }
+        : { mode:'preliminary', target:11, hardCap:11, timer:true };
+    }
+    return state?.matchSettings?.[match?.id] || { mode:'round-robin', target:11, hardCap:11, suddenDeathAt:10, timer:true };
+  }
   function renderCourts() {
     if (!state) return;
     $('#kioskCourts').innerHTML = Array.from({ length: config.event.courts }, (_, index) => {
@@ -50,9 +58,9 @@ const { watchAuth, authorizeTournamentTool, watchControl, watchMatches, publishM
   setupCanvas($('#signatureA')); setupCanvas($('#signatureB')); $$('[data-clear-signature]').forEach(button => button.onclick = () => clearSignature(button.dataset.clearSignature)); $('#closeKioskScore').onclick = closeScoreSheet; $('#kioskScoreSheet').onclick = event => { if (event.target === $('#kioskScoreSheet')) closeScoreSheet(); };
   $('#scoreReportForm').onsubmit = async event => {
     event.preventDefault(); const match = state.matches.find(item => item.id === selectedMatchId); if (!match) return;
-    const a = Number($('#kioskScoreA').value), b = Number($('#kioskScoreB').value), signatureA = $('#signatureA'), signatureB = $('#signatureB'), rules = state.matchSettings?.[match.id] || { target:11, suddenDeathAt:10 }, maximum = Math.max(Number(rules.target)||11, Number(rules.suddenDeathAt||10)+1);
+    const a = Number($('#kioskScoreA').value), b = Number($('#kioskScoreB').value), signatureA = $('#signatureA'), signatureB = $('#signatureB'), rules = matchRules(match), maximum = Number(rules.hardCap || Math.max(Number(rules.target)||11, Number(rules.suddenDeathAt||10)+1));
     if (!signatureA.dataset.signed || !signatureB.dataset.signed) return $('#scoreFormError').textContent = 'Both pair representatives must sign before submission.';
-    if (!Number.isInteger(a) || !Number.isInteger(b) || a === b || Math.max(a, b) > maximum || Math.min(a, b) < 0) return $('#scoreFormError').textContent = `Enter whole-number scores from 0 to ${maximum}. A timed match may finish below its target, but it cannot end tied.`;
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a === b || Math.max(a, b) > maximum || Math.min(a, b) < 0) return $('#scoreFormError').textContent = `Enter whole-number scores from 0 to ${maximum}. ${rules.mode === 'championship' ? 'The Championship Final is first to 11, win by 2, capped at 15.' : 'A timed preliminary match may finish below 11, but it cannot end tied.'}`;
     const prior = state.scores?.[match.id]; if (prior && !confirm(`A result already exists: ${prior.a}-${prior.b}. Send a replacement report?`)) return;
     const live = { ...(state.liveScoring?.[match.id] || {}), a, b, running:false, startedAt:null, complete:true }, submittedAt = new Date().toISOString();
     const score = { a, b, resultType:'player-reported', completedAt: prior?.completedAt || submittedAt, confirmation: { source:'player-kiosk', submittedBy:user.email, submittedAt, aSignature:signatureA.toDataURL(), bSignature:signatureB.toDataURL() } };

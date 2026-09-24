@@ -2,7 +2,6 @@
 .standard-tournament-control [data-view="draw"],
 .standard-tournament-control #view-dream,
 .standard-tournament-control #view-draw,
-.standard-tournament-control #clubStandings,
 .standard-tournament-control #dreamBreakerSummary {
   display: none !important;
 }
@@ -72,8 +71,32 @@
 .standard-tournament-control .standard-ranking-order legend { padding:0 5px; color:#31586b; font:800 10px "Space Mono", monospace; letter-spacing:.06em; text-transform:uppercase; }
 .standard-tournament-control .standard-ranking-order label { display:grid; gap:4px; color:#6b828d; font:800 10px "Space Mono", monospace; }
 .standard-tournament-control .standard-ranking-order select { width:100%; min-width:0; padding:8px; border:1px solid #c8d9e1; border-radius:8px; background:#fff; color:#153b4e; font:700 12px Inter,sans-serif; }
+.standard-tournament-control .standard-distinct-qualifiers { grid-column:1 / -1; padding:8px 10px; border:1px solid #b9d8c6; border-radius:8px; background:#effaf3; color:#155b38; font-family:Inter,sans-serif; font-size:12px; }
 .standard-tournament-control .standard-third-place { margin:16px 0 0; padding:11px 13px; border-radius:10px; background:#fff5e3; color:#714800; }
 @media(max-width:900px){.standard-tournament-control .standard-ranking-order{grid-template-columns:1fr}.standard-tournament-control .standard-ranking-order label{grid-template-columns:24px minmax(0,1fr);align-items:center}}
+
+.standard-tournament-control .standard-team-rankings { margin:0 0 22px; border-color:#cce1e8; overflow:hidden; }
+.standard-tournament-control .standard-team-rankings > header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; padding:18px 20px; background:linear-gradient(105deg,#eef9f4,#edf6fb); }
+.standard-tournament-control .standard-team-rankings h2 { margin:4px 0; color:#09283a; }
+.standard-tournament-control .standard-team-rankings p { margin:0; color:#587180; font-size:13px; line-height:1.45; }
+.standard-tournament-control .standard-team-rankings > header > strong { white-space:nowrap; color:#0c6c45; font:800 13px "Space Mono",monospace; }
+.standard-tournament-control .standard-team-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; padding:14px; }
+.standard-tournament-control .standard-team-card { padding:14px; border:1px solid #d5e3e8; border-top:4px solid var(--team-color); border-radius:12px; background:#fff; }
+.standard-tournament-control .standard-team-card.leader { box-shadow:0 10px 22px rgba(9,40,58,.1); }
+.standard-tournament-control .standard-team-card > div { display:grid; grid-template-columns:28px 34px minmax(0,1fr) auto; align-items:center; gap:8px; }
+.standard-tournament-control .standard-team-card img,.standard-tournament-control .team-logo-fallback { width:34px; height:34px; border-radius:9px; object-fit:contain; background:#f1f7f9; }
+.standard-tournament-control .team-logo-fallback { display:grid; place-items:center; color:var(--team-color); font-style:normal; }
+.standard-tournament-control .team-rank { color:#6d8490; font:800 12px "Space Mono",monospace; }
+.standard-tournament-control .standard-team-card b { display:block; color:#09283a; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.standard-tournament-control .standard-team-card small { color:#6a808b; font-size:10px; }
+.standard-tournament-control .standard-team-card > div > strong { color:#0a6b98; font-size:24px; line-height:1; text-align:right; }
+.standard-tournament-control .standard-team-card > div > strong small { display:block; font-size:9px; text-transform:uppercase; }
+.standard-tournament-control .standard-team-card dl { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:14px 0 9px; }
+.standard-tournament-control .standard-team-card dl div { padding:7px; border-radius:8px; background:#f4f8fa; }
+.standard-tournament-control .standard-team-card dt { color:#6d8490; font-size:9px; text-transform:uppercase; }
+.standard-tournament-control .standard-team-card dd { margin:2px 0 0; color:#16384a; font-weight:800; }
+.standard-tournament-control .standard-team-card > p { min-height:18px; font-size:11px; }
+@media(max-width:600px){.standard-tournament-control .standard-team-rankings > header{display:block}.standard-tournament-control .standard-team-rankings > header > strong{display:block;margin-top:8px}.standard-tournament-control .standard-team-grid{grid-template-columns:1fr}}
 
 .standard-tournament-control .score-chip {
   min-height: 38px;

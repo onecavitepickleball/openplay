@@ -181,6 +181,27 @@ test('affiliation round robin can feed an elimination bracket through qualifiers
   assert.equal(stage(state, 1).matches.filter(match => match.status === 'ready').length, 2);
 });
 
+test('distinct-affiliation qualifiers skip a same-team second place for the Championship Final', () => {
+  const entries = [
+    { id:'meralco-1', affiliationId:'meralco', seed:1 }, { id:'meralco-2', affiliationId:'meralco', seed:2 },
+    { id:'mgen-1', affiliationId:'mgen', seed:3 }, { id:'mpower-1', affiliationId:'mpower', seed:4 }
+  ];
+  let state = engine.createCompetition({
+    id:'different-finalists', mode:'standard', affiliations:['meralco','mgen','mpower'].map(id => ({ id })), entries,
+    divisions:[{ id:'open', entryIds:entries.map(entry => entry.id), format:'round-robin', qualifiers:{ count:2, distinctAffiliations:true }, standings:{ order:['wins','pointDifferential','pointsFor','seed'] } }]
+  });
+  // Meralco-1 finishes first, Meralco-2 second, then MGen-1. The qualifier
+  // selector must promote MGen-1 as the eligible opposing finalist.
+  for (const match of stage(state).matches) {
+    const a = match.participants.a, b = match.participants.b;
+    const winner = a === 'meralco-1' || (a === 'meralco-2' && b !== 'meralco-1') ? a : b === 'meralco-1' || b === 'meralco-2' ? b : a;
+    state = engine.recordResult(state, match.id, winner === a ? { a:11, b:4 } : { a:4, b:11 });
+  }
+  const final = stage(state, 1).matches.find(match => match.medal === 'gold');
+  assert.equal(final.status, 'ready');
+  assert.deepEqual(new Set(Object.values(final.participants)), new Set(['meralco-1', 'mgen-1']));
+});
+
 test('four qualifiers produce semifinals plus Gold/Silver and Bronze medal matches', () => {
   let state = engine.createCompetition(definition(9, {
     qualifiers:{ count:4 }, bronzeMatch:true,

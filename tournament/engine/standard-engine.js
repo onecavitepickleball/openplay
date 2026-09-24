@@ -74,10 +74,11 @@
     check(format !== 'single-elimination', 'A single-elimination division cannot have qualifiers');
     check(value && typeof value === 'object' && !Array.isArray(value), 'Qualifiers must be an object');
     if (roundRobinFormat(format)) {
-      check(Object.keys(value).every(key => key === 'count'), 'Round-robin qualifiers accept only count');
+      check(Object.keys(value).every(key => ['count', 'distinctAffiliations'].includes(key)), 'Round-robin qualifiers accept only count and distinctAffiliations');
       const count = integer(value.count, 0, 'Qualifier count');
       check(count <= sizes[0], 'Qualifier count exceeds entry count');
-      return { count };
+      check(value.distinctAffiliations === undefined || typeof value.distinctAffiliations === 'boolean', 'distinctAffiliations must be boolean');
+      return { count, distinctAffiliations: value.distinctAffiliations === true };
     }
     check(Object.keys(value).every(key => ['perPool', 'wildcards'].includes(key)),
       'Pool qualifiers accept only perPool and wildcards');
@@ -473,6 +474,20 @@
       const tiedEntryIds = row.tiedEntryIds.filter(entryId => entries.get(entryId)?.eligibleForAdvancement !== false);
       return { ...row, tied:tiedEntryIds.length > 0, tiedEntryIds };
     });
+    // A standard tournament may require the final to represent two different
+    // affiliations. In that case qualifier rank is the *eligible qualifier
+    // order*, not necessarily the raw table rank: after the leader, skip
+    // teammates until the next distinct affiliation is found.
+    const distinctAffiliationRows = rows => {
+      const selected = [], seen = new Set();
+      for (const row of rows) {
+        const affiliationId = entries.get(row.entryId)?.affiliationId || `entry:${row.entryId}`;
+        if (seen.has(affiliationId)) continue;
+        selected.push(row);
+        seen.add(affiliationId);
+      }
+      return selected;
+    };
     state.divisions.forEach(division => {
       const sources = new Map();
       division.stages.forEach(stage => {
@@ -494,6 +509,7 @@
             if (slot.type === 'qualifier') {
               const table = source.tables.find(table => table.poolId === slot.poolId);
               rows = table ? eligibleRows(table.rows) : [];
+              if (source.qualifiers?.distinctAffiliations === true && slot.poolId === null) rows = distinctAffiliationRows(rows);
             } else {
               // Do not pick wildcards until all automatic qualification boundaries are unambiguous.
               const cutoff = source.qualifiers.perPool;
