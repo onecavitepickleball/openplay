@@ -26,6 +26,7 @@ const CONTROL_ROLES = ['owner', 'tournament_admin', 'match_control'];
 const CONTROL_WRITE_DELAY = 35;
 const MATCH_WRITE_DELAY = 35;
 const controlWriteState = { timer: null, pending: null, waiters: [] };
+let controlWriteActive = false;
 const matchWriteStates = new Map();
 const pendingWrites = new Set();
 let pendingSequence = 0;
@@ -104,11 +105,21 @@ function settleWaiters(state, error) {
 }
 
 function flushControlWrite() {
-  const state = controlWriteState, pending = state.pending;
-  state.pending = null; state.timer = null;
-  if (!pending) return;
-  const writes = { state: pending };
-  writeControlNow(writes).then(() => settleWaiters(state), error => settleWaiters(state, error));
+  const state = controlWriteState;
+  state.timer = null;
+  if (controlWriteActive || !state.pending) return;
+  const pending = state.pending;
+  state.pending = null;
+  const waiters = state.waiters.splice(0);
+  controlWriteActive = true;
+  writeControlNow({ state: pending })
+    .then(() => settleWaiters({ waiters }), error => settleWaiters({ waiters }, error))
+    .finally(() => {
+      controlWriteActive = false;
+      // Keep one write in flight. While it was saving, many rapid clicks may
+      // have arrived; only their newest complete control snapshot is needed.
+      if (state.pending) flushControlWrite();
+    });
 }
 
 async function writeControlNow({ state }) {

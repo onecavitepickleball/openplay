@@ -20,7 +20,7 @@ const TIEBREAK_LABELS = {
 };
 const DEFAULT_RANKING_ORDER = ['wins', 'pointDifferential', 'pointsFor', 'pointsAgainst', 'headToHead'];
 const DISPATCH_MODES = new Set(['fixed-sequence', 'pre-scheduled']);
-const MERALCO_OFFICIAL_SCHEDULE_REVISION = 'meralco-official-2026-09-25-v1';
+const MERALCO_OFFICIAL_SCHEDULE_REVISION = 'meralco-official-2026-09-25-v2';
 // Official Meralco Sportsfest 2026 SCHEDULE tab. Default slots stay in results, not the court queue.
 const REFERENCE_MATCH_SEQUENCES = {
   "meralco-smc-sportsfest-2026-2026-09-25-9fbb": [
@@ -95,6 +95,11 @@ const nameKey = value => clean(value).normalize('NFD').replace(/[\u0300-\u036f]/
 // is therefore based on their normalized token set, not the written order.
 const personNameKey = value => nameKey(value).split(' ').filter(Boolean).sort().join(' ');
 const pairNameKey = value => clean(value).replace(/^pair\s*\d+\s*:\s*/i, '').split(/\s+(?:&|\/)\s+/).map(personNameKey).filter(Boolean).sort().join('::');
+// The official sheet spells this player "Kennt"; the confirmed registration
+// spells the same MGEN pair "Kenny". Match the roster without changing the
+// source order or treating these six fixtures as unmatched extras.
+const officialPairNameKey = (eventId, value) => pairNameKey(eventId === 'meralco-smc-sportsfest-2026-2026-09-25-9fbb'
+  ? clean(value).replace(/Martinez,\s*Kennt\b/i, 'Martinez, Kenny') : value);
 const entryNameKey = entry => {
   const players = (entry?.players || []).map(player => player?.fullName || player?.name).filter(Boolean);
   return pairNameKey(players.length ? players.join(' & ') : entry?.name || entry?.pairCode || entry?.id);
@@ -106,7 +111,7 @@ function referenceSequenceMap(config, entries) {
     : REFERENCE_MATCH_SEQUENCES[config.firebaseEventId] || [];
   const playable = rows.filter(([, , , pairA, , pairB]) => !isDefaultPlaceholder(pairA) && !isDefaultPlaceholder(pairB));
   const sequence = new Map(playable.map(([, category, , pairA, , pairB], index) => [
-    referenceMatchKey(category, pairNameKey(pairA), pairNameKey(pairB)), index + 1
+    referenceMatchKey(category, officialPairNameKey(config.firebaseEventId, pairA), officialPairNameKey(config.firebaseEventId, pairB)), index + 1
   ]));
   const entryKeys = new Map([...entries].map(([id, item]) => [id, entryNameKey(item)]));
   return { sequence, entryKeys, expected:playable.length };
@@ -803,7 +808,13 @@ export function initializeStandardTournamentApp(services) {
   let controlReady = false;
   let registrationsReady = false;
   let incomingControlState = null;
-  let pendingControlWrite = Promise.resolve();
+  let pendingControlSnapshot = null;
+  let controlWriteInFlight = false;
+  let pendingControlWaiters = [];
+  let publicWriteInFlight = false;
+  let publicWriteDirty = false;
+  let publicWriteTimer = null;
+  const pendingMatchVersions = new Map();
   let destroyed = false;
   let refereeDirectory = [];
   let staffDirectory = [];
@@ -917,20 +928,57 @@ export function initializeStandardTournamentApp(services) {
     await services.publishPublicView(state.publicShare.token, standardPublicProjection());
   }
 
+  function schedulePublicWrite() {
+    if (!state?.publicShare?.token || publicWriteTimer || publicWriteInFlight || !publicWriteDirty) return;
+    publicWriteTimer = setTimeout(async () => {
+      publicWriteTimer = null;
+      if (!publicWriteDirty || !state?.publicShare?.token) return;
+      publicWriteDirty = false;
+      publicWriteInFlight = true;
+      try { await publishPublicState(); }
+      catch (_) { toast('Public standings sync failed. Check the connection and try again.'); }
+      finally { publicWriteInFlight = false; schedulePublicWrite(); }
+    }, 150);
+  }
+
+  async function flushControlState() {
+    if (controlWriteInFlight || !pendingControlSnapshot) return;
+    const snapshot = pendingControlSnapshot;
+    const waiters = pendingControlWaiters;
+    pendingControlSnapshot = null;
+    pendingControlWaiters = [];
+    controlWriteInFlight = true;
+    try {
+      await services.publishControl(snapshot);
+      publicWriteDirty = true;
+      schedulePublicWrite();
+      waiters.forEach(resolve => resolve());
+    } catch (_) {
+      toast('Cloud sync failed. Check the connection and try again.');
+      waiters.forEach(resolve => resolve());
+    } finally {
+      controlWriteInFlight = false;
+      if (pendingControlSnapshot) queueMicrotask(flushControlState);
+    }
+  }
+
   function publishState() {
     if (!currentUser || applyingCloud || !state) return Promise.resolve();
     state.updatedAt = new Date().toISOString();
     persistLocal();
-    const snapshot = clone(state);
-    pendingControlWrite = pendingControlWrite.catch(() => {}).then(() => services.publishControl(snapshot));
-    if (state.publicShare?.token) pendingControlWrite = pendingControlWrite.then(() => publishPublicState());
-    return pendingControlWrite.catch(() => toast('Cloud sync failed. Check the connection and try again.'));
+    pendingControlSnapshot = clone(state);
+    const settled = new Promise(resolve => pendingControlWaiters.push(resolve));
+    queueMicrotask(flushControlState);
+    return settled;
   }
 
   function publishLiveMatch(matchId) {
     if (typeof services.publishMatch !== 'function') return;
+    const version = (pendingMatchVersions.get(matchId) || 0) + 1;
+    pendingMatchVersions.set(matchId, version);
     services.publishMatch(matchId, clone(state.liveScoring?.[matchId] || null), clone(state.scores?.[matchId] || null))
-      .catch(() => toast('Live match sync failed. Check the connection and try again.'));
+      .catch(() => toast('Live match sync failed. Check the connection and try again.'))
+      .finally(() => { if (pendingMatchVersions.get(matchId) === version) pendingMatchVersions.delete(matchId); });
   }
 
   function applyAdministrativeDefaults(engineState) {
@@ -1014,10 +1062,9 @@ export function initializeStandardTournamentApp(services) {
     if (shouldPublish) {
       publishState();
       if (typeof services.publishMatch === 'function') {
-        services.publishMatch(matchId, clone(state.liveScoring?.[matchId] || null), clone(state.scores[matchId] || null))
-          .catch(() => toast('The match result was saved to control state, but its live feed needs another try.'));
+        publishLiveMatch(matchId);
         Object.keys(priorScores).filter(id => id !== matchId && !state.scores[id]).forEach(id => {
-          services.publishMatch(id, clone(state.liveScoring?.[id] || null), null).catch(() => {});
+          publishLiveMatch(id);
         });
       }
     }
@@ -1027,14 +1074,22 @@ export function initializeStandardTournamentApp(services) {
     latestMatchDocuments = Array.isArray(items) ? items : [];
     if (!state) return;
     let changed = false;
+    let liveChanged = false;
     const priorScores = { ...state.scores };
     for (const item of latestMatchDocuments) {
       const projected = state.matches.find(match => match.id === item.id);
-      if (!projected) continue;
+      // Administrative walkovers/nulls are engine-generated results. An old
+      // empty match document must never clear and re-create them on each feed.
+      if (!projected || projected.administrative || pendingMatchVersions.has(item.id)) continue;
       if (Object.prototype.hasOwnProperty.call(item, 'live')) {
         state.liveScoring ||= {};
-        if (item.live) state.liveScoring[item.id] = clone(item.live);
-        else delete state.liveScoring[item.id];
+        const previousLive = state.liveScoring[item.id] || null;
+        const nextLive = item.live || null;
+        if (JSON.stringify(previousLive) !== JSON.stringify(nextLive)) {
+          if (nextLive) state.liveScoring[item.id] = clone(nextLive);
+          else delete state.liveScoring[item.id];
+          liveChanged = true;
+        }
       }
       if (!Object.prototype.hasOwnProperty.call(item, 'score')) continue;
       const current = engineMatch(item.id);
@@ -1055,11 +1110,14 @@ export function initializeStandardTournamentApp(services) {
       if (rerender) {
         publishState();
         if (typeof services.publishMatch === 'function') Object.keys(priorScores).filter(id => !state.scores[id]).forEach(id => {
-          services.publishMatch(id, clone(state.liveScoring?.[id] || null), null).catch(() => {});
+          publishLiveMatch(id);
         });
       }
     }
-    if (rerender) renderAll();
+    if (rerender) {
+      if (changed) renderAll();
+      else if (liveChanged) renderCourts();
+    }
   }
 
   function configurePage() {
@@ -1508,7 +1566,7 @@ export function initializeStandardTournamentApp(services) {
     recordActivity(`Called ${displayMatchId(match)} to Court ${courtNumber}`, nextId);
     syncProjection();
     publishState();
-    if (typeof services.publishMatch === 'function') services.publishMatch(nextId, clone(state.liveScoring[nextId]), clone(state.scores[nextId] || null)).catch(() => {});
+    publishLiveMatch(nextId);
     renderAll();
   }
 
@@ -1527,7 +1585,7 @@ export function initializeStandardTournamentApp(services) {
     state.liveScoring[court.matchId] = live;
     Object.assign(court, { running: live.running, startedAt: live.startedAt, elapsed: live.elapsed });
     publishState();
-    if (typeof services.publishMatch === 'function') services.publishMatch(court.matchId, clone(live), clone(state.scores[court.matchId] || null)).catch(() => {});
+    publishLiveMatch(court.matchId);
     renderCourts();
   }
 
@@ -2040,7 +2098,6 @@ export function initializeStandardTournamentApp(services) {
     try {
       const id = activeMatchId;
       applyResult(id, null);
-      if (typeof services.publishMatch === 'function') services.publishMatch(id, clone(state.liveScoring?.[id] || null), null).catch(() => {});
       closeScore();
       toast('Result cleared and advancement recalculated.');
     } catch (error) { $('#scoreMessage').textContent = error.message; }
@@ -2217,6 +2274,10 @@ export function initializeStandardTournamentApp(services) {
         controlReady = true;
         incomingControlState = incoming;
         if (!registrationsReady) return;
+        // A cached or locally echoed control snapshot must not roll back a
+        // court action while its newest optimistic state is still saving.
+        if ((controlWriteInFlight || pendingControlSnapshot)
+          && incoming?.updatedAt && state?.updatedAt && incoming.updatedAt <= state.updatedAt) return;
         applyingCloud = true;
         // Older control snapshots predate teamStandings. Rebuild keeps all
         // match data intact, then republishes the derived public projection
@@ -2298,6 +2359,7 @@ export function initializeStandardTournamentApp(services) {
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      clearTimeout(publicWriteTimer);
       cleanups.splice(0).forEach(stop => { try { if (typeof stop === 'function') stop(); } catch (_) {} });
       sessionCleanups.splice(0).forEach(stop => { try { if (typeof stop === 'function') stop(); } catch (_) {} });
       document.removeEventListener('keydown', onKeydown);
