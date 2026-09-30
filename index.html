@@ -577,9 +577,33 @@
   .recent-event-copy p{ font-size:15px; line-height:1.6; color: var(--ink-soft); }
   .recent-event-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; }
 
+  .recent-events-grid{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:16px;
+  }
+  .recent-event-mini{
+    display:flex;
+    flex-direction:column;
+    min-height:100%;
+    overflow:hidden;
+    border:1.5px solid var(--line);
+    border-radius:7px;
+    background:var(--paper);
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .recent-event-mini:hover{ transform:translateY(-3px); box-shadow:0 12px 26px rgba(11,36,54,.12); }
+  .recent-event-mini img{ width:100%; aspect-ratio:4/3; object-fit:cover; display:block; }
+  .recent-event-mini-copy{ padding:22px; display:flex; flex-direction:column; align-items:flex-start; gap:10px; flex:1; }
+  .recent-event-mini .event-tag{ color:var(--sky-deep); font:700 11px/1.4 var(--font-mono); letter-spacing:.07em; text-transform:uppercase; }
+  .recent-event-mini h3{ font-family:var(--font-display); font-size:25px; line-height:1.02; text-transform:uppercase; }
+  .recent-event-mini p{ color:var(--ink-soft); font-size:14px; line-height:1.6; }
+  .recent-event-mini .btn{ margin-top:auto; }
+
   @media (max-width: 700px){
     .recent-event-card{ grid-template-columns:1fr; }
     .recent-event-copy{ padding:32px 26px; }
+    .recent-events-grid{ grid-template-columns:1fr; }
   }
 
   /* ---- REPRESENTING OCPC ---- */
@@ -1191,22 +1215,39 @@
   <div class="section reveal">
     <div class="section-head">
       <span class="section-index">02</span>
-      <h2>Recent Event</h2>
+      <h2>Recent Events</h2>
       <span class="section-rule"></span>
     </div>
-    <div class="recent-event-card">
-      <div class="recent-event-img">
-        <img src="/assets/events/nueva-ecija-trip.webp" alt="OCPC members posing with the Corte Verdes banner during a night session in San Isidro, Nueva Ecija" loading="lazy">
-      </div>
-      <div class="recent-event-copy">
-        <span class="event-tag">Concluded · August 15, 2026</span>
-        <h3>OCPC Goes to Nueva Ecija</h3>
-        <p>The squad made the trip up to San Isidro, Nueva Ecija for a night of open play with Corte Verdes: good games, good company, and another club crossed off the road trip list.</p>
-        <div class="recent-event-actions">
-          <a class="btn btn-primary" href="/events/">See All Events</a>
+    <div class="recent-events-grid">
+      <article class="recent-event-mini">
+        <img src="/assets/events/2026-recaps/batangas-01.jpg" alt="OCPC members at Rallyhaus in Lipa City" loading="lazy">
+        <div class="recent-event-mini-copy">
+          <span class="event-tag">September 29, 2026 · Lipa &amp; Santa Rosa</span>
+          <h3>OCPC Goes to Lipa &amp; Santa Rosa!</h3>
+          <p>Two cities, two courts, and one very good OCPC road trip.</p>
+          <a class="btn btn-primary" href="/events/batangas-laguna-road-trip/">Read recap</a>
         </div>
-      </div>
+      </article>
+      <article class="recent-event-mini">
+        <img src="/assets/events/2026-recaps/rim-rally-01.jpg" alt="OCPC members at Rim and Rally Sports Hub in Dasmariñas" loading="lazy">
+        <div class="recent-event-mini-copy">
+          <span class="event-tag">September 27, 2026 · Dasmariñas</span>
+          <h3>Rim and Rally Sports Hub</h3>
+          <p>An exclusive invitation, a new court, and a warm welcome for OCPC.</p>
+          <a class="btn btn-primary" href="/events/rim-and-rally/">Read recap</a>
+        </div>
+      </article>
+      <article class="recent-event-mini">
+        <img src="/assets/events/2026-recaps/dink-central-01.jpg" alt="OCPC visiting Dink Central PH in Silang" loading="lazy">
+        <div class="recent-event-mini-copy">
+          <span class="event-tag">September 20, 2026 · Silang</span>
+          <h3>OCPC Goes to Dink Central</h3>
+          <p>More play, more laughs, and another Cavite court added to the list.</p>
+          <a class="btn btn-primary" href="/events/dink-central/">Read recap</a>
+        </div>
+      </article>
     </div>
+    <div class="recent-event-actions" style="justify-content:center; margin-top:20px;"><a class="btn btn-ghost" href="/events/">See all events</a></div>
   </div>
 
   <!-- Archived homepage tournament: First Serve Grand Opening, Aug 29–30, 2026. -->
