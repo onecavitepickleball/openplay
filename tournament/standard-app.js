@@ -1,3 +1,5 @@
+import { buildStandardDivision, standardEngineFormat, standardScoringRules, hasStandardPlayStarted } from './format-setup.js';
+
 const CONTROL_ROLES = new Set(['admin', 'owner', 'tournament_admin', 'match_control']);
 const ADMIN_ROLES = new Set(['admin', 'owner', 'tournament_admin']);
 const FORMAT_LABELS = {
@@ -137,18 +139,20 @@ function publicMatchId(engineMatchId) {
 }
 
 function standardScheduling(config, prior = {}) {
-  const saved = prior?.standardScheduling || config.standardScheduling || {};
+  const saved = { ...(config.standardScheduling || {}), ...(prior?.standardScheduling || {}) };
   const start = Number(saved.startMinutes);
   const slot = Number(saved.slotMinutes);
   const matchMinutes = Number(saved.matchMinutes);
   return {
+    ...saved,
     dispatchMode: DISPATCH_MODES.has(saved.dispatchMode) ? saved.dispatchMode : 'fixed-sequence',
-    startMinutes: Number.isFinite(start) ? start : 540,
+    startMinutes: Number.isFinite(start) ? start : (Number(config.event?.roundRobinStartMinutes) || parseClock(config.event?.startTime, 540)),
     // v2 moves operational estimates to 15-minute slots. The actual live
     // match timer remains independently configurable below.
-    slotMinutes: Number(saved.estimateSlotVersion) >= 2 && Number.isFinite(slot) && slot >= 5 ? slot : 15,
+    slotMinutes: Number.isFinite(slot) && slot >= 5 ? slot : 15,
     estimateSlotVersion: 2,
-    matchMinutes: Number.isFinite(matchMinutes) && matchMinutes >= 1 ? matchMinutes : 18
+    matchMinutes: Number.isFinite(matchMinutes) && matchMinutes >= 1 ? matchMinutes : (config.scoring?.matchMinutes || (config.scoring?.mode === 'timed-rally' ? 8 : 18)),
+    medalMinutes: Number(saved.medalMinutes) || config.scoring?.medalMinutes || 10
   };
 }
 
@@ -324,7 +328,11 @@ function divisionConfigs(config) {
     category,
     format: config.standardFormat || 'full-round-robin',
     qualifiers: config.qualifiers || 0,
-    poolCount: config.poolCount || 2
+    poolCount: config.poolCount || 2,
+    expectedPairs: config.expectedPairs || 0,
+    qualifiersPerPool: config.qualifiersPerPool,
+    bronzeMatch: config.bronzeMatch === true,
+    scoring: config.scoring
   }));
 }
 
@@ -350,7 +358,7 @@ function normalizedFormat(division, entryCount, warnings) {
     allowDraws: division.standings?.allowDraws === true,
     ...(division.standings?.points ? { points: division.standings.points } : {})
   };
-  const automaticNinePairFinalRound = entryCount === 9;
+  const automaticNinePairFinalRound = entryCount === 9 && ['full-round-robin', 'cross-affiliation-round-robin', 'round-robin', 'affiliation-round-robin'].includes(configured) && !division.qualifiers;
   if (automaticNinePairFinalRound) warnings.push(`${division.name}: nine confirmed pairs advance the top two directly to the Gold / Silver final; third place is awarded from the final rankings.`);
   if (configured === 'single-elimination') return { format: configured, standings };
   if (configured === 'cross-affiliation-round-robin'
@@ -363,29 +371,7 @@ function normalizedFormat(division, entryCount, warnings) {
     return { format: 'round-robin', standings };
   }
   if (['pools-elimination', 'pools-to-elimination', 'pools'].includes(configured)) {
-    if (!entryCount) {
-      warnings.push(`${division.name}: pools will be generated after the first confirmed entry.`);
-      return { format: 'round-robin', standings, configuredFormat: configured };
-    }
-    const poolCount = Math.max(1, Math.min(entryCount, Number(division.poolCount) || 2));
-    const requested = Math.max(0, Math.min(entryCount, Number(division.qualifiers?.count ?? division.qualifiers) || 0));
-    let perPool = Number(division.qualifiers?.perPool);
-    let wildcards = Number(division.qualifiers?.wildcards);
-    if (!Number.isSafeInteger(perPool) || perPool < 0) {
-      perPool = Math.floor(requested / poolCount);
-      wildcards = requested % poolCount;
-    }
-    perPool = Math.max(0, Math.min(Math.floor(entryCount / poolCount), perPool));
-    wildcards = Number.isSafeInteger(wildcards) && wildcards > 0 ? wildcards : 0;
-    const equalPools = entryCount % poolCount === 0;
-    if (wildcards && !equalPools) {
-      warnings.push(`${division.name}: wildcard places were omitted because its pools are not equal-sized.`);
-      wildcards = 0;
-    }
-    return {
-      format: 'pools', poolCount, standings,
-      qualifiers: { perPool, wildcards }
-    };
+    return { standings, ...standardEngineFormat(division, entryCount) };
   }
   const count = Math.max(0, Math.min(entryCount, Number(division.qualifiers?.count ?? division.qualifiers) || 0));
   return {
@@ -396,9 +382,38 @@ function normalizedFormat(division, entryCount, warnings) {
   };
 }
 
-function buildDefinition(config, registrations, rankingOrders = {}, formatOverrides = {}) {
+function randomPairRegistrations(config, registrations, pairingState) {
+  if (config?.pairing?.mode !== 'random-partners') return registrations;
+  if (pairingState?.status !== 'locked') return [];
+  const byId = new Map(registrations.map(item => [String(item.id || item.entryId || item.stableEntryId), item]));
+  const paired = [];
+  Object.entries(pairingState.assignments || {}).forEach(([category, assignments]) => {
+    (assignments || []).forEach((assignment, index) => {
+      const members = (assignment.registrationIds || []).map(id => byId.get(String(id))).filter(Boolean);
+      if (members.length !== 2) return;
+      const players = members.flatMap(item => Array.isArray(item.players) ? item.players.slice(0, 1) : []);
+      if (players.length !== 2) return;
+      const first = members[0];
+      paired.push({
+        ...clone(first),
+        id: `random-pair:${category}:${assignment.pairCode || index + 1}`,
+        entryId: `random-pair:${category}:${assignment.pairCode || index + 1}`,
+        stableEntryId: `random-pair:${category}:${assignment.pairCode || index + 1}`,
+        category,
+        pairCode: clean(assignment.pairCode) || `PAIR-${index + 1}`,
+        pairingStatus: 'locked',
+        pairingRegistrationIds: members.map(item => item.id),
+        players
+      });
+    });
+  });
+  return paired;
+}
+
+function buildDefinition(config, registrations, rankingOrders = {}, formatOverrides = {}, pairingState = null) {
   const warnings = [];
   const divisions = divisionConfigs(config);
+  registrations = randomPairRegistrations(config, registrations, pairingState);
   const affiliations = configuredAffiliations(config, registrations);
   const affiliationIds = new Set(affiliations.map(item => item.id));
   const confirmed = registrations.filter(item => clean(item.status || 'confirmed').toLowerCase() === 'confirmed');
@@ -458,7 +473,9 @@ function buildDefinition(config, registrations, rankingOrders = {}, formatOverri
       category: rankingDivision.category,
       entryIds,
       configuredFormat: rankingDivision.format || 'full-round-robin',
-      bronzeMatch: false,
+      setup: clone(rankingDivision),
+      scoring: clone(rankingDivision.scoring || config.scoring || {}),
+      bronzeMatch: rankingDivision.bronzeMatch === true,
       ...normalizedFormat(rankingDivision, entryIds.length, warnings)
     };
   });
@@ -596,6 +613,11 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
   };
   const automaticSlots = new Map();
   let nextWave = 0;
+  let nextStart = start;
+  const matchSlotMinutes = (match, divisionId) => {
+    const rules = standardScoringRules({ match, scoring:divisions.get(divisionId)?.scoring || config.scoring || {}, scheduling:schedule });
+    return rules.mode === 'timed-rally' ? Math.max(slotMinutes, rules.timerSeconds / 60 + (Number(schedule.turnoverMinutes) || 0)) : slotMinutes;
+  };
   let previousPlayers = new Set();
   const groups = [...new Set(source.filter(item => item.match.status !== 'bye' && !administrativeType(item.match)).map(item =>
     `${item.stage.type === 'single-elimination' ? 1 : 0}|${item.match.round}`))].sort((a, b) => {
@@ -624,8 +646,9 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
       waveMatches.forEach((item, courtIndex) => automaticSlots.set(item.match.id, {
         court: courtIndex + 1,
         wave: nextWave + 1,
-        startMinutes: start + nextWave * slotMinutes
+        startMinutes: nextStart
       }));
+      nextStart += Math.max(...waveMatches.map(item => matchSlotMinutes(item.match, item.division.id)));
       previousPlayers = usedPlayers;
       nextWave += 1;
     }
@@ -664,6 +687,7 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
       winnerId: match.winnerId,
       loserId: match.loserId,
       medal: match.medal || '',
+      scoring: clone(definition.scoring || config.scoring || {}),
       result: clone(match.result),
       administrative,
       referenceSequence,
@@ -671,9 +695,10 @@ function scheduleProjection(engineState, previousMatches, config, prior) {
       court,
       wave,
       startMinutes,
+      durationMinutes: matchSlotMinutes(match, division.id),
       time: administrative === 'walkover' ? 'Automatic walkover'
         : administrative === 'null' ? 'Null · 0-0'
-          : startMinutes == null ? 'TBD' : `${timeLabel(startMinutes)}-${timeLabel(startMinutes + slotMinutes)}`
+          : startMinutes == null ? 'TBD' : `${timeLabel(startMinutes)}-${timeLabel(startMinutes + matchSlotMinutes(match, division.id))}`
     };
   });
   const sequence = projected.filter(match => match.status !== 'bye' && !match.administrative)
@@ -800,6 +825,8 @@ export function initializeStandardTournamentApp(services) {
   let profile = null;
   let canAdmin = false;
   let activeView = 'overview';
+  let settingsDirty = false;
+  let settingsRendered = false;
   let activeDivision = '';
   let activeMatchId = '';
   let draggedScheduleMatchId = '';
@@ -881,9 +908,11 @@ export function initializeStandardTournamentApp(services) {
       });
       const final = division.stages.find(stage => stage.type === 'single-elimination')?.matches?.find(match => match.medal === 'gold');
       const finalScore = final?.result || {};
-      const bronze = rows.find(row => Number(row.rank) === 3);
+      const bronzeMatch = division.stages.find(stage => stage.type === 'single-elimination')?.matches?.find(match => match.medal === 'bronze');
+      const bronze = bronzeMatch ? (bronzeMatch.winnerId ? { entryId:bronzeMatch.winnerId } : null) : rows.find(row => Number(row.rank) === 3);
       medals[category] = {
         final: final ? { a:publicCode(final.participants.a), b:publicCode(final.participants.b), scoreA:finalScore.a ?? '', scoreB:finalScore.b ?? '', court:state.matches.find(match => match.engineMatchId === final.id)?.court || null } : {},
+        bronze: bronzeMatch ? { a:publicCode(bronzeMatch.participants.a), b:publicCode(bronzeMatch.participants.b), scoreA:bronzeMatch.result?.a ?? '', scoreB:bronzeMatch.result?.b ?? '', court:state.matches.find(match => match.engineMatchId === bronzeMatch.id)?.court || null } : {},
         bronzeAward: bronze ? { code:publicCode(bronze.entryId), names:entryName(bronze.entryId), rank:3 } : null
       };
     });
@@ -1012,7 +1041,7 @@ export function initializeStandardTournamentApp(services) {
   }
 
   function rebuild(prior = state) {
-    const built = buildDefinition(config, registrations, prior?.standardRankingOrders || {}, prior?.standardFormatOverrides || {});
+    const built = buildDefinition(config, registrations, prior?.standardRankingOrders || {}, prior?.standardFormatOverrides || {}, prior?.pairingState || null);
     let priorEngine = prior?.standardState;
     if (!priorEngine) {
       try {
@@ -1116,7 +1145,8 @@ export function initializeStandardTournamentApp(services) {
     }
     if (rerender) {
       if (changed) renderAll();
-      else if (liveChanged) renderCourts();
+      else if (liveChanged && activeView === 'courts') renderCourts();
+      else if (liveChanged && activeView === 'settings') renderSettings();
     }
   }
 
@@ -1155,7 +1185,7 @@ export function initializeStandardTournamentApp(services) {
     $('#dreamBreakerSummary')?.remove();
     if ($('#clubStandings')) $('#clubStandings').hidden = false;
     const medalHead = $('#view-medals .page-head');
-    if (medalHead) medalHead.innerHTML = '<div><span class="eyebrow dark">Elimination and podium</span><h1>Final Round</h1><p>Qualifiers advance to elimination. Gold and Silver are decided by the final; third place is awarded from the final rankings, with no bronze match.</p></div><div class="medal-actions"><button class="btn btn-primary is-pending" id="seedMedalsBtn" type="button">Seed from rankings</button></div>';
+    if (medalHead) medalHead.innerHTML = '<div><span class="eyebrow dark">Elimination and podium</span><h1>Final Round</h1><p>Qualifiers advance to elimination. Gold and silver are decided by the final; a configured bronze match decides third place.</p></div><div class="medal-actions"><button class="btn btn-primary is-pending" id="seedMedalsBtn" type="button">Seed from rankings</button></div>';
     const medalBoard = $('#medalBoard');
     if (medalBoard && !$('#medalDivisionTabs')) medalBoard.insertAdjacentHTML('beforebegin', '<div class="standard-division-nav" id="medalDivisionTabs" aria-label="Medal round division"></div>');
     const teamHead = $('#view-teams .page-head');
@@ -1186,6 +1216,7 @@ export function initializeStandardTournamentApp(services) {
     $$('.view').forEach(panel => panel.classList.toggle('active', panel.id === `view-${view}`));
     $$('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === view));
     $('#sidebar')?.classList.remove('open');
+    renderAll();
   }
 
   function metrics() {
@@ -1306,16 +1337,13 @@ export function initializeStandardTournamentApp(services) {
   }
 
   function standardMatchRules(match) {
-    const championship = match.medal === 'gold';
-    // Sportsfest rules are fixed per phase. Old per-match settings are
-    // intentionally ignored so an earlier 15-to-19 preset cannot leak into a
-    // preliminary match or a Championship final.
-    return championship
-      ? { mode:'championship', label:'Championship Final', scoring:'side-out', twoServes:true,
-        target:11, winBy:2, hardCap:15, suddenDeathAt:null, timer:false, timerSeconds:0 }
-      : { mode:'preliminary', label:'Preliminary', scoring:'side-out', twoServes:true,
-        target:11, winBy:2, hardCap:11, suddenDeathAt:10, timer:true,
-        timerSeconds:(state.standardScheduling?.matchMinutes || 18) * 60 };
+    const division = state.standardState.definition.divisions.find(item => item.id === match.divisionId);
+    return standardScoringRules({ match, scoring:{ ...(config.scoring || {}), ...(division?.scoring || {}) }, scheduling:state.standardScheduling });
+  }
+
+  function standardRuleSummary(rules) {
+    if (rules.mode === 'timed-rally') return `Rally scoring · ${rules.timerSeconds / 60} minutes · leader wins at time · tied: one deciding rally`;
+    return `Side-out · two serves · first to 11 · ${rules.hardCap === 11 ? 'sudden death at 10-10' : 'win by 2 · 15-point cap'}`;
   }
 
   function standardPortraits(entryId) {
@@ -1337,7 +1365,7 @@ export function initializeStandardTournamentApp(services) {
     if (!match) return `<section class="active-court empty ${next && standardCheckinWarning(next) ? 'needs-checkin' : ''}"><b>Court vacant</b><small>${next ? `${entryName(next.a)} (${affiliationName(next.a)}) vs ${entryName(next.b)} (${affiliationName(next.b)}) · ${state.standardScheduling?.dispatchMode === 'fixed-sequence' ? 'Next in sequence' : timeLabel(next.startMinutes)}` : 'Schedule complete'}</small>${next && standardCheckinWarning(next) ? `<strong class="checkin-alert">⚠ ${esc(standardCheckinWarning(next))}</strong>` : ''}${next ? `<button class="btn btn-primary" data-promote-court="${courtNumber}">Promote next match</button>` : ''}</section>`;
     const live = state.liveScoring?.[match.id] || court, score = scoreFor(match.id), seconds = elapsedSeconds(live), warning = standardCheckinWarning(match), official = state.refereeAssignments?.[match.id], interruption = live.interruption?.active ? live.interruption : null, rules = standardMatchRules(match);
     const winner = score && Number(score.a) !== Number(score.b) ? Number(score.a) > Number(score.b) ? 'a' : 'b' : '';
-    return `<section class="active-court category-${slug(match.category)} ${standardTimerTone(seconds)} ${!live.running && seconds && !score ? 'match-paused' : ''} ${interruption ? (interruption.type === 'team' ? 'interruption-warning' : 'interruption-danger') : ''} ${warning ? 'needs-checkin' : ''}"><div class="active-court-top"><span>${esc(match.divisionName)} · Court ${courtNumber}</span><b data-court-status="${courtNumber}">${esc(standardCourtStatus(live, score))}</b></div>${warning ? `<div class="checkin-alert">⚠ ${esc(warning)}</div>` : ''}${interruption ? `<div class="court-interruption"><span>${esc(interruption.label)}</span><b data-standard-interruption-clock="${courtNumber}">${timerLabel(elapsedSeconds(interruption))}</b><button data-end-standard-interruption="${courtNumber}">End interruption</button></div>` : ''}<div class="active-score"><div class="active-team ${winner === 'a' ? 'winner' : ''}"><div>${standardPortraits(match.a)}</div><strong>${winner === 'a' ? '🏆 ' : ''}${esc(entryName(match.a))}</strong><small class="pair-affiliation">${esc(affiliationName(match.a))}</small></div><b>${score?.a ?? live.a ?? 0}<small>–</small>${score?.b ?? live.b ?? 0}</b><div class="active-team ${winner === 'b' ? 'winner' : ''}"><div>${standardPortraits(match.b)}</div><strong>${winner === 'b' ? '🏆 ' : ''}${esc(entryName(match.b))}</strong><small class="pair-affiliation">${esc(affiliationName(match.b))}</small></div></div><div class="court-official"><span>Referee</span><b>${official ? esc(standardRefereeName(official)) : 'Unassigned'}</b><button data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? 'Swap' : 'Assign'}</button></div><div class="court-rule-summary"><b>${rules.label}</b><span>Side-out · two serves · first to 11 · ${rules.hardCap === 11 ? 'sudden death at 10-10' : 'win by 2 · 15-point cap'}</span></div><div class="active-actions">${rules.timer ? `<button class="court-timer-control ${live.running ? 'is-running' : seconds ? 'is-paused' : ''}" data-timer-toggle="${courtNumber}" ${score || interruption ? 'disabled' : ''}><span>${interruption ? 'Interrupted' : live.running ? 'Pause' : seconds ? 'Resume' : 'Start'}</span><b data-court-clock="${courtNumber}">${timerLabel(seconds)}</b></button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${esc(match.id)}">${score ? 'Review score' : 'Update score'}</button>${score ? '' : `<button class="end-match-action" data-end-match="${esc(match.id)}">End Match</button>`}<button data-standard-settings="${courtNumber}" ${score ? 'disabled' : ''}>Scoring rules</button><button data-standard-tools="${courtNumber}" ${score ? 'disabled' : ''}>Match tools</button><button class="vacate" data-vacate-court="${courtNumber}" ${score ? '' : 'disabled'}>Confirm court vacant</button></div></section>`;
+    return `<section class="active-court category-${slug(match.category)} ${standardTimerTone(seconds, match)} ${!live.running && seconds && !score ? 'match-paused' : ''} ${interruption ? (interruption.type === 'team' ? 'interruption-warning' : 'interruption-danger') : ''} ${warning ? 'needs-checkin' : ''}"><div class="active-court-top"><span>${esc(match.divisionName)} · Court ${courtNumber}</span><b data-court-status="${courtNumber}">${esc(standardCourtStatus(live, score))}</b></div>${warning ? `<div class="checkin-alert">⚠ ${esc(warning)}</div>` : ''}${interruption ? `<div class="court-interruption"><span>${esc(interruption.label)}</span><b data-standard-interruption-clock="${courtNumber}">${timerLabel(elapsedSeconds(interruption))}</b><button data-end-standard-interruption="${courtNumber}">End interruption</button></div>` : ''}<div class="active-score"><div class="active-team ${winner === 'a' ? 'winner' : ''}"><div>${standardPortraits(match.a)}</div><strong>${winner === 'a' ? '🏆 ' : ''}${esc(entryName(match.a))}</strong><small class="pair-affiliation">${esc(affiliationName(match.a))}</small></div><b>${score?.a ?? live.a ?? 0}<small>–</small>${score?.b ?? live.b ?? 0}</b><div class="active-team ${winner === 'b' ? 'winner' : ''}"><div>${standardPortraits(match.b)}</div><strong>${winner === 'b' ? '🏆 ' : ''}${esc(entryName(match.b))}</strong><small class="pair-affiliation">${esc(affiliationName(match.b))}</small></div></div><div class="court-official"><span>Referee</span><b>${official ? esc(standardRefereeName(official)) : 'Unassigned'}</b><button data-assign-standard-referee="${esc(match.id)}" data-assignment-court="${courtNumber}">${official ? 'Swap' : 'Assign'}</button></div><div class="court-rule-summary"><b>${rules.label}</b><span>${esc(standardRuleSummary(rules))}</span></div><div class="active-actions">${rules.timer ? `<button class="court-timer-control ${live.running ? 'is-running' : seconds ? 'is-paused' : ''}" data-timer-toggle="${courtNumber}" ${score || interruption ? 'disabled' : ''}><span>${interruption ? 'Interrupted' : live.running ? 'Pause' : seconds ? 'Resume' : 'Start'}</span><b data-court-clock="${courtNumber}">${timerLabel(seconds)}</b></button>` : '<span class="no-timer">No match timer</span>'}<button data-score-id="${esc(match.id)}">${score ? 'Review score' : 'Update score'}</button>${score ? '' : `<button class="end-match-action" data-end-match="${esc(match.id)}">End Match</button>`}<button data-standard-settings="${courtNumber}" ${score ? 'disabled' : ''}>Scoring rules</button><button data-standard-tools="${courtNumber}" ${score ? 'disabled' : ''}>Match tools</button><button class="vacate" data-vacate-court="${courtNumber}" ${score ? '' : 'disabled'}>Confirm court vacant</button></div></section>`;
   }
 
   function standardScheduleCell(courtNumber, minute) {
@@ -1431,7 +1459,7 @@ export function initializeStandardTournamentApp(services) {
     const live = state.liveScoring[matchId] ||= { elapsed:0, running:false, startedAt:null, a:0, b:0 };
     $('#standardCourtModal')?.remove();
     const active = live.interruption?.active ? `<div class="tools-current"><span>Active interruption</span><b>${esc(live.interruption.label)}</b><strong>${timerLabel(elapsedSeconds(live.interruption))}</strong><button class="btn btn-primary" id="endStandardTool">End interruption and resume</button></div>` : '';
-    const teamTimeoutAllowed = match.stage === 'elimination';
+    const teamTimeoutAllowed = match.stage === 'elimination' && standardMatchRules(match).teamTimeouts !== false;
     document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber} · ${esc(match.divisionName)}</span><h2>Match tools</h2><p>Starting an interruption automatically pauses the match timer. Ending it resumes play.</p>${active}<div class="guarded-tools"><button data-standard-tool="team" ${teamTimeoutAllowed ? '' : 'disabled'}>Team timeout <b>${teamTimeoutAllowed ? '60 seconds' : 'Not allowed in preliminary play'}</b></button><button data-standard-tool="medical">Medical timeout <b>5 minutes max</b></button><button data-standard-tool="technical">Technical timeout</button><button data-standard-tool="referee">Referee timeout</button><button data-standard-tool="equipment">Equipment timeout</button></div><div id="standardToolConfirmation"></div></section></div>`);
     const modal = $('#standardCourtModal'), close = () => modal.remove();
     modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-standard-modal]')) close(); };
@@ -1456,7 +1484,7 @@ export function initializeStandardTournamentApp(services) {
     if (!match) return;
     const rules = standardMatchRules(match);
     $('#standardCourtModal')?.remove();
-    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber} · ${esc(match.divisionName)}</span><h2>${esc(rules.label)} scoring rules</h2><div class="stack-form standard-rules-readonly"><p><b>Side-out scoring</b> · Two serves per service turn · First to 11 points.</p><p>${rules.hardCap === 11 ? '<b>Preliminary:</b> at 10-10, the next rally decides the match. Operational timer is managed from the court.' : '<b>Championship Final:</b> win by 2 until 15; the team that reaches 15 wins regardless of margin. There is no match timer.'}</p><button class="btn btn-primary" id="saveStandardRules">Close</button></div></section></div>`);
+    document.body.insertAdjacentHTML('beforeend', `<div class="court-tools-backdrop" id="standardCourtModal"><section><button class="modal-close contrast-close" data-close-standard-modal>×</button><span class="section-label">Court ${courtNumber} · ${esc(match.divisionName)}</span><h2>${esc(rules.label)} scoring rules</h2><div class="stack-form standard-rules-readonly"><p>${esc(standardRuleSummary(rules))}</p><button class="btn btn-primary" id="saveStandardRules">Close</button></div></section></div>`);
     const modal = $('#standardCourtModal'), close = () => modal.remove();
     modal.onclick = event => { if (event.target === modal || event.target.closest('[data-close-standard-modal]')) close(); };
     $('#saveStandardRules').onclick = close;
@@ -1800,10 +1828,10 @@ export function initializeStandardTournamentApp(services) {
       const rounds = [...new Set(stage.matches.map(match => match.round))];
       const finalRound = Math.max(...rounds);
       const preliminary = division.stages.find(item => item.type !== 'single-elimination');
-      const third = preliminary?.tables?.flatMap(table => table.rows || []).find(row => Number(row.rank) === 3);
+      const third = stage.bronzeMatchId ? null : preliminary?.tables?.flatMap(table => table.rows || []).find(row => Number(row.rank) === 3);
       return `<section class="panel standard-bracket"><header><div><span class="section-label">${stage.complete ? 'Final round complete' : 'Live elimination bracket'}</span><h2>${esc(definitions.get(division.id)?.name || division.id)}</h2></div><strong>${stage.championId ? `Gold: ${esc(entryName(stage.championId))}` : `Top ${stage.entryCount} qualifiers`}</strong></header><div class="standard-bracket-scroll">${rounds.map(round => `<div class="standard-bracket-round"><h3>${round === finalRound ? 'Gold / Silver final' : round === finalRound - 1 ? 'Semifinals' : `Elimination round ${round}`}</h3>${stage.matches.filter(match => match.round === round).map((match, index) => {
         const id = publicMatchId(match.id), score = scoreFor(id);
-        const label = match.medal === 'gold' ? 'Gold / Silver' : `Semifinal ${index + 1}`;
+        const label = match.medal === 'gold' ? 'Gold / Silver' : match.medal === 'bronze' ? 'Bronze / Third place' : `Semifinal ${index + 1}`;
         return `<article class="standard-bracket-match ${match.status} ${match.medal ? `medal-${match.medal}` : ''}"><header><span>${esc(label)}</span><small>${match.status === 'pending' ? 'Awaiting qualifiers' : match.status}</small></header><span><b>${esc(slotLabel(match.a, match.participants.a))}</b><strong>${score ? score.a : ''}</strong></span><span><b>${esc(slotLabel(match.b, match.participants.b))}</b><strong>${score ? score.b : ''}</strong></span><button data-score-id="${esc(id)}" ${['pending', 'bye'].includes(match.status) ? 'disabled' : ''}>${match.status === 'bye' ? 'Bye' : match.status === 'pending' ? 'Pending' : score ? 'Edit result' : 'Record result'}</button></article>`;
       }).join('')}</div>`).join('')}</div>${third ? `<p class="standard-third-place"><b>Third place:</b> ${esc(entryName(third.entryId))} · awarded from final rankings.</p>` : ''}</section>`;
     }).join('') : '<article class="panel standard-summary"><h2>Final round not configured</h2><p>This division ends in its rankings table. When a final round is configured, third place is awarded from those rankings rather than a bronze match.</p></article>';
@@ -1849,8 +1877,72 @@ export function initializeStandardTournamentApp(services) {
     };
   }
 
+  function randomizePartnerPreview() {
+    if (config.pairing?.mode !== 'random-partners') return;
+    if (hasStandardPlayStarted(state)) return toast('Partner assignments are locked once play has started.');
+    const groups = new Map();
+    registrations.filter(item => clean(item.status || 'confirmed').toLowerCase() === 'confirmed' && item.registrationUnit === 'individual' && Array.isArray(item.players) && item.players.length === 1).forEach(item => {
+      const category = clean(item.category || item.division);
+      if (!category) return;
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category).push(item);
+    });
+    if (!groups.size) return toast('Register individual players first, then run the draw.');
+    const assignments = {};
+    const seed = crypto.getRandomValues(new Uint32Array(2)).join('-');
+    for (const [category, source] of groups) {
+      if (source.length % 2) return toast(`${category} has ${source.length} eligible players. Add one more before drawing.`);
+      const shuffled = source.slice();
+      const random = new Uint32Array(shuffled.length);
+      crypto.getRandomValues(random);
+      for (let index = shuffled.length - 1; index > 0; index--) { const swap = random[index] % (index + 1); [shuffled[index], shuffled[swap]] = [shuffled[swap], shuffled[index]]; }
+      assignments[category] = [];
+      for (let index = 0; index < shuffled.length; index += 2) assignments[category].push({ pairCode:`PAIR-${index / 2 + 1}`, registrationIds:[shuffled[index].id, shuffled[index + 1].id] });
+    }
+    state.pairingState = { mode:'random-partners', status:'preview', seed, generatedAt:new Date().toISOString(), assignments };
+    recordActivity('Random partner draw generated for review');
+    publishState();
+    renderAll();
+    toast('Random draw ready for review.');
+  }
+
+  function lockPartnerPreview() {
+    if (config.pairing?.mode !== 'random-partners' || state.pairingState?.status !== 'preview') return;
+    if (hasStandardPlayStarted(state)) return toast('Partner assignments cannot be changed after play starts.');
+    if (!confirm('Lock these random partner assignments? They cannot be reshuffled after locking.')) return;
+    state.pairingState = { ...state.pairingState, status:'locked', lockedAt:new Date().toISOString() };
+    rebuild(state);
+    recordActivity('Random partner draw locked; pairs are now fixed');
+    publishState();
+    renderAll();
+    toast('Partner draw locked.');
+  }
+
+  function renderPairingSettings(settingsGrid) {
+    if (config.pairing?.mode !== 'random-partners' || !settingsGrid) return;
+    const pairing = state.pairingState || { status:'unlocked', assignments:{} };
+    const lookup = new Map(registrations.map(item => [String(item.id), item]));
+    const categories = Object.entries(pairing.assignments || {});
+    const rows = categories.flatMap(([category, assignments]) => assignments.map(assignment => {
+      const names = (assignment.registrationIds || []).map(id => lookup.get(String(id))?.players?.[0]?.fullName).filter(Boolean);
+      return `<div class="pairing-preview-row"><span>${esc(category)}</span><b>${esc(names.join(' & ') || 'Player details unavailable')}</b><code>${esc(assignment.pairCode || 'PAIR')}</code></div>`;
+    })).join('');
+    const panel = document.createElement('article');
+    panel.className = 'panel standard-summary standard-pairing-panel';
+    panel.innerHTML = `<span class="section-label">Event-day pairing</span><h2>Random partner draw</h2><p>${pairing.status === 'locked' ? 'Pairs are locked and are now used in the schedule.' : pairing.status === 'preview' ? 'Review the shuffle below. You can reshuffle until you lock it.' : 'Register players individually, then generate a random draw for review.'}</p>${rows ? `<div class="pairing-preview-list">${rows}</div>` : '<p class="empty">No pairing preview yet.</p>'}<div class="form-actions"><button class="btn btn-primary" id="generatePartnerDraw" ${pairing.status === 'locked' || hasStandardPlayStarted(state) ? 'disabled' : ''}>${pairing.status === 'preview' ? 'Reshuffle partners' : 'Generate random partners'}</button><button class="btn btn-quiet" id="lockPartnerDraw" ${pairing.status !== 'preview' || hasStandardPlayStarted(state) ? 'disabled' : ''}>Lock pairs</button></div><small>${pairing.status === 'locked' ? `Locked ${new Date(pairing.lockedAt || pairing.generatedAt || Date.now()).toLocaleString()}.` : 'The draw uses the browser cryptographic random generator and records its seed for audit.'}</small>`;
+    settingsGrid.appendChild(panel);
+    $('#generatePartnerDraw').onclick = randomizePartnerPreview;
+    $('#lockPartnerDraw').onclick = lockPartnerPreview;
+  }
+
   function renderSettings() {
     if (!state) return;
+    // Incoming scores must not replace the form an operator is currently editing.
+    if (settingsRendered && settingsDirty) {
+      if (hasStandardPlayStarted(state)) $$('.standard-ranking-order').forEach(fieldset => { fieldset.disabled = true; });
+      return;
+    }
+    settingsRendered = true;
     const definitions = divisionLookup(state.standardState);
     const configList = $('#configList');
     if (configList) configList.innerHTML = [
@@ -1869,10 +1961,12 @@ export function initializeStandardTournamentApp(services) {
       const settingsGrid = $('.settings-grid', formatPanel);
       const scheduling = state.standardScheduling || standardScheduling(config, state);
       const rankingControls = state.standardState.divisions.map(division => {
-        const definition = definitions.get(division.id);
+        const projected = definitions.get(division.id);
+        const definition = { ...projected, ...(projected?.setup || {}) };
         const order = definition?.standings?.order || DEFAULT_RANKING_ORDER;
-        const configured = definition?.configuredFormat || definition?.format || 'full-round-robin';
-        const qualifierCount = Number(definition?.qualifiers?.count ?? 2) || 2;
+        const rawFormat = definition?.setup?.format || definition?.configuredFormat || definition?.format || 'full-round-robin';
+        const configured = ({ pools:'pools-elimination', 'pools-to-elimination':'pools-elimination', 'round-robin-to-elimination':'round-robin-elimination', 'round-robin':definition?.qualifiers ? 'round-robin-elimination' : 'full-round-robin', 'affiliation-round-robin':definition?.qualifiers ? 'cross-affiliation-round-robin-elimination' : 'cross-affiliation-round-robin' })[rawFormat] || rawFormat;
+        const qualifierCount = Number(definition?.qualifiers?.count ?? definition?.qualifiers ?? 0) || 0;
         const distinct = definition?.qualifiers?.distinctAffiliations === true || configured.startsWith('cross-affiliation');
         return `<fieldset class="standard-ranking-order" data-standard-division-settings="${esc(division.id)}"><legend>${esc(definition?.name || division.id)}</legend><label class="standard-format-field">Format<select data-standard-format="${esc(division.id)}"><option value="cross-affiliation-round-robin" ${configured === 'cross-affiliation-round-robin' ? 'selected' : ''}>Cross-team round robin</option><option value="cross-affiliation-round-robin-elimination" ${configured === 'cross-affiliation-round-robin-elimination' ? 'selected' : ''}>Cross-team round robin → elimination</option><option value="full-round-robin" ${configured === 'full-round-robin' ? 'selected' : ''}>Full round robin</option><option value="round-robin-elimination" ${configured === 'round-robin-elimination' ? 'selected' : ''}>Round robin → elimination</option><option value="pools-elimination" ${configured === 'pools-elimination' ? 'selected' : ''}>Pools → elimination</option><option value="single-elimination" ${configured === 'single-elimination' ? 'selected' : ''}>Single elimination</option></select></label><label class="standard-format-field">Pairs advancing<input data-standard-qualifiers="${esc(division.id)}" type="number" min="0" max="32" value="${qualifierCount}"></label><label class="setting-check standard-distinct-qualifiers"><input type="checkbox" data-standard-distinct-affiliations="${esc(division.id)}" ${distinct ? 'checked' : ''}> Championship qualifiers must represent different teams</label>${DEFAULT_RANKING_ORDER.map((criterion, index) => `<label>${index + 1}<select data-standard-ranking="${esc(division.id)}"><option value="wins" ${order[index] === 'wins' ? 'selected' : ''}>Wins</option><option value="pointDifferential" ${order[index] === 'pointDifferential' ? 'selected' : ''}>Point Differential</option><option value="pointsFor" ${order[index] === 'pointsFor' ? 'selected' : ''}>Points For</option><option value="pointsAgainst" ${order[index] === 'pointsAgainst' ? 'selected' : ''}>Points Against</option><option value="headToHead" ${order[index] === 'headToHead' ? 'selected' : ''}>Head-to-head</option></select></label>`).join('')}</fieldset>`;
       }).join('');
@@ -1880,33 +1974,82 @@ export function initializeStandardTournamentApp(services) {
       $('.standard-dispatch-settings .setting-check')?.insertAdjacentHTML('beforebegin', `<label class="standard-format-field">Estimated schedule slot (minutes)<input id="standardEstimatedSlotMinutes" type="number" min="5" max="180" step="1" value="${scheduling.slotMinutes || 15}"><small>15 minutes recommended · changes upcoming estimated times only</small></label><label class="standard-format-field">Default match timer (minutes)<input id="standardDefaultMatchMinutes" type="number" min="1" max="180" value="${scheduling.matchMinutes || 18}"><small>18 minutes recommended · controls the live court timer</small></label>`);
       $('#saveStandardScheduling').onclick = () => {
         const orders = {}, formats = {};
+        const locked = hasStandardPlayStarted(state);
+        let validationError = '';
         $$('.standard-ranking-order').forEach(fieldset => {
           const id = $('[data-standard-ranking]', fieldset)?.dataset.standardRanking;
           const order = $$('[data-standard-ranking]', fieldset).map(select => select.value);
           if (!id || new Set(order).size !== DEFAULT_RANKING_ORDER.length) return;
           orders[id] = order;
+          if (locked) return;
           const format = $('[data-standard-format]', fieldset)?.value || 'full-round-robin';
-          const qualifiers = Math.max(0, Number($('[data-standard-qualifiers]', fieldset)?.value) || 0);
-          formats[id] = { format, qualifiers:{ count:qualifiers, distinctAffiliations:Boolean($('[data-standard-distinct-affiliations]', fieldset)?.checked) } };
+          const pools = format === 'pools-elimination';
+          const source = definitions.get(id)?.setup || {};
+          try {
+            formats[id] = buildStandardDivision({ ...source, format,
+              expectedPairs:$('[data-standard-expected]', fieldset)?.value,
+              poolCount:$('[data-standard-pool-count]', fieldset)?.value,
+              qualifiersPerPool:pools ? $('[data-standard-per-pool]', fieldset)?.value : undefined,
+              qualifiers:pools ? { wildcards:$('[data-standard-wildcards]', fieldset)?.value } : { count:$('[data-standard-qualifiers]', fieldset)?.value, distinctAffiliations:Boolean($('[data-standard-distinct-affiliations]', fieldset)?.checked) },
+              bronzeMatch:Boolean($('[data-standard-bronze]', fieldset)?.checked) });
+          } catch (error) { validationError = error.message; }
         });
+        if (validationError) return toast(validationError);
         if (Object.keys(orders).length !== state.standardState.divisions.length) return toast('Each ranking criterion must appear exactly once in every division.');
-        state.standardRankingOrders = orders;
-        state.standardFormatOverrides = formats;
-        const slotMinutes = Math.max(5, Number($('#standardEstimatedSlotMinutes')?.value) || 15);
-        state.standardScheduling = { ...scheduling, dispatchMode: $('input[name="standardDispatchMode"]:checked')?.value || 'fixed-sequence', slotMinutes, estimateSlotVersion:2, matchMinutes:Math.max(1, Number($('#standardDefaultMatchMinutes')?.value) || 18) };
-        rebuild(state);
+        const slotMinutes = Number($('#standardEstimatedSlotMinutes')?.value);
+        const matchMinutes = Number($('#standardDefaultMatchMinutes')?.value);
+        const medalMinutes = Number($('#standardMedalMinutes')?.value);
+        if (![slotMinutes, matchMinutes, medalMinutes].every(value => Number.isSafeInteger(value) && value >= 1 && value <= 180) || slotMinutes < 5) return toast('Use whole minutes: schedule slots 5–180, match timers 1–180.');
+        const startMinutes = parseClock($('#standardStartTime')?.value, NaN);
+        const endMinutes = parseClock($('#standardEndTime')?.value, NaN);
+        if (!Number.isFinite(startMinutes) || !Number.isFinite(endMinutes) || endMinutes <= startMinutes) return toast('End time must be later than start time.');
+        const next = { ...state,
+          ...(!locked ? { standardRankingOrders:orders, standardFormatOverrides:formats } : {}),
+          standardScheduling:{ ...state.standardScheduling, dispatchMode:$('input[name="standardDispatchMode"]:checked')?.value || 'fixed-sequence', slotMinutes, estimateSlotVersion:2,
+            ...(!locked ? { startMinutes, endMinutes, matchMinutes, medalMinutes } : {}) } };
+        try { rebuild(next); } catch (error) { return toast(`Settings were not saved: ${error.message}`); }
+        settingsDirty = false;
         // Only future, uncalled matches are re-estimated. A live court or a
         // recorded result is never shifted by a planning preference.
         const activeIds = new Set(Object.values(state.courts || {}).map(court => court.matchId).filter(Boolean));
-        const courts = Math.max(1, Object.keys(state.courts || {}).length), start = Number(state.standardScheduling.startMinutes) || 540;
+        const freshSchedule = new Map(scheduleProjection(state.standardState, [], config, state).map(match => [match.id, match]));
         state.matches.filter(match => !match.administrative && match.status !== 'bye' && !isComplete(match.id) && !activeIds.has(match.id) && Number(match.scheduleNumber) > 0).forEach(match => {
-          const wave = Math.floor((Number(match.scheduleNumber) - 1) / courts);
-          match.startMinutes = start + wave * slotMinutes;
-          match.wave = wave + 1;
-          match.time = `${timeLabel(match.startMinutes)}-${timeLabel(match.startMinutes + slotMinutes)}`;
+          const fresh = freshSchedule.get(match.id);
+          if (!fresh) return;
+          match.startMinutes = fresh.startMinutes;
+          match.wave = fresh.wave;
+          match.time = fresh.time;
         });
         refreshScheduleCollections(); publishState(); renderAll(); toast('Dispatch mode, schedule estimates and ranking order saved.');
       };
+      const locked = hasStandardPlayStarted(state);
+      $$('.standard-ranking-order', formatPanel).forEach(fieldset => {
+        const id = fieldset.dataset.standardDivisionSettings;
+        const definition = definitions.get(id);
+        const setup = definition?.setup || definition || {};
+        const poolCount = Number(setup.poolCount) || 2;
+        const total = Number(setup.qualifiers?.count ?? setup.qualifiers) || 0;
+        fieldset.insertAdjacentHTML('afterbegin', `<p class="standard-format-lock">${locked ? 'Play has started. Format, advancement and rankings are locked; reset match-day data to change them.' : 'Plan the draw now; pairs can be assigned on event day.'}</p><label class="standard-format-field">Expected pairs<input data-standard-expected type="number" min="0" max="128" step="1" value="${Number(setup.expectedPairs ?? setup.entryLimit) || 0}"><small>0 = not specified; this does not create registrations.</small></label><label class="standard-format-field standard-pool-option">Pool count<input data-standard-pool-count type="number" min="1" max="32" step="1" value="${poolCount}"></label><label class="standard-format-field standard-pool-option">Qualifiers per pool<input data-standard-per-pool type="number" min="0" max="128" step="1" value="${Number(setup.qualifiers?.perPool ?? setup.qualifiersPerPool ?? Math.floor(total / poolCount))}"></label><label class="standard-format-field standard-pool-option">Additional wildcards<input data-standard-wildcards type="number" min="0" max="128" step="1" value="${Number(setup.qualifiers?.wildcards ?? (setup.qualifiers?.perPool != null ? 0 : total % poolCount))}"></label><label class="setting-check"><input data-standard-bronze type="checkbox" ${setup.bronzeMatch ? 'checked' : ''}> Bronze match (requires at least four advancing pairs)</label>`);
+        fieldset.disabled = locked;
+        const select = $('[data-standard-format]', fieldset);
+        const updateFields = () => {
+          const pools = select.value === 'pools-elimination';
+          $$('.standard-pool-option', fieldset).forEach(label => { label.hidden = !pools; });
+          $('[data-standard-qualifiers]', fieldset).closest('label').hidden = pools || ['full-round-robin', 'cross-affiliation-round-robin', 'single-elimination'].includes(select.value);
+          $('.standard-distinct-qualifiers', fieldset).hidden = pools || select.value === 'single-elimination';
+        };
+        select.onchange = updateFields;
+        updateFields();
+      });
+      const clockInput = minutes => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+      const startMinutes = scheduling.startMinutes ?? 540;
+      $('#standardEstimatedSlotMinutes')?.closest('label').insertAdjacentHTML('beforebegin', `<label class="standard-format-field">Schedule starts<input id="standardStartTime" type="time" value="${clockInput(startMinutes)}" ${locked ? 'disabled' : ''}></label><label class="standard-format-field">Venue closes<input id="standardEndTime" type="time" value="${clockInput(scheduling.endMinutes ?? parseClock(config.event?.endTime, Math.min(1439, startMinutes + 120)))}" ${locked ? 'disabled' : ''}></label><label class="standard-format-field">Medal timer (timed rally only)<input id="standardMedalMinutes" type="number" min="1" max="180" value="${scheduling.medalMinutes || 10}" ${locked ? 'disabled' : ''}></label>`);
+      if ($('#standardDefaultMatchMinutes')) $('#standardDefaultMatchMinutes').disabled = locked;
+      $('#saveStandardScheduling')?.insertAdjacentHTML('afterend', '<button class="btn btn-quiet" id="discardStandardSettings">Discard unsaved changes</button>');
+      $('#discardStandardSettings').onclick = () => { settingsDirty = false; renderSettings(); };
+      const introduction = $('.standard-dispatch-settings > p');
+      if (introduction) introduction.textContent = 'Set the venue window, schedule estimates and match timers independently. Format changes are locked once play starts.';
+      renderPairingSettings(settingsGrid);
     }
     const eventPanel = $('[data-settings-panel="event"] .settings-grid');
     if (eventPanel) eventPanel.querySelector('.white-label-panel')?.setAttribute('hidden', '');
@@ -2038,16 +2181,11 @@ export function initializeStandardTournamentApp(services) {
 
   function renderAll() {
     if (!state || destroyed) return;
-    renderOverview();
-    renderCourts();
-    renderSchedule();
-    renderStandings();
-    renderEntries();
-    renderBracket();
-    renderSettings();
-    renderAnnouncements();
-    renderArchive();
-    renderPublicShare();
+    const renderers = { overview:renderOverview, courts:renderCourts, schedule:renderSchedule, teams:renderEntries,
+      standings:renderStandings, pairs:renderEntries, entries:renderEntries, medals:renderBracket,
+      settings:renderSettings, officials:renderOfficials, announcements:renderAnnouncements, archive:renderArchive };
+    renderers[activeView]?.();
+    if (activeView === 'settings') renderPublicShare();
   }
 
   function bindScoreButtons() {
@@ -2083,7 +2221,7 @@ export function initializeStandardTournamentApp(services) {
     if (a === null || b === null) return void ($('#scoreMessage').textContent = 'Enter whole-number scores of zero or higher.');
     const match = state.matches.find(item => item.id === activeMatchId), rules = match && standardMatchRules(match), high = Math.max(a, b), low = Math.min(a, b);
     if (!match || a === b) return void ($('#scoreMessage').textContent = 'A completed match needs a decisive score.');
-    if (high > rules.hardCap) return void ($('#scoreMessage').textContent = `The maximum score for this match is ${rules.hardCap}.`);
+    if (rules.hardCap != null && high > rules.hardCap) return void ($('#scoreMessage').textContent = `The maximum score for this match is ${rules.hardCap}.`);
     if (rules.mode === 'championship' && !(high === 15 || (high >= 11 && high - low >= 2))) return void ($('#scoreMessage').textContent = 'Championship Final: first to 11, win by 2, with a 15-point maximum cap.');
     try {
       applyResult(activeMatchId, { a, b });
@@ -2132,6 +2270,13 @@ export function initializeStandardTournamentApp(services) {
   }
 
   function bindStaticEvents() {
+    const markSettingsDirty = event => { if (event.target.matches('input, select, textarea')) settingsDirty = true; };
+    $('#view-settings')?.addEventListener('input', markSettingsDirty);
+    $('#view-settings')?.addEventListener('change', markSettingsDirty);
+    cleanups.push(() => {
+      $('#view-settings')?.removeEventListener('input', markSettingsDirty);
+      $('#view-settings')?.removeEventListener('change', markSettingsDirty);
+    });
     $$('.nav-item').forEach(button => { if (!button.hidden) button.onclick = () => showView(button.dataset.view); });
     $$('[data-go]').forEach(button => button.onclick = () => showView(button.dataset.go));
     if ($('#menuBtn')) $('#menuBtn').onclick = () => $('#sidebar')?.classList.toggle('open');
@@ -2230,13 +2375,14 @@ export function initializeStandardTournamentApp(services) {
       const preserved = {
         standardRankingOrders:clone(state.standardRankingOrders || {}),
         standardFormatOverrides:clone(state.standardFormatOverrides || {}),
+        pairingState:clone(state.pairingState || null),
         standardScheduling:clone(state.standardScheduling || standardScheduling(config, state)),
         // A reset clears match-day data, not the spectator link. Retaining the
         // token lets publishState overwrite the old public scores immediately.
         publicShare:clone(state.publicShare || null),
         courtCount:Object.keys(state.courts || {}).length
       };
-      const built = buildDefinition(config, registrations, preserved.standardRankingOrders, preserved.standardFormatOverrides);
+      const built = buildDefinition(config, registrations, preserved.standardRankingOrders, preserved.standardFormatOverrides, preserved.pairingState || null);
       state = projectState(engine.createCompetition(built.definition), preserved, config, built.warnings);
       await publishState(); renderAll(); toast('Match-day state reset and live public standings refreshed; entries retained.');
     };
@@ -2253,6 +2399,8 @@ export function initializeStandardTournamentApp(services) {
       const generation = ++authGeneration;
       sessionCleanups.splice(0).forEach(stop => { try { if (typeof stop === 'function') stop(); } catch (_) {} });
       controlReady = false;
+      settingsDirty = false;
+      settingsRendered = false;
       registrationsReady = false;
       incomingControlState = null;
       latestMatchDocuments = [];
@@ -2313,7 +2461,7 @@ export function initializeStandardTournamentApp(services) {
       if (typeof services.watchCheckins === 'function') sessionCleanups.push(services.watchCheckins(items => {
         if (!state) return;
         state.checkins = Object.fromEntries((items || []).map(item => [item.id, item]));
-        persistLocal(); renderCourts();
+        persistLocal(); if (activeView === 'courts') renderCourts();
       }, () => toast('Check-in status is unavailable.')));
       loadStaff().catch(() => {});
     });
@@ -2335,7 +2483,7 @@ export function initializeStandardTournamentApp(services) {
       const live = state.liveScoring?.[court.matchId] || court, seconds = elapsedSeconds(live);
       if (target) target.textContent = timerLabel(seconds);
       const card = target?.closest('.active-court');
-      if (card) { card.classList.remove('timer-warning', 'timer-danger'); const tone = standardTimerTone(seconds); if (tone) card.classList.add(tone); }
+      if (card) { card.classList.remove('timer-warning', 'timer-danger'); const tone = standardTimerTone(seconds, state.matches.find(match => match.id === court.matchId)); if (tone) card.classList.add(tone); }
       const interruption = $(`[data-standard-interruption-clock="${number}"]`);
       if (interruption && live?.interruption) {
         const interruptionSeconds = elapsedSeconds(live.interruption);

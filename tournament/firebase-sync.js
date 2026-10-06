@@ -96,7 +96,7 @@ window.addEventListener('offline', () => emitSyncState());
 window.addEventListener('online', () => emitSyncState());
 queueMicrotask(() => {
   emitSyncState();
-  navigator.serviceWorker?.register('/sw.js').catch(() => {});
+  navigator.serviceWorker?.register('/tournament/sw.js', { scope:'/tournament/' }).catch(() => {});
 });
 
 function settleWaiters(state, error) {

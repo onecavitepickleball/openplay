@@ -1057,3 +1057,50 @@
   .standard-tournament-control #configList > div { padding: 9px; }
   .standard-tournament-control #configList > div b { font-size: 13px; }
 }
+
+/* Keep long setup controls and labels inside the viewport on small desks/phones. */
+.standard-tournament-control .standard-ranking-order { min-width: 0; }
+.standard-tournament-control .standard-ranking-order > [hidden] { display: none !important; }
+.standard-tournament-control .standard-format-lock { grid-column: 1 / -1; font-size: 12px; line-height: 1.5; }
+.standard-tournament-control .standard-ranking-order:disabled { opacity: .75; }
+.standard-tournament-control .standard-format-field input,
+.standard-tournament-control .standard-format-field select { width: 100%; min-width: 0; max-width: 100%; }
+.standard-tournament-control .standard-format-field small { white-space: normal; }
+.standard-tournament-control .standard-ranking-order label.standard-format-field { grid-template-columns: minmax(0, 1fr); }
+.standard-tournament-control .standard-ranking-order label.setting-check { display: flex; align-items: center; }
+
+.standard-tournament-control .standard-pairing-panel {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #f5fbff, #fff);
+}
+.standard-tournament-control .pairing-preview-list {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+  max-height: 330px;
+  overflow: auto;
+}
+.standard-tournament-control .pairing-preview-row {
+  display: grid;
+  grid-template-columns: minmax(110px, .55fr) minmax(0, 2fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 13px;
+  border: 1px solid #d9e8ef;
+  border-radius: 10px;
+  background: #fff;
+}
+.standard-tournament-control .pairing-preview-row span,
+.standard-tournament-control .pairing-preview-row code { color: #557080; font: 700 10px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.standard-tournament-control .pairing-preview-row b { min-width: 0; overflow-wrap: anywhere; }
+.standard-tournament-control .standard-pairing-panel .form-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+@media (max-width: 600px) {
+  .standard-tournament-control .pairing-preview-row { grid-template-columns: 1fr auto; }
+  .standard-tournament-control .pairing-preview-row b { grid-column: 1 / -1; grid-row: 1; }
+}
+@media (max-width: 600px) {
+  .standard-tournament-control .standard-ranking-order { grid-template-columns: minmax(0, 1fr); }
+  .standard-tournament-control .standard-format-field,
+  .standard-tournament-control .standard-ranking-order > label { min-width: 0; grid-column: 1; }
+  .standard-tournament-control #saveStandardScheduling { width: 100%; white-space: normal; }
+}
