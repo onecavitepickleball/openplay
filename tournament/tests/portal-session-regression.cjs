@@ -60,6 +60,12 @@ export async function runTransaction(db,cb){
     assert.equal(await page.evaluate(()=>window.fixtureClaims||0),0);
     await page.getByRole('button',{name:'Create new tournament'}).click();
     assert.equal(await page.locator('#createModal').isVisible(),true);
+    assert.equal(await page.locator('#newPairingMode').isVisible(),true);
+    await page.locator('#newPairingMode').selectOption('random-partners');
+    assert.equal(await page.locator('#newExpectedPlayersField').isVisible(),true);
+    assert.equal(await page.locator('#newExpectedPairsField').isVisible(),false);
+    assert.match(await page.locator('#newPairingHint').textContent(),/same fixed pairs for every match/);
+    console.log('PASS: creation portal offers individual registration with a one-time fixed-partner draw');
     console.log('PASS: signed-in portal loads and buttons work despite unavailable session service and stalled directory write');
     await page.reload();
     await page.getByRole('heading',{name:'Regression Tournament'}).waitFor();
