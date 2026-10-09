@@ -498,7 +498,7 @@ service cloud.firestore {
     match /tournamentEvents/{eventId} {
       allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_registration') || legacyTournamentRole(eventId, 'tournament_checkin') || legacyTournamentRole(eventId, 'tournament_score_desk') || legacyTournamentRole(eventId, 'tournament_referee') || (request.auth != null && resource.data.refereeEmails.hasAny([request.auth.token.email]));
       allow create: if approvedOrganizer() && request.resource.data.ownerId == request.auth.uid && request.resource.data.memberIds.hasOnly([request.auth.uid]);
-      allow delete: if managesTournament(eventId);
+      allow delete: if managesTournament(eventId) && (resource.data.metadata.archived == true || resource.data.metadata.status == 'archived');
       allow update: if ((managesTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin'))
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['state']) || activeTournamentDevice())) || (
         (hasTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'match_control'))
@@ -568,7 +568,8 @@ service cloud.firestore {
     // Referee-safe overview without registration PII, signatures, or photos.
     match /tournamentRefereeBoards/{eventId} {
       allow read: if isTournamentMember(eventId) || isAdmin() || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control') || legacyTournamentRole(eventId, 'tournament_referee');
-      allow write: if activeTournamentDevice() && (controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control'));
+      allow create, update: if activeTournamentDevice() && (controlsTournament(eventId) || legacyTournamentRole(eventId, 'tournament_admin') || legacyTournamentRole(eventId, 'match_control'));
+      allow delete: if managesTournament(eventId) && (get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.metadata.archived == true || get(/databases/$(database)/documents/tournamentEvents/$(eventId)).data.metadata.status == 'archived');
     }
   }
 }
