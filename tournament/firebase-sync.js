@@ -157,7 +157,7 @@ export async function uploadTournamentImage(file, kind = 'matchday') {
 }
 export async function updateEventConfiguration(config) {
   const [members, current] = await Promise.all([getDocs(membersRef), getDoc(controlRef)]), prior = current.data()?.metadata || {};
-  const metadata = { ...prior, name:config.event.name, date:config.event.date, venue:config.event.venue, location:config.event.location, status:prior.status || 'private', archived:Boolean(prior.archived), primary:config.brand.primary, competitionType:config.competitionType || 'dual-meet' }, batch = writeBatch(db);
+  const metadata = { ...prior, name:config.event.name, date:config.event.date, venue:config.event.venue, location:config.event.location, status:prior.status || 'private', archived:Boolean(prior.archived), primary:config.brand.primary, competitionType:config.competitionType || 'dual-meet', checkInRequired:config.checkIn?.required !== false }, batch = writeBatch(db);
   batch.set(controlRef, { config:structuredClone(config), metadata, sessionDeviceId:sessionLock.deviceId(), updatedAt:serverTimestamp() }, { merge:true });
   members.docs.forEach(member => { const roles = roleList(member.data()).filter(role => EVENT_ROLES.includes(role)); batch.set(doc(db,'tournamentAccess',member.id,'events',eventId), { eventId, ...metadata, roles, role:primaryRole(roles), updatedAt:serverTimestamp() }, { merge:true }); });
   await batch.commit();
@@ -227,7 +227,7 @@ export async function changeTournamentStaffRole(email, role, enabled) {
   if (roles.size) {
     batch.set(targetRef,{uid:person.uid,email,name:person.name||email,firstName:person.firstName||'',lastName:person.lastName||'',roles:[...roles],updatedAt:serverTimestamp()},{merge:true});
     const roleValues = [...roles];
-    batch.set(accessRef,{eventId,name:metadata.name||event.config?.event?.name||eventId,date:metadata.date||event.config?.event?.date||'',venue:metadata.venue||event.config?.event?.venue||'',location:metadata.location||event.config?.event?.location||'',status:metadata.status||'private',primary:event.config?.brand?.primary||'#06658c',roles:roleValues,role:primaryRole(roleValues),updatedAt:serverTimestamp()},{merge:true});
+    batch.set(accessRef,{eventId,name:metadata.name||event.config?.event?.name||eventId,date:metadata.date||event.config?.event?.date||'',venue:metadata.venue||event.config?.event?.venue||'',location:metadata.location||event.config?.event?.location||'',status:metadata.status||'private',primary:event.config?.brand?.primary||'#06658c',checkInRequired:event.config?.checkIn?.required!==false,roles:roleValues,role:primaryRole(roleValues),updatedAt:serverTimestamp()},{merge:true});
     batch.update(controlRef,{memberIds:arrayUnion(person.uid),sessionDeviceId:sessionLock.deviceId(),updatedAt:serverTimestamp(),...(role==='tournament_referee'?{refereeEmails:enabled?arrayUnion(email):arrayRemove(email)}:{})});
   } else {
     batch.delete(targetRef); batch.delete(accessRef); batch.update(controlRef,{memberIds:arrayRemove(person.uid),refereeEmails:arrayRemove(email),sessionDeviceId:sessionLock.deviceId(),updatedAt:serverTimestamp()});

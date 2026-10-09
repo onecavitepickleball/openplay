@@ -57,7 +57,7 @@ export async function loadTournamentContext() {
   catch (_) { location.replace(portalUrl({ denied:'1' })); return new Promise(() => {}); }
   if (!snapshot.exists() && eventId !== LEGACY_EVENT_ID) { location.replace(portalUrl({ missing:'1' })); return new Promise(() => {}); }
   const saved = snapshot.exists() ? snapshot.data().config : null;
-  const config = { ...fallback, ...(saved || {}), brand:{...fallback.brand,...(saved?.brand || {})}, event:{...fallback.event,...(saved?.event || {})}, scoring:{...fallback.scoring,...(saved?.scoring || {})}, clubs:Array.isArray(saved?.clubs) ? saved.clubs : fallback.clubs, categories:Array.isArray(saved?.categories) ? saved.categories : fallback.categories, pairsPerCategory:saved?.pairsPerCategory || fallback.pairsPerCategory };
+  const config = { ...fallback, ...(saved || {}), brand:{...fallback.brand,...(saved?.brand || {})}, event:{...fallback.event,...(saved?.event || {})}, scoring:{...fallback.scoring,...(saved?.scoring || {})}, checkIn:{required:true,...(fallback.checkIn || {}),...(saved?.checkIn || {})}, clubs:Array.isArray(saved?.clubs) ? saved.clubs : fallback.clubs, categories:Array.isArray(saved?.categories) ? saved.categories : fallback.categories, pairsPerCategory:saved?.pairsPerCategory || fallback.pairsPerCategory };
   config.firebaseEventId = eventId;
   config.storageKey = `matchday.${eventId}`;
   config.brand.logo = absoluteLogo(config.brand.logo);

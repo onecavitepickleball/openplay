@@ -1205,6 +1205,7 @@ export function initializeStandardTournamentApp(services) {
     if (publicPanel) publicPanel.hidden = false;
     $$('[data-event-app]').forEach(link => {
       link.href = window.MATCHDAY_EVENT_URL(link.dataset.eventApp);
+      if (link.dataset.eventApp.startsWith('check-in/') && config.checkIn?.required === false) link.hidden = true;
     });
     const registrationLink = $('#view-teams .page-head a[href="registration/"]');
     if (registrationLink) registrationLink.href = window.MATCHDAY_EVENT_URL('registration/');
@@ -1283,6 +1284,7 @@ export function initializeStandardTournamentApp(services) {
   }
 
   function standardCheckinWarning(match) {
+    if (config.checkIn?.required === false) return '';
     const missing = [match.a, match.b].flatMap(entryId => {
       const item = entry(entryId);
       if (!item || isDefaultEntry(item)) return [];
@@ -1742,6 +1744,33 @@ export function initializeStandardTournamentApp(services) {
     });
   }
 
+  function renderRegistrationOperations() {
+    const eventPanel = $('[data-settings-panel="event"] .settings-grid');
+    if (!eventPanel) return;
+    let panel = $('#standardRegistrationOperations');
+    if (!panel) {
+      eventPanel.insertAdjacentHTML('beforeend', '<article class="panel" id="standardRegistrationOperations"></article>');
+      panel = $('#standardRegistrationOperations');
+    }
+    const writable = canAdmin && typeof services.updateEventConfiguration === 'function';
+    panel.innerHTML = `<span class="section-label">Registration & arrival</span><h2>Player readiness</h2><p>Registered players are always eligible for the partner draw. Turn off check-in when attendance is being confirmed informally on event day.</p><label class="setting-check"><input id="standardRequireCheckIn" type="checkbox" ${config.checkIn?.required === false ? '' : 'checked'} ${writable ? '' : 'disabled'}> Require check-in before matches</label><small>${config.checkIn?.required === false ? 'Check-in warnings are off and the Check-In app is hidden from this tournament.' : 'Missing arrivals appear as warnings in Match Control.'}</small><div class="form-actions"><button class="btn btn-primary" id="saveRegistrationOperations" ${writable ? '' : 'disabled'}>Save player readiness</button></div>`;
+    $('#saveRegistrationOperations').onclick = async () => {
+      if (!writable) return;
+      const button = $('#saveRegistrationOperations');
+      button.disabled = true;
+      config.checkIn = { ...(config.checkIn || {}), required:$('#standardRequireCheckIn').checked };
+      try {
+        await services.updateEventConfiguration(config);
+        renderAll();
+        toast(config.checkIn.required ? 'Check-in warnings enabled.' : 'Players can play without checking in.');
+      } catch (error) {
+        console.error('Player readiness settings failed.', error);
+        button.disabled = false;
+        toast('Player readiness settings could not be saved.');
+      }
+    };
+  }
+
   function renderStandings() {
     const tabs = $('#standingsTabs');
     const grid = $('#standingsGrid');
@@ -2055,6 +2084,7 @@ export function initializeStandardTournamentApp(services) {
     if (eventPanel) eventPanel.querySelector('.white-label-panel')?.setAttribute('hidden', '');
     renderCourtSettings();
     renderTeamLogoUploads();
+    renderRegistrationOperations();
     const scheduleSummary = $('#scheduleOptimizerSummary');
     if (scheduleSummary) scheduleSummary.innerHTML = `<div class="optimizer-summary"><span><b>${state.matches.filter(match => match.status !== 'bye' && !match.administrative).length}</b> scheduled court matches</span><span><b>${state.matches.filter(match => match.administrative === 'walkover').length}</b> automatic walkovers</span><span><b>${state.matches.filter(match => match.administrative === 'null').length}</b> null matches</span><span><b>${state.standardScheduling?.slotMinutes || 18} min</b> slots from ${timeLabel(state.standardScheduling?.startMinutes || 540)}</span><span><b>${Object.keys(state.courts).length}</b> live courts</span></div>`;
     const optimize = $('#optimizeScheduleBtn');
